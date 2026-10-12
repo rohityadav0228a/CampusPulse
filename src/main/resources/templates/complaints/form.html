@@ -8,7 +8,7 @@
     <!-- Google Fonts for Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- CSRF Protection Meta for Asynchronous Requests -->
     <meta th:if="${_csrf != null}" name="_csrf" th:content="${_csrf.token}">
     <meta th:if="${_csrf != null}" name="_csrf_header" th:content="${_csrf.headerName}">
@@ -233,18 +233,18 @@
             font-size: 0.775rem;
             font-weight: 600;
             font-family: inherit;
-            color: var(--blue-700);
-            background-color: var(--blue-50);
-            border: 1px solid var(--blue-100);
+            color: var(--violet-600);
+            background-color: var(--violet-50);
+            border: 1px solid var(--violet-100);
             border-radius: var(--radius-full);
             cursor: pointer;
             transition: all var(--transition-fast);
         }
         .btn-ai-suggest:hover:not(:disabled) {
-            background-color: var(--blue-100);
-            color: var(--blue-700);
-            border-color: var(--blue-500);
-            box-shadow: var(--shadow-sm);
+            background-color: var(--violet-100);
+            color: var(--violet-700);
+            border-color: var(--violet-500);
+            box-shadow: 0 2px 4px rgba(124, 58, 237, 0.15);
         }
         .btn-ai-suggest:disabled {
             opacity: 0.65;

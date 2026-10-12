@@ -4,6 +4,7 @@ import com.campuspulse.model.Complaint;
 import com.campuspulse.model.ComplaintStatus;
 import com.campuspulse.model.NotificationOutbox;
 import com.campuspulse.model.NotificationStatus;
+import com.campuspulse.model.NotificationType;
 import com.campuspulse.repository.NotificationOutboxRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -482,5 +483,144 @@ class NotificationServiceTest {
 
         assertEquals(5L, count);
         verify(outboxRepository, times(1)).countByStatus(NotificationStatus.SENT);
+    }
+
+    // =========================================================================
+    // 6. Submission Confirmation Notification Tests
+    // =========================================================================
+
+    @Test
+    @DisplayName("queueAndDispatchSubmissionConfirmation successfully sends email and marks outbox record SENT")
+    void dispatchesSubmissionConfirmationAndMarksSent() {
+        when(outboxRepository.existsByReferenceIdAndNotificationType("CP-2026-NOTIF001", NotificationType.SUBMISSION_CONFIRMATION))
+                .thenReturn(false);
+        when(outboxRepository.save(any(NotificationOutbox.class))).thenAnswer(inv -> inv.getArgument(0));
+        doNothing().when(emailNotificationService).sendSubmissionConfirmation(
+                eq("student.notif@college.edu"),
+                eq("CP-2026-NOTIF001")
+        );
+
+        NotificationOutbox result = notificationService.queueAndDispatchSubmissionConfirmation(sampleComplaint);
+
+        assertNotNull(result);
+        assertEquals(NotificationStatus.SENT, result.getStatus());
+        assertEquals(NotificationType.SUBMISSION_CONFIRMATION, result.getNotificationType());
+        assertEquals("student.notif@college.edu", result.getRecipientEmail());
+        assertEquals("CP-2026-NOTIF001", result.getReferenceId());
+        assertEquals(1, result.getAttemptCount());
+        assertNotNull(result.getSentAt());
+        assertNull(result.getLastError());
+        assertNull(result.getNextRetryAt());
+
+        verify(emailNotificationService, times(1)).sendSubmissionConfirmation(
+                "student.notif@college.edu",
+                "CP-2026-NOTIF001"
+        );
+    }
+
+    @Test
+    @DisplayName("queueAndDispatchSubmissionConfirmation is idempotent and prevents duplicate confirmation notifications")
+    void submissionConfirmationIsIdempotent() {
+        when(outboxRepository.existsByReferenceIdAndNotificationType("CP-2026-NOTIF001", NotificationType.SUBMISSION_CONFIRMATION))
+                .thenReturn(true);
+
+        NotificationOutbox result = notificationService.queueAndDispatchSubmissionConfirmation(sampleComplaint);
+
+        assertNull(result, "Must return null and skip duplicate confirmation enqueueing");
+        verify(outboxRepository, never()).save(any());
+        verify(emailNotificationService, never()).sendSubmissionConfirmation(any(), any());
+    }
+
+    @Test
+    @DisplayName("queueAndDispatchSubmissionConfirmation safely records SKIPPED_NO_EMAIL when email is null or blank")
+    void submissionConfirmationHandlesMissingEmailSafely() {
+        sampleComplaint.setStudentEmail(null);
+        when(outboxRepository.existsByReferenceIdAndNotificationType("CP-2026-NOTIF001", NotificationType.SUBMISSION_CONFIRMATION))
+                .thenReturn(false);
+        when(outboxRepository.save(any(NotificationOutbox.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        NotificationOutbox result = notificationService.queueAndDispatchSubmissionConfirmation(sampleComplaint);
+
+        assertNotNull(result);
+        assertEquals(NotificationStatus.SKIPPED_NO_EMAIL, result.getStatus());
+        assertNull(result.getRecipientEmail());
+        verify(emailNotificationService, never()).sendSubmissionConfirmation(any(), any());
+
+        // Also test blank email
+        sampleComplaint.setStudentEmail("   ");
+        NotificationOutbox blankResult = notificationService.queueAndDispatchSubmissionConfirmation(sampleComplaint);
+        assertNotNull(blankResult);
+        assertEquals(NotificationStatus.SKIPPED_NO_EMAIL, blankResult.getStatus());
+        assertNull(blankResult.getRecipientEmail());
+    }
+
+    @Test
+    @DisplayName("queueAndDispatchSubmissionConfirmation marks PERMANENTLY_FAILED immediately on malformed email")
+    void submissionConfirmationMarksPermanentlyFailedOnMalformedEmail() {
+        sampleComplaint.setStudentEmail("invalid-email-address");
+        when(outboxRepository.existsByReferenceIdAndNotificationType("CP-2026-NOTIF001", NotificationType.SUBMISSION_CONFIRMATION))
+                .thenReturn(false);
+        when(outboxRepository.save(any(NotificationOutbox.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        NotificationOutbox result = notificationService.queueAndDispatchSubmissionConfirmation(sampleComplaint);
+
+        assertNotNull(result);
+        assertEquals(NotificationStatus.PERMANENTLY_FAILED, result.getStatus());
+        assertTrue(result.getLastError().contains("Permanently invalid"));
+        verify(emailNotificationService, never()).sendSubmissionConfirmation(any(), any());
+    }
+
+    @Test
+    @DisplayName("queueAndDispatchSubmissionConfirmation catches transient SMTP failure, marks FAILED, and schedules retry")
+    void submissionConfirmationSchedulesRetryOnTransientFailure() {
+        when(outboxRepository.existsByReferenceIdAndNotificationType("CP-2026-NOTIF001", NotificationType.SUBMISSION_CONFIRMATION))
+                .thenReturn(false);
+        when(outboxRepository.save(any(NotificationOutbox.class))).thenAnswer(inv -> inv.getArgument(0));
+        doThrow(new MailSendException("SMTP server connection refused"))
+                .when(emailNotificationService).sendSubmissionConfirmation(any(), any());
+
+        NotificationOutbox result = notificationService.queueAndDispatchSubmissionConfirmation(sampleComplaint);
+
+        assertNotNull(result);
+        assertEquals(NotificationStatus.FAILED, result.getStatus());
+        assertEquals(1, result.getAttemptCount());
+        assertNotNull(result.getNextRetryAt());
+        assertTrue(result.getLastError().contains("connection refused"));
+    }
+
+    @Test
+    @DisplayName("processPendingAndFailedRetries correctly dispatches SUBMISSION_CONFIRMATION notification types")
+    void retriesSubmissionConfirmationNotificationSuccessfully() {
+        NotificationOutbox existingOutbox = new NotificationOutbox(
+                sampleComplaint,
+                "CP-2026-CONFIRM-RETRY",
+                "student.retry@college.edu",
+                NotificationType.SUBMISSION_CONFIRMATION
+        );
+        existingOutbox.setId(301L);
+        existingOutbox.setStatus(NotificationStatus.PROCESSING);
+        existingOutbox.setAttemptCount(1);
+        existingOutbox.setLastError("Previous timeout");
+
+        when(outboxRepository.findEligibleCandidateIds(any(), anyInt(), any()))
+                .thenReturn(List.of(301L));
+        when(outboxRepository.claimNotificationForProcessing(eq(301L), any(), any()))
+                .thenReturn(1);
+        when(outboxRepository.findById(301L))
+                .thenReturn(Optional.of(existingOutbox));
+        when(outboxRepository.save(any(NotificationOutbox.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        int delivered = notificationService.processPendingAndFailedRetries();
+
+        assertEquals(1, delivered);
+        assertEquals(NotificationStatus.SENT, existingOutbox.getStatus());
+        assertEquals(2, existingOutbox.getAttemptCount());
+        assertNotNull(existingOutbox.getSentAt());
+
+        verify(emailNotificationService, times(1)).sendSubmissionConfirmation(
+                "student.retry@college.edu",
+                "CP-2026-CONFIRM-RETRY"
+        );
     }
 }

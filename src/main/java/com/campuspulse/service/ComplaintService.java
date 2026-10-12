@@ -2,18 +2,25 @@ package com.campuspulse.service;
 
 import com.campuspulse.dto.ComplaintForm;
 import com.campuspulse.model.Complaint;
+import com.campuspulse.model.ComplaintPriority;
 import com.campuspulse.model.ComplaintStatus;
 import com.campuspulse.model.ComplaintStatusHistory;
 import com.campuspulse.repository.ComplaintRepository;
 import com.campuspulse.repository.ComplaintStatusHistoryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.security.SecureRandom;
 import java.time.LocalDate;
@@ -143,6 +150,8 @@ public class ComplaintService {
                 );
                 complaintStatusHistoryRepository.save(initialHistory);
 
+                enqueueSubmissionConfirmationSafely(saved);
+
                 log.info("Successfully registered complaint id={} with referenceId={} and initial status audit record",
                         saved.getId(), saved.getReferenceId());
                 return saved;
@@ -156,6 +165,56 @@ public class ComplaintService {
         }
 
         throw new IllegalStateException("Failed to generate unique complaint reference ID.");
+    }
+
+    /**
+     * Safely triggers submission confirmation notification enqueueing.
+     * Uses transaction synchronization when an active transaction is present,
+     * ensuring that the complaint transaction has committed before notification processing begins,
+     * and guaranteeing that any email queue failure never rolls back the persisted complaint.
+     *
+     * @param complaint persisted complaint entity
+     */
+    private void enqueueSubmissionConfirmationSafely(Complaint complaint) {
+        if (notificationService == null || complaint == null) {
+            return;
+        }
+
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        notificationService.queueAndDispatchSubmissionConfirmation(complaint);
+                    } catch (Exception ex) {
+                        log.error("Failed to enqueue submission confirmation for complaint {} after transaction commit: {}",
+                                complaint.getReferenceId(), ex.getMessage(), ex);
+                    }
+                }
+            });
+        } else {
+            try {
+                notificationService.queueAndDispatchSubmissionConfirmation(complaint);
+            } catch (Exception ex) {
+                log.error("Failed to enqueue submission confirmation for complaint {}: {}",
+                        complaint.getReferenceId(), ex.getMessage(), ex);
+            }
+        }
+    }
+
+    /**
+     * Enqueues an initial submission confirmation notification for a complaint.
+     * Idempotent: duplicate calls for the same reference ID will not create duplicate emails.
+     *
+     * @param complaint persisted complaint entity
+     * @return persisted NotificationOutbox entry, or null if duplicate or skipped
+     */
+    @Transactional
+    public com.campuspulse.model.NotificationOutbox queueSubmissionConfirmation(Complaint complaint) {
+        if (notificationService == null || complaint == null) {
+            return null;
+        }
+        return notificationService.queueAndDispatchSubmissionConfirmation(complaint);
     }
 
     /**
@@ -223,6 +282,169 @@ public class ComplaintService {
                     default -> true;
                 })
                 .toList();
+    }
+
+    public static final int DEFAULT_PAGE_SIZE = 10;
+    public static final int MAX_PAGE_SIZE = 100;
+    public static final int MAX_RESOLUTION_NOTE_LENGTH = 1000;
+
+    /**
+     * Executes database-level paginated search combined with status, category, and SLA deadline filters.
+     * Backwards-compatible overload delegating to the department/priority-aware method.
+     */
+    @Transactional(readOnly = true)
+    public Page<Complaint> searchComplaints(
+            String searchTerm,
+            ComplaintStatus status,
+            String category,
+            String slaStatus,
+            int page,
+            int size) {
+        return searchComplaints(searchTerm, status, category, null, null, slaStatus, page, size);
+    }
+
+    /**
+     * Executes database-level paginated search combined with status, category, and SLA deadline filters
+     * using the provided Pageable. Backwards-compatible overload.
+     */
+    @Transactional(readOnly = true)
+    public Page<Complaint> searchComplaints(
+            String searchTerm,
+            ComplaintStatus status,
+            String category,
+            String slaStatus,
+            Pageable pageable) {
+        return searchComplaints(searchTerm, status, category, null, null, slaStatus, pageable);
+    }
+
+    /**
+     * Executes database-level paginated search combined with status, category, department, priority,
+     * and SLA deadline filters.
+     * Normalizes page number (zero-based, min 0), page size (clamped between 1 and 100), and ensures
+     * deterministic sorting (newest first by createdAt DESC, id DESC).
+     *
+     * @param searchTerm case-insensitive search keyword (optional, matched across referenceId, title, description, studentEmail)
+     * @param status lifecycle status to filter (optional)
+     * @param category campus category to filter (optional)
+     * @param department campus department to filter (optional)
+     * @param priority complaint priority level to filter (optional)
+     * @param slaStatus SLA status code (optional: OVERDUE, RESPONSE_OVERDUE, RESOLUTION_OVERDUE, APPROACHING_DEADLINE, ON_TRACK, MET, ALL)
+     * @param page zero-based page number (defaults to 0 if negative)
+     * @param size page size (defaults to 10, max 100)
+     * @return page of matching complaints
+     */
+    @Transactional(readOnly = true)
+    public Page<Complaint> searchComplaints(
+            String searchTerm,
+            ComplaintStatus status,
+            String category,
+            String department,
+            ComplaintPriority priority,
+            String slaStatus,
+            int page,
+            int size) {
+        int validPage = Math.max(0, page);
+        int validSize = (size <= 0) ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
+        Pageable pageable = PageRequest.of(validPage, validSize, Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id")));
+        return searchComplaints(searchTerm, status, category, department, priority, slaStatus, pageable);
+    }
+
+    /**
+     * Executes database-level paginated search combined with status, category, department, priority,
+     * and SLA deadline filters using the provided Pageable. Validates and normalizes inputs to preserve safe execution.
+     *
+     * @param searchTerm case-insensitive search keyword (optional)
+     * @param status lifecycle status to filter (optional)
+     * @param category campus category to filter (optional)
+     * @param department campus department to filter (optional)
+     * @param priority complaint priority level to filter (optional)
+     * @param slaStatus SLA status code (optional)
+     * @param pageable pagination and sorting parameters
+     * @return page of matching complaints
+     */
+    @Transactional(readOnly = true)
+    public Page<Complaint> searchComplaints(
+            String searchTerm,
+            ComplaintStatus status,
+            String category,
+            String department,
+            ComplaintPriority priority,
+            String slaStatus,
+            Pageable pageable) {
+
+        String effectiveSearch = (searchTerm != null && !searchTerm.isBlank()) ? searchTerm.trim() : null;
+        String effectiveCategory = (category != null && !category.isBlank()) ? category.trim() : null;
+        String effectiveDepartment = (department != null && !department.isBlank()) ? department.trim() : null;
+        String normalizedSla = normalizeSlaStatus(slaStatus);
+
+        Pageable effectivePageable = normalizePageable(pageable);
+
+        LocalDateTime now = LocalDateTime.now(slaProperties.getZoneId());
+        LocalDateTime threshold = now.plusHours(slaProperties.getApproachingDeadlineHours());
+
+        if (effectiveDepartment != null || priority != null) {
+            return complaintRepository.searchWithFilters(
+                    effectiveSearch,
+                    status,
+                    effectiveCategory,
+                    effectiveDepartment,
+                    priority,
+                    normalizedSla,
+                    now,
+                    threshold,
+                    effectivePageable
+            );
+        } else {
+            return complaintRepository.searchWithFilters(
+                    effectiveSearch,
+                    status,
+                    effectiveCategory,
+                    normalizedSla,
+                    now,
+                    threshold,
+                    effectivePageable
+            );
+        }
+    }
+
+    private String normalizeSlaStatus(String slaStatus) {
+        if (slaStatus == null || slaStatus.isBlank() || "ALL".equalsIgnoreCase(slaStatus.trim())) {
+            return null;
+        }
+        String upper = slaStatus.trim().toUpperCase(java.util.Locale.ROOT);
+        return switch (upper) {
+            case "OVERDUE", "RESPONSE_OVERDUE", "RESOLUTION_OVERDUE", "APPROACHING_DEADLINE", "ON_TRACK", "MET" -> upper;
+            default -> null;
+        };
+    }
+
+    private Pageable normalizePageable(Pageable pageable) {
+        Sort defaultSort = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
+        if (pageable == null || pageable.isUnpaged()) {
+            return PageRequest.of(0, DEFAULT_PAGE_SIZE, defaultSort);
+        }
+
+        int page = Math.max(0, pageable.getPageNumber());
+        int size = pageable.getPageSize() <= 0 ? DEFAULT_PAGE_SIZE : Math.min(pageable.getPageSize(), MAX_PAGE_SIZE);
+
+        Sort sort = pageable.getSort();
+        if (sort == null || sort.isUnsorted()) {
+            sort = defaultSort;
+        } else {
+            // Ensure stable secondary tie-breaker if id is not included in sort
+            boolean hasIdSort = false;
+            for (Sort.Order order : sort) {
+                if ("id".equalsIgnoreCase(order.getProperty())) {
+                    hasIdSort = true;
+                    break;
+                }
+            }
+            if (!hasIdSort) {
+                sort = sort.and(Sort.by(Sort.Direction.DESC, "id"));
+            }
+        }
+
+        return PageRequest.of(page, size, sort);
     }
 
     /**
@@ -304,6 +526,9 @@ public class ComplaintService {
                 : resolveCurrentActorUsername();
 
         String effectiveNote = (note != null && !note.isBlank()) ? note.trim() : null;
+        if (effectiveNote != null && effectiveNote.length() > MAX_RESOLUTION_NOTE_LENGTH) {
+            throw new IllegalArgumentException("Resolution note cannot exceed " + MAX_RESOLUTION_NOTE_LENGTH + " characters.");
+        }
 
         LocalDateTime now = LocalDateTime.now(slaProperties.getZoneId());
         complaint.setStatus(newStatus);
@@ -312,8 +537,12 @@ public class ComplaintService {
         }
         if (newStatus == ComplaintStatus.RESOLVED) {
             complaint.setResolvedAt(now);
+            if (effectiveNote != null) {
+                complaint.setResolutionNote(effectiveNote);
+            }
         } else if (previousStatus == ComplaintStatus.RESOLVED) {
             complaint.setResolvedAt(null);
+            complaint.setResolutionNote(null);
         }
 
         Complaint updated = complaintRepository.save(complaint);
@@ -333,6 +562,283 @@ public class ComplaintService {
 
         log.info("Administrator '{}' updated complaint {} status from {} to {} (note: {})",
                 effectiveActor, referenceId, previousStatus, newStatus, effectiveNote);
+        return updated;
+    }
+
+    /**
+     * Updates or corrects the resolution note of an already-resolved complaint in an authorized, auditable workflow.
+     * Validates that the complaint exists, is in RESOLVED status, and the note satisfies length constraints.
+     * Records an immutable audit history record with actor attribution and update rationale.
+     *
+     * @param referenceId unique reference identifier
+     * @param resolutionNote updated resolution note
+     * @param actorUsername username of the authorized administrator performing the update
+     * @return updated Complaint entity
+     */
+    @Transactional
+    public Complaint updateResolutionNote(String referenceId, String resolutionNote, String actorUsername) {
+        if (referenceId == null || referenceId.isBlank()) {
+            throw new IllegalArgumentException("Reference ID cannot be blank");
+        }
+        if (resolutionNote == null || resolutionNote.isBlank()) {
+            throw new IllegalArgumentException("Resolution note cannot be blank");
+        }
+        String trimmedNote = resolutionNote.trim();
+        if (trimmedNote.length() > MAX_RESOLUTION_NOTE_LENGTH) {
+            throw new IllegalArgumentException("Resolution note cannot exceed " + MAX_RESOLUTION_NOTE_LENGTH + " characters.");
+        }
+
+        Complaint complaint = complaintRepository.findByReferenceId(referenceId.trim().toUpperCase())
+                .orElseThrow(() -> new IllegalArgumentException("Complaint not found with reference ID: " + referenceId));
+
+        if (complaint.getStatus() != ComplaintStatus.RESOLVED) {
+            throw new IllegalArgumentException("Cannot update resolution note on a non-resolved complaint.");
+        }
+
+        String effectiveActor = (actorUsername != null && !actorUsername.isBlank())
+                ? actorUsername.trim()
+                : resolveCurrentActorUsername();
+
+        complaint.setResolutionNote(trimmedNote);
+        Complaint updated = complaintRepository.save(complaint);
+
+        ComplaintStatusHistory historyEntry = new ComplaintStatusHistory(
+                updated,
+                ComplaintStatus.RESOLVED,
+                ComplaintStatus.RESOLVED,
+                effectiveActor,
+                "Resolution note corrected: " + trimmedNote
+        );
+        complaintStatusHistoryRepository.save(historyEntry);
+
+        log.info("Administrator '{}' updated resolution note for complaint {}", effectiveActor, referenceId);
+        return updated;
+    }
+
+    /**
+     * Reassigns a complaint to an authorized campus department.
+     * Validates that the department belongs to the controlled ALLOWED_DEPARTMENTS set and prevents
+     * redundant no-op updates. Records an immutable audit log entry capturing the previous and new department.
+     *
+     * @param referenceId unique reference identifier
+     * @param newDepartment target department name from controlled list
+     * @param actorUsername username of administrator performing reassignment
+     * @return updated Complaint entity
+     */
+    @Transactional
+    public Complaint updateDepartment(String referenceId, String newDepartment, String actorUsername) {
+        if (referenceId == null || referenceId.isBlank()) {
+            throw new IllegalArgumentException("Reference ID cannot be blank");
+        }
+        if (newDepartment == null || newDepartment.isBlank()) {
+            throw new IllegalArgumentException("Department cannot be blank");
+        }
+        String trimmedDept = newDepartment.trim();
+        if (!ALLOWED_DEPARTMENTS.contains(trimmedDept)) {
+            throw new IllegalArgumentException("Invalid department: " + trimmedDept);
+        }
+
+        Complaint complaint = complaintRepository.findByReferenceId(referenceId.trim().toUpperCase())
+                .orElseThrow(() -> new IllegalArgumentException("Complaint not found with reference ID: " + referenceId));
+
+        String previousDepartment = complaint.getDepartment();
+        if (trimmedDept.equals(previousDepartment)) {
+            throw new IllegalArgumentException("Complaint is already assigned to " + trimmedDept);
+        }
+
+        String effectiveActor = (actorUsername != null && !actorUsername.isBlank())
+                ? actorUsername.trim()
+                : resolveCurrentActorUsername();
+
+        complaint.setDepartment(trimmedDept);
+        Complaint updated = complaintRepository.save(complaint);
+
+        ComplaintStatusHistory historyEntry = new ComplaintStatusHistory(
+                updated,
+                updated.getStatus(),
+                updated.getStatus(),
+                effectiveActor,
+                "Department reassigned from '" + previousDepartment + "' to '" + trimmedDept + "'"
+        );
+        complaintStatusHistoryRepository.save(historyEntry);
+
+        log.info("Administrator '{}' reassigned department for complaint {} from '{}' to '{}'",
+                effectiveActor, referenceId, previousDepartment, trimmedDept);
+        return updated;
+    }
+
+    /**
+     * Corrects the campus category of a complaint (overriding or amending the AI recommendation).
+     * Validates that the category belongs to the controlled ALLOWED_CATEGORIES set and prevents
+     * redundant no-op updates. Records an immutable audit log entry capturing previous and new category.
+     *
+     * @param referenceId unique reference identifier
+     * @param newCategory target category name from controlled list
+     * @param actorUsername username of administrator performing correction
+     * @return updated Complaint entity
+     */
+    @Transactional
+    public Complaint updateCategory(String referenceId, String newCategory, String actorUsername) {
+        if (referenceId == null || referenceId.isBlank()) {
+            throw new IllegalArgumentException("Reference ID cannot be blank");
+        }
+        if (newCategory == null || newCategory.isBlank()) {
+            throw new IllegalArgumentException("Category cannot be blank");
+        }
+        String trimmedCategory = newCategory.trim();
+        if (!ALLOWED_CATEGORIES.contains(trimmedCategory)) {
+            throw new IllegalArgumentException("Invalid category: " + trimmedCategory);
+        }
+
+        Complaint complaint = complaintRepository.findByReferenceId(referenceId.trim().toUpperCase())
+                .orElseThrow(() -> new IllegalArgumentException("Complaint not found with reference ID: " + referenceId));
+
+        String previousCategory = complaint.getCategory();
+        if (trimmedCategory.equals(previousCategory)) {
+            throw new IllegalArgumentException("Complaint is already categorized as " + trimmedCategory);
+        }
+
+        String effectiveActor = (actorUsername != null && !actorUsername.isBlank())
+                ? actorUsername.trim()
+                : resolveCurrentActorUsername();
+
+        complaint.setCategory(trimmedCategory);
+        Complaint updated = complaintRepository.save(complaint);
+
+        ComplaintStatusHistory historyEntry = new ComplaintStatusHistory(
+                updated,
+                updated.getStatus(),
+                updated.getStatus(),
+                effectiveActor,
+                "Category corrected from '" + previousCategory + "' to '" + trimmedCategory + "'"
+        );
+        complaintStatusHistoryRepository.save(historyEntry);
+
+        log.info("Administrator '{}' corrected category for complaint {} from '{}' to '{}'",
+                effectiveActor, referenceId, previousCategory, trimmedCategory);
+        return updated;
+    }
+
+    /**
+     * Updates the priority level of a complaint.
+     * Managed independently from lifecycle status and SLA calculation policies.
+     * Validates that priority is valid and changed. Records an immutable audit log entry.
+     *
+     * @param referenceId unique reference identifier
+     * @param newPriority updated priority level (LOW, MEDIUM, HIGH, CRITICAL)
+     * @param actorUsername username of administrator performing update
+     * @return updated Complaint entity
+     */
+    @Transactional
+    public Complaint updatePriority(String referenceId, ComplaintPriority newPriority, String actorUsername) {
+        if (referenceId == null || referenceId.isBlank()) {
+            throw new IllegalArgumentException("Reference ID cannot be blank");
+        }
+        if (newPriority == null) {
+            throw new IllegalArgumentException("Priority cannot be null");
+        }
+
+        Complaint complaint = complaintRepository.findByReferenceId(referenceId.trim().toUpperCase())
+                .orElseThrow(() -> new IllegalArgumentException("Complaint not found with reference ID: " + referenceId));
+
+        ComplaintPriority previousPriority = complaint.getPriority();
+        if (previousPriority == newPriority) {
+            throw new IllegalArgumentException("Complaint priority is already set to " + newPriority.getDisplayName());
+        }
+
+        String effectiveActor = (actorUsername != null && !actorUsername.isBlank())
+                ? actorUsername.trim()
+                : resolveCurrentActorUsername();
+
+        complaint.setPriority(newPriority);
+        Complaint updated = complaintRepository.save(complaint);
+
+        ComplaintStatusHistory historyEntry = new ComplaintStatusHistory(
+                updated,
+                updated.getStatus(),
+                updated.getStatus(),
+                effectiveActor,
+                "Priority updated from " + previousPriority.name() + " to " + newPriority.name()
+        );
+        complaintStatusHistoryRepository.save(historyEntry);
+
+        log.info("Administrator '{}' updated priority for complaint {} from {} to {}",
+                effectiveActor, referenceId, previousPriority, newPriority);
+        return updated;
+    }
+
+    /**
+     * Updates both department assignment and category correction in an atomic, auditable operation.
+     * Validates both fields against controlled lists and prevents duplicate no-op submissions.
+     *
+     * @param referenceId unique reference identifier
+     * @param newDepartment target department
+     * @param newCategory target category
+     * @param actorUsername username of administrator
+     * @return updated Complaint entity
+     */
+    @Transactional
+    public Complaint updateAssignment(String referenceId, String newDepartment, String newCategory, String actorUsername) {
+        if (referenceId == null || referenceId.isBlank()) {
+            throw new IllegalArgumentException("Reference ID cannot be blank");
+        }
+        if (newDepartment == null || newDepartment.isBlank()) {
+            throw new IllegalArgumentException("Department cannot be blank");
+        }
+        if (newCategory == null || newCategory.isBlank()) {
+            throw new IllegalArgumentException("Category cannot be blank");
+        }
+
+        String trimmedDept = newDepartment.trim();
+        String trimmedCat = newCategory.trim();
+
+        if (!ALLOWED_DEPARTMENTS.contains(trimmedDept)) {
+            throw new IllegalArgumentException("Invalid department: " + trimmedDept);
+        }
+        if (!ALLOWED_CATEGORIES.contains(trimmedCat)) {
+            throw new IllegalArgumentException("Invalid category: " + trimmedCat);
+        }
+
+        Complaint complaint = complaintRepository.findByReferenceId(referenceId.trim().toUpperCase())
+                .orElseThrow(() -> new IllegalArgumentException("Complaint not found with reference ID: " + referenceId));
+
+        String prevDept = complaint.getDepartment();
+        String prevCat = complaint.getCategory();
+
+        boolean deptChanged = !trimmedDept.equals(prevDept);
+        boolean catChanged = !trimmedCat.equals(prevCat);
+
+        if (!deptChanged && !catChanged) {
+            throw new IllegalArgumentException("Both department and category are unchanged.");
+        }
+
+        String effectiveActor = (actorUsername != null && !actorUsername.isBlank())
+                ? actorUsername.trim()
+                : resolveCurrentActorUsername();
+
+        complaint.setDepartment(trimmedDept);
+        complaint.setCategory(trimmedCat);
+        Complaint updated = complaintRepository.save(complaint);
+
+        String note;
+        if (deptChanged && catChanged) {
+            note = "Department reassigned from '" + prevDept + "' to '" + trimmedDept + "'; Category corrected from '" + prevCat + "' to '" + trimmedCat + "'";
+        } else if (deptChanged) {
+            note = "Department reassigned from '" + prevDept + "' to '" + trimmedDept + "'";
+        } else {
+            note = "Category corrected from '" + prevCat + "' to '" + trimmedCat + "'";
+        }
+
+        ComplaintStatusHistory historyEntry = new ComplaintStatusHistory(
+                updated,
+                updated.getStatus(),
+                updated.getStatus(),
+                effectiveActor,
+                note
+        );
+        complaintStatusHistoryRepository.save(historyEntry);
+
+        log.info("Administrator '{}' updated assignment for complaint {}: {}", effectiveActor, referenceId, note);
         return updated;
     }
 

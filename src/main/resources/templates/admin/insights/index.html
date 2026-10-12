@@ -8,7 +8,7 @@
     <!-- Google Fonts for Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" th:href="@{/css/style.css}" href="../../../static/css/style.css">
 </head>
@@ -208,7 +208,7 @@
                    title="View response overdue complaints">
                     <div>
                         <div class="sla-pill-title">Response Overdue</div>
-                        <span class="sla-pill-count" style="color: #dc2626;"
+                        <span class="sla-pill-count" style="color: var(--danger);"
                               th:text="${slaSummary != null ? slaSummary.responseOverdueCount : 0}">0</span>
                     </div>
                     <span class="sla-badge OVERDUE_RESPONSE">
@@ -222,7 +222,7 @@
                    title="View resolution overdue complaints">
                     <div>
                         <div class="sla-pill-title">Resolution Overdue</div>
-                        <span class="sla-pill-count" style="color: #9f1239;"
+                        <span class="sla-pill-count" style="color: var(--danger);"
                               th:text="${slaSummary != null ? slaSummary.resolutionOverdueCount : 0}">0</span>
                     </div>
                     <span class="sla-badge OVERDUE_RESOLUTION">
@@ -236,7 +236,7 @@
                    title="View approaching deadline complaints">
                     <div>
                         <div class="sla-pill-title">Approaching Deadline</div>
-                        <span class="sla-pill-count" style="color: #d97706;"
+                        <span class="sla-pill-count" style="color: var(--warning);"
                               th:text="${slaSummary != null ? slaSummary.approachingDeadlineCount : 0}">0</span>
                     </div>
                     <span class="sla-badge APPROACHING">
@@ -247,7 +247,7 @@
                 <div class="sla-summary-pill-card success" id="insight-sla-compliance">
                     <div>
                         <div class="sla-pill-title">SLA Compliance Rate</div>
-                        <span class="sla-pill-count" style="color: #059669;"
+                        <span class="sla-pill-count" style="color: var(--success);"
                               th:text="${slaSummary != null ? slaSummary.complianceRate + '%' : '100%'}">100%</span>
                     </div>
                     <span class="sla-badge MET">

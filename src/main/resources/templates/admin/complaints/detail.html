@@ -8,7 +8,7 @@
     <!-- Google Fonts for Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" th:href="@{/css/style.css}" href="../../../static/css/style.css">
 </head>
@@ -127,7 +127,6 @@
                     </div>
 
                     <!-- Metadata Grid -->
-                    <!-- Metadata Grid -->
                     <div class="details-grid" style="margin-bottom: 1.5rem;">
                         <div class="details-item">
                             <span class="details-label">Campus Category</span>
@@ -136,6 +135,16 @@
                         <div class="details-item">
                             <span class="details-label">Responsible Department</span>
                             <span class="details-value" th:text="${complaint.department}">Department</span>
+                        </div>
+                        <div class="details-item">
+                            <span class="details-label">Priority Level</span>
+                            <span class="details-value">
+                                <span class="priority-pill"
+                                      th:classappend="${complaint.priority.name()}"
+                                      th:text="${complaint.priority.displayName}">
+                                    Medium
+                                </span>
+                            </span>
                         </div>
                         <div class="details-item">
                             <span class="details-label">Submitted On</span>
@@ -265,6 +274,29 @@
                         </div>
                     </div>
 
+                    <!-- Official Resolution Note Display (When resolved) -->
+                    <div th:if="${complaint.status.name() == 'RESOLVED' and complaint.resolutionNote != null and !#strings.isEmpty(complaint.resolutionNote)}"
+                         style="margin-top: 1.5rem; background: var(--slate-50); border: 1px solid var(--slate-200); border-left: 4px solid var(--status-emerald); border-radius: var(--radius-md); padding: 1.25rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--navy-900); display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--status-emerald);">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                Official Resolution Note
+                            </h3>
+                            <span th:if="${complaint.resolvedAt != null}" style="font-size: 0.8rem; color: var(--navy-500); font-weight: 600;"
+                                  th:text="${#temporals.format(complaint.resolvedAt, 'dd MMM yyyy, hh:mm a')}">
+                                Date
+                            </span>
+                        </div>
+                        <div style="font-size: 0.95rem; color: var(--navy-800); line-height: 1.6; white-space: pre-wrap;"
+                             id="admin-detail-resolution-note"
+                             th:text="${complaint.resolutionNote}">
+                            Resolution description.
+                        </div>
+                    </div>
+
                     <!-- Status Audit History Section -->
                     <div style="margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--slate-200);">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
@@ -300,15 +332,20 @@
                                         <span th:if="${entry.previousStatus == null}" style="color: var(--navy-500); font-style: italic;">
                                             Initial Submission
                                         </span>
-                                        <span th:if="${entry.previousStatus != null}"
+                                        <span th:if="${entry.previousStatus != null and entry.previousStatus != entry.newStatus}"
                                               th:class="'status-pill ' + ${entry.previousStatus.name()}"
                                               th:text="${entry.previousStatus.displayName}">
                                             Previous
                                         </span>
-                                        <span class="audit-transition-arrow">&rarr;</span>
-                                        <span th:class="'status-pill ' + ${entry.newStatus.name()}"
+                                        <span th:if="${entry.previousStatus != null and entry.previousStatus != entry.newStatus}" class="audit-transition-arrow">&rarr;</span>
+                                        <span th:if="${entry.previousStatus != null and entry.previousStatus != entry.newStatus}"
+                                              th:class="'status-pill ' + ${entry.newStatus.name()}"
                                               th:text="${entry.newStatus.displayName}">
                                             New
+                                        </span>
+                                        <span th:if="${entry.previousStatus != null and entry.previousStatus == entry.newStatus}" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 600; color: var(--navy-700);">
+                                            <span th:class="'status-pill ' + ${entry.newStatus.name()}" th:text="${entry.newStatus.displayName}">Status</span>
+                                            <span style="color: var(--navy-500); font-size: 0.75rem;">(Administrative Update)</span>
                                         </span>
                                     </div>
                                     <div class="audit-meta">
@@ -427,6 +464,101 @@
                             Confirm Status Update
                         </button>
                     </form>
+
+                    <!-- Resolution Note Correction Form (Available when complaint is in RESOLVED status) -->
+                    <div th:if="${complaint.status.name() == 'RESOLVED'}" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--slate-200);">
+                        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--navy-800); margin-bottom: 0.35rem;">
+                            Correct Resolution Note
+                        </h4>
+                        <p style="font-size: 0.8rem; color: var(--navy-600); margin-bottom: 0.75rem; line-height: 1.4;">
+                            Authorized administrators can correct the public resolution note. Every correction is recorded in the immutable audit trail.
+                        </p>
+                        <form th:action="@{'/admin/complaints/' + ${complaint.referenceId} + '/resolution-note'}" method="post" id="resolution-note-correction-form">
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <textarea id="resolution-note-input"
+                                          name="resolutionNote"
+                                          class="form-control"
+                                          rows="3"
+                                          maxlength="1000"
+                                          required
+                                          placeholder="Enter corrected official resolution note..."
+                                          th:text="${complaint.resolutionNote}"></textarea>
+                                <span class="form-hint">Maximum 1000 characters.</span>
+                            </div>
+                            <button type="submit" class="btn btn-outline btn-sm" id="btn-update-resolution-note" style="width: 100%;">
+                                Update Resolution Note
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Priority Update Action Card -->
+                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--slate-200);">
+                        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--navy-800); margin-bottom: 0.35rem;">
+                            Update Priority Level
+                        </h4>
+                        <p style="font-size: 0.8rem; color: var(--navy-600); margin-bottom: 0.75rem; line-height: 1.4;">
+                            Adjust grievance severity independently from status lifecycle and SLA timers.
+                        </p>
+                        <form th:action="@{'/admin/complaints/' + ${complaint.referenceId} + '/priority'}" method="post" id="priority-update-form">
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <label for="priority-select" class="form-label">
+                                    Priority Level <span class="required" aria-hidden="true">*</span>
+                                </label>
+                                <select id="priority-select" name="priority" class="form-control" required>
+                                    <option th:each="pr : ${priorities}"
+                                            th:value="${pr.name()}"
+                                            th:text="${pr.displayName}"
+                                            th:selected="${pr == complaint.priority}">
+                                        Priority
+                                    </option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-outline btn-sm" id="btn-update-priority" style="width: 100%;">
+                                Update Priority
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Department Assignment & Category Correction Action Card -->
+                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--slate-200);">
+                        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--navy-800); margin-bottom: 0.35rem;">
+                            Assignment &amp; Category
+                        </h4>
+                        <p style="font-size: 0.8rem; color: var(--navy-600); margin-bottom: 0.75rem; line-height: 1.4;">
+                            Reassign to responsible department or correct category (advisory AI suggestion).
+                        </p>
+                        <form th:action="@{'/admin/complaints/' + ${complaint.referenceId} + '/assignment'}" method="post" id="assignment-update-form">
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <label for="department-select" class="form-label">
+                                    Department <span class="required" aria-hidden="true">*</span>
+                                </label>
+                                <select id="department-select" name="department" class="form-control" required>
+                                    <option th:each="dept : ${departments}"
+                                            th:value="${dept}"
+                                            th:text="${dept}"
+                                            th:selected="${dept == complaint.department}">
+                                        Department
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <label for="category-select" class="form-label">
+                                    Category <span class="required" aria-hidden="true">*</span>
+                                </label>
+                                <select id="category-select" name="category" class="form-control" required>
+                                    <option th:each="cat : ${categories}"
+                                            th:value="${cat}"
+                                            th:text="${cat}"
+                                            th:selected="${cat == complaint.category}">
+                                        Category
+                                    </option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-outline btn-sm" id="btn-update-assignment" style="width: 100%;">
+                                Update Assignment
+                            </button>
+                        </form>
+                    </div>
 
                     <hr style="border: none; border-top: 1px solid var(--slate-200); margin: 2rem 0;">
 

@@ -8,7 +8,7 @@
     <!-- Google Fonts for Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" th:href="@{/css/style.css}" href="../../static/css/style.css">
 </head>
@@ -219,6 +219,96 @@
                                   th:text="${complaint.status.displayName}">
                                 Status
                             </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Official Resolution Note Display (Shown only when complaint is RESOLVED and resolution note is present) -->
+                <div class="resolution-note-card"
+                     th:if="${complaint.status.name() == 'RESOLVED' and complaint.resolutionNote != null and !#strings.isEmpty(complaint.resolutionNote)}"
+                     id="resolution-details-card">
+                    <div class="resolution-note-header">
+                        <span class="resolution-note-icon-wrap" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </span>
+                        <div>
+                            <h3 class="resolution-note-title">Official Resolution Details</h3>
+                            <span class="resolution-note-subtitle" th:if="${complaint.resolvedAt != null}">
+                                Resolved on <strong th:text="${#temporals.format(complaint.resolvedAt, 'dd MMMM yyyy, hh:mm a')}">Date</strong>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="resolution-note-body">
+                        <p class="resolution-note-text" id="official-resolution-note" th:text="${complaint.resolutionNote}">
+                            Resolution description provided by campus administration.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Recorded Status History Timeline -->
+                <div class="student-timeline-section" id="student-timeline-section">
+                    <div class="student-timeline-header">
+                        <h3 class="stepper-section-title" style="margin-bottom: 0.25rem;">Recorded Status History Timeline</h3>
+                        <p class="student-timeline-subtitle">
+                            Chronological log of actual status transitions recorded for this grievance.
+                        </p>
+                    </div>
+
+                    <!-- Empty History Fallback -->
+                    <div th:if="${statusHistory == null or #lists.isEmpty(statusHistory)}" class="timeline-empty-card" id="timeline-empty">
+                        <div class="timeline-empty-icon" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                        </div>
+                        <p class="timeline-empty-msg">No historical status changes recorded for this grievance.</p>
+                    </div>
+
+                    <!-- Chronological Timeline Items -->
+                    <div th:if="${statusHistory != null and !#lists.isEmpty(statusHistory)}" class="student-timeline-list" id="student-timeline-list">
+                        <div th:each="entry, iterStat : ${statusHistory}" class="student-timeline-item">
+                            <div class="student-timeline-bullet" aria-hidden="true">
+                                <span class="bullet-dot" th:classappend="${entry.newStatus.name()}"></span>
+                                <span th:if="${!iterStat.last}" class="bullet-line"></span>
+                            </div>
+                            <div class="student-timeline-card">
+                                <div class="student-timeline-card-header">
+                                    <div class="student-timeline-status-wrap">
+                                        <span class="status-pill"
+                                              th:classappend="${entry.newStatus.name()}"
+                                              th:text="${entry.newStatus.displayName}">
+                                            Submitted
+                                        </span>
+                                    </div>
+                                    <time class="student-timeline-time"
+                                          th:datetime="${entry.createdAt}"
+                                          th:text="${#temporals.format(entry.createdAt, 'dd MMM yyyy, hh:mm a')}">
+                                        12 Oct 2026, 01:30 PM
+                                    </time>
+                                </div>
+                                <div class="student-timeline-description">
+                                    <span th:if="${entry.previousStatus == null}">
+                                        Grievance registered and queued for initial administrative assessment.
+                                    </span>
+                                    <span th:if="${entry.previousStatus != null and entry.newStatus.name() == 'SUBMITTED'}">
+                                        Grievance returned to Submitted status for further review.
+                                    </span>
+                                    <span th:if="${entry.newStatus.name() == 'UNDER_REVIEW'}">
+                                        Grievance acknowledged and currently under review by campus authorities.
+                                    </span>
+                                    <span th:if="${entry.newStatus.name() == 'IN_PROGRESS'}">
+                                        Departmental action and resolution measures actively underway.
+                                    </span>
+                                    <span th:if="${entry.newStatus.name() == 'RESOLVED'}">
+                                        Corrective action completed and grievance formally marked as Resolved.
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

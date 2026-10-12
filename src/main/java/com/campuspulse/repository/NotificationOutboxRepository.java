@@ -2,6 +2,7 @@ package com.campuspulse.repository;
 
 import com.campuspulse.model.NotificationOutbox;
 import com.campuspulse.model.NotificationStatus;
+import com.campuspulse.model.NotificationType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -35,6 +36,24 @@ public interface NotificationOutboxRepository extends JpaRepository<Notification
      * @return matching outbox history
      */
     List<NotificationOutbox> findByReferenceIdOrderByCreatedAtDesc(String referenceId);
+
+    /**
+     * Checks if an outbox notification of the specified type already exists for a complaint reference ID.
+     *
+     * @param referenceId unique complaint reference ID
+     * @param notificationType functional notification category
+     * @return true if an outbox entry already exists
+     */
+    boolean existsByReferenceIdAndNotificationType(String referenceId, NotificationType notificationType);
+
+    /**
+     * Finds all outbox entries for a specific complaint reference ID and notification type.
+     *
+     * @param referenceId unique complaint reference ID
+     * @param notificationType functional notification category
+     * @return matching outbox entries
+     */
+    List<NotificationOutbox> findByReferenceIdAndNotificationType(String referenceId, NotificationType notificationType);
 
     /**
      * Finds outbox items matching any of the given statuses, ordered chronologically.

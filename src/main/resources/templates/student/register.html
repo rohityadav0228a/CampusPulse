@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CampusPulse Student Registration. Create an account to report campus issues, track resolutions, and receive updates.">
+    <title>Student Registration | CampusPulse</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../static/css/style.css">
+</head>
+<body style="min-height: 100vh; display: flex; flex-direction: column;">
+
+    <!-- Site Header -->
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar" aria-label="Main Navigation">
+                <a th:href="@{/}" href="/" class="brand-logo" id="nav-brand">
+                    <span class="brand-icon-wrap" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </span>
+                    <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                </a>
+
+                <ul class="nav-links">
+                    <li><a th:href="@{/}" href="/" class="nav-link">Home</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Registry</a></li>
+                    <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Track Grievance</a></li>
+                </ul>
+
+                <div class="nav-actions">
+                    <a th:href="@{/student/login}" href="/student/login" class="btn btn-outline btn-sm">
+                        Sign In Instead
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="section section-alt" style="flex: 1; display: flex; align-items: center; padding: 3.5rem 0;">
+        <div class="container" style="max-width: 500px;">
+
+            <!-- Registration Card -->
+            <div class="form-card" style="padding: 2.5rem 2.25rem;">
+
+                <!-- Header with Registration Icon -->
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: var(--radius-md); background-color: var(--violet-50); color: var(--violet-600); margin-bottom: 1rem; border: 1px solid var(--violet-100); box-shadow: var(--shadow-xs);">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                            <line x1="20" y1="8" x2="20" y2="14"></line>
+                            <line x1="23" y1="11" x2="17" y2="11"></line>
+                        </svg>
+                    </div>
+                    <h1 class="page-title" style="font-size: 1.5rem; margin-bottom: 0.45rem;" id="student-register-heading">Student Registration</h1>
+                    <p class="page-subtitle" style="font-size: 0.875rem;">
+                        Create your account to file grievances, receive email updates, and track resolutions.
+                    </p>
+                </div>
+
+                <!-- Global Error Banner -->
+                <div th:if="${errorMessage != null}" class="alert-banner alert-error" role="alert" id="register-error-alert">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <div>
+                        <strong style="display: block; font-weight: 700; margin-bottom: 0.15rem;">Registration Error</strong>
+                        <span th:text="${errorMessage}">Error message text.</span>
+                    </div>
+                </div>
+
+                <!-- Registration Form -->
+                <form th:action="@{/student/register}" th:object="${registerForm}" method="post" id="student-register-form">
+
+                    <!-- Full Name -->
+                    <div class="form-group">
+                        <label for="fullName" class="form-label">
+                            Full Name <span class="required" aria-hidden="true">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="fullName"
+                            th:field="*{fullName}"
+                            class="form-control"
+                            th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid' : ''"
+                            placeholder="e.g. Rohit Yadav"
+                            required
+                            autofocus
+                        />
+                        <span th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}" class="form-error"></span>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-group">
+                        <label for="email" class="form-label">
+                            College / Student Email <span class="required" aria-hidden="true">*</span>
+                        </label>
+                        <input
+                            type="email"
+                            id="email"
+                            th:field="*{email}"
+                            class="form-control"
+                            th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''"
+                            placeholder="e.g. rohit@college.edu"
+                            required
+                        />
+                        <span class="form-hint">Must be a valid email address. Used for grievance updates.</span>
+                        <span th:if="${#fields.hasErrors('email')}" th:errors="*{email}" class="form-error"></span>
+                    </div>
+
+                    <!-- Student ID / Roll Number -->
+                    <div class="form-group">
+                        <label for="studentId" class="form-label">
+                            Student ID / Roll Number <span style="font-weight: normal; color: var(--text-muted); font-size: 0.8rem;">(Optional)</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="studentId"
+                            th:field="*{studentId}"
+                            class="form-control"
+                            placeholder="e.g. STU-2026-438"
+                        />
+                    </div>
+
+                    <!-- Password -->
+                    <div class="form-group">
+                        <label for="password" class="form-label">
+                            Password <span class="required" aria-hidden="true">*</span>
+                        </label>
+                        <input
+                            type="password"
+                            id="password"
+                            th:field="*{password}"
+                            class="form-control"
+                            th:classappend="${#fields.hasErrors('password')} ? 'is-invalid' : ''"
+                            placeholder="Minimum 6 characters"
+                            required
+                        />
+                        <span class="form-hint">At least 6 characters. Passwords are securely hashed with BCrypt.</span>
+                        <span th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="form-error"></span>
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="form-group" style="margin-bottom: 1.75rem;">
+                        <label for="confirmPassword" class="form-label">
+                            Confirm Password <span class="required" aria-hidden="true">*</span>
+                        </label>
+                        <input
+                            type="password"
+                            id="confirmPassword"
+                            th:field="*{confirmPassword}"
+                            class="form-control"
+                            th:classappend="${#fields.hasErrors('confirmPassword')} ? 'is-invalid' : ''"
+                            placeholder="Re-enter password"
+                            required
+                        />
+                        <span th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}" class="form-error"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="btn-register-submit" style="width: 100%; justify-content: center; font-size: 0.9375rem; height: 42px;">
+                        Create Student Account &rarr;
+                    </button>
+                </form>
+
+                <div style="margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--border-color); text-align: center;">
+                    <p style="font-size: 0.875rem; color: var(--text-muted); margin: 0;">
+                        Already registered?
+                        <a th:href="@{/student/login}" href="/student/login" style="font-weight: 600; color: var(--indigo-500);" id="link-to-student-login">
+                            Sign in here
+                        </a>
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Site Footer -->
+    <footer class="site-footer" style="padding: 2rem 0; background-color: var(--navy-900); border-top: 1px solid var(--navy-850);">
+        <div class="container" style="text-align: center;">
+            <p style="font-size: 0.8125rem; color: #94A3B8;">
+                &copy; 2026 CampusPulse &bull; Campus Grievance and Feedback Management System.
+            </p>
+        </div>
+    </footer>
+
+</body>
+</html>

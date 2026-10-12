@@ -118,6 +118,21 @@ public class NotificationOutbox {
         this.createdAt = LocalDateTime.now();
     }
 
+    public NotificationOutbox(Complaint complaint, String referenceId, String recipientEmail, NotificationType notificationType) {
+        this.complaint = complaint;
+        this.referenceId = referenceId;
+        this.recipientEmail = recipientEmail;
+        this.targetStatus = (complaint != null && complaint.getStatus() != null) ? complaint.getStatus() : ComplaintStatus.SUBMITTED;
+        this.notificationType = (notificationType != null) ? notificationType : NotificationType.STATUS_UPDATE;
+        if (recipientEmail == null || recipientEmail.isBlank()) {
+            this.status = NotificationStatus.SKIPPED_NO_EMAIL;
+            this.lastError = "No student email address provided";
+        } else {
+            this.status = NotificationStatus.PENDING;
+        }
+        this.createdAt = LocalDateTime.now();
+    }
+
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {

@@ -2,6 +2,8 @@ package com.campuspulse.controller;
 
 import com.campuspulse.dto.ComplaintForm;
 import com.campuspulse.model.Complaint;
+import com.campuspulse.model.ComplaintStatus;
+import com.campuspulse.model.ComplaintStatusHistory;
 import com.campuspulse.service.ComplaintService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +13,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -305,6 +309,152 @@ class ComplaintControllerTest {
     }
 
     @Test
+    @DisplayName("GET /complaints/track displays chronological status history timeline when records exist")
+    void shouldDisplayChronologicalStatusTimelineWhenHistoryExists() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-HIST0001",
+                "Library AC Down",
+                "Internal description not shown",
+                "Infrastructure & Labs",
+                "Campus Facilities & Works"
+        );
+        complaint.setStatus(ComplaintStatus.IN_PROGRESS);
+
+        ComplaintStatusHistory h1 = new ComplaintStatusHistory(
+                complaint, null, ComplaintStatus.SUBMITTED, "STUDENT", "Initial submission"
+        );
+        h1.setCreatedAt(LocalDateTime.of(2026, 10, 10, 10, 0));
+
+        ComplaintStatusHistory h2 = new ComplaintStatusHistory(
+                complaint, ComplaintStatus.SUBMITTED, ComplaintStatus.UNDER_REVIEW, "admin_triage", "Under review note"
+        );
+        h2.setCreatedAt(LocalDateTime.of(2026, 10, 11, 14, 0));
+
+        ComplaintStatusHistory h3 = new ComplaintStatusHistory(
+                complaint, ComplaintStatus.UNDER_REVIEW, ComplaintStatus.IN_PROGRESS, "admin_hvac", "In progress note"
+        );
+        h3.setCreatedAt(LocalDateTime.of(2026, 10, 12, 9, 30));
+
+        when(complaintService.getByReferenceId("CP-2026-HIST0001")).thenReturn(Optional.of(complaint));
+        when(complaintService.getStatusHistory("CP-2026-HIST0001")).thenReturn(List.of(h1, h2, h3));
+
+        mockMvc.perform(get("/complaints/track").param("referenceId", "CP-2026-HIST0001"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/track"))
+                .andExpect(model().attributeExists("complaint", "statusHistory"))
+                .andExpect(content().string(containsString("Recorded Status History Timeline")))
+                .andExpect(content().string(containsString("10 Oct 2026, 10:00 AM")))
+                .andExpect(content().string(containsString("11 Oct 2026, 02:00 PM")))
+                .andExpect(content().string(containsString("12 Oct 2026, 09:30 AM")))
+                .andExpect(content().string(containsString("Grievance registered and queued for initial administrative assessment")))
+                .andExpect(content().string(containsString("Grievance acknowledged and currently under review by campus authorities")))
+                .andExpect(content().string(containsString("Departmental action and resolution measures actively underway")));
+
+        verify(complaintService, times(1)).getByReferenceId("CP-2026-HIST0001");
+        verify(complaintService, times(1)).getStatusHistory("CP-2026-HIST0001");
+    }
+
+    @Test
+    @DisplayName("GET /complaints/track handles empty status history gracefully")
+    void shouldDisplayEmptyTimelineGracefullyWhenNoHistoryExists() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-NOHIST01",
+                "Dorm Key Lost",
+                "Internal description",
+                "Hostel & Residence",
+                "Hostel Administration"
+        );
+
+        when(complaintService.getByReferenceId("CP-2026-NOHIST01")).thenReturn(Optional.of(complaint));
+        when(complaintService.getStatusHistory("CP-2026-NOHIST01")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/complaints/track").param("referenceId", "CP-2026-NOHIST01"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/track"))
+                .andExpect(content().string(containsString("No historical status changes recorded for this grievance.")));
+    }
+
+    @Test
+    @DisplayName("GET /complaints/track displays official resolution details when complaint is resolved")
+    void shouldDisplayOfficialResolutionNoteWhenComplaintIsResolved() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-RESOLVED1",
+                "Laboratory PC Power Supply",
+                "Internal description",
+                "Infrastructure & Labs",
+                "Campus Facilities & Works"
+        );
+        complaint.setStatus(ComplaintStatus.RESOLVED);
+        complaint.setResolvedAt(LocalDateTime.of(2026, 10, 12, 11, 45));
+        complaint.setResolutionNote("Replaced 500W PSU unit with tested replacement in workstation Lab 3-PC04.");
+
+        when(complaintService.getByReferenceId("CP-2026-RESOLVED1")).thenReturn(Optional.of(complaint));
+        when(complaintService.getStatusHistory("CP-2026-RESOLVED1")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/complaints/track").param("referenceId", "CP-2026-RESOLVED1"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/track"))
+                .andExpect(content().string(containsString("Official Resolution Details")))
+                .andExpect(content().string(containsString("Replaced 500W PSU unit with tested replacement in workstation Lab 3-PC04.")))
+                .andExpect(content().string(containsString("Resolved on <strong>12 October 2026, 11:45 AM</strong>")));
+    }
+
+    @Test
+    @DisplayName("GET /complaints/track does not display official resolution note when complaint is not resolved")
+    void shouldNotDisplayResolutionNoteWhenComplaintIsNotResolved() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-ACTIVE01",
+                "Wi-Fi Outage in Block C",
+                "Internal description",
+                "Infrastructure & Labs",
+                "Campus Facilities & Works"
+        );
+        complaint.setStatus(ComplaintStatus.IN_PROGRESS);
+
+        when(complaintService.getByReferenceId("CP-2026-ACTIVE01")).thenReturn(Optional.of(complaint));
+        when(complaintService.getStatusHistory("CP-2026-ACTIVE01")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/complaints/track").param("referenceId", "CP-2026-ACTIVE01"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/track"))
+                .andExpect(content().string(not(containsString("Official Resolution Details"))));
+    }
+
+    @Test
+    @DisplayName("GET /complaints/track does not expose internal administrative notes, usernames, or student email")
+    void shouldNotExposeInternalNotesOrAdminUsernamesOrStudentContactDetails() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-PRIVACY1",
+                "Heating Failure in Room 204",
+                "Confidential student text that contains sensitive personal info",
+                "Hostel & Residence",
+                "Hostel Administration",
+                "student.private@campuspulse.internal"
+        );
+        complaint.setStatus(ComplaintStatus.UNDER_REVIEW);
+
+        ComplaintStatusHistory internalEntry = new ComplaintStatusHistory(
+                complaint,
+                ComplaintStatus.SUBMITTED,
+                ComplaintStatus.UNDER_REVIEW,
+                "superadmin_secret_user",
+                "CONFIDENTIAL_INTERNAL_NOTE: Dean requested priority review due to VIP campus visit."
+        );
+        internalEntry.setCreatedAt(LocalDateTime.of(2026, 10, 11, 15, 0));
+
+        when(complaintService.getByReferenceId("CP-2026-PRIVACY1")).thenReturn(Optional.of(complaint));
+        when(complaintService.getStatusHistory("CP-2026-PRIVACY1")).thenReturn(List.of(internalEntry));
+
+        mockMvc.perform(get("/complaints/track").param("referenceId", "CP-2026-PRIVACY1"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/track"))
+                .andExpect(content().string(not(containsString("student.private@campuspulse.internal"))))
+                .andExpect(content().string(not(containsString("superadmin_secret_user"))))
+                .andExpect(content().string(not(containsString("CONFIDENTIAL_INTERNAL_NOTE"))))
+                .andExpect(content().string(not(containsString("Confidential student text that contains sensitive personal info"))));
+    }
+
+    @Test
     @DisplayName("POST /complaints with valid student email submits successfully")
     void shouldAcceptValidSubmissionWithStudentEmail() throws Exception {
         Complaint saved = new Complaint(
@@ -431,5 +581,80 @@ class ComplaintControllerTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.message", containsString("temporarily unavailable")));
+    }
+
+    @Test
+    @DisplayName("GET /complaints/success/{referenceId} masks student email and never discloses cleartext email")
+    void shouldMaskStudentEmailOnSuccessPage() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-PRIV001",
+                "Private student complaint",
+                "Detailed description of hostel room issue.",
+                "Hostel & Residence",
+                "Hostel Administration",
+                "john.student@university.edu"
+        );
+        complaint.setId(201L);
+
+        when(complaintService.getByReferenceId("CP-2026-PRIV001")).thenReturn(Optional.of(complaint));
+
+        mockMvc.perform(get("/complaints/success/CP-2026-PRIV001"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/success"))
+                .andExpect(content().string(containsString("j***@university.edu")))
+                .andExpect(content().string(not(containsString("john.student@university.edu"))));
+    }
+
+    @Test
+    @DisplayName("GET /complaints/track does not disclose student email or internal status history notes")
+    void shouldNotDiscloseStudentEmailOrInternalNotesOnTrackPage() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-PRIV002",
+                "Track privacy verification",
+                "Issue description.",
+                "Infrastructure & Labs",
+                "Campus Facilities & Works",
+                "sensitive.student@campus.edu"
+        );
+        complaint.setId(202L);
+
+        ComplaintStatusHistory historyEntry = new ComplaintStatusHistory(
+                complaint,
+                ComplaintStatus.SUBMITTED,
+                ComplaintStatus.UNDER_REVIEW,
+                "admin",
+                "INTERNAL SECRET NOTE: Admin suspects malicious user behavior."
+        );
+
+        when(complaintService.getByReferenceId("CP-2026-PRIV002")).thenReturn(Optional.of(complaint));
+        when(complaintService.getStatusHistory("CP-2026-PRIV002")).thenReturn(List.of(historyEntry));
+
+        mockMvc.perform(get("/complaints/track").param("referenceId", "CP-2026-PRIV002"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/track"))
+                .andExpect(content().string(not(containsString("sensitive.student@campus.edu"))))
+                .andExpect(content().string(not(containsString("INTERNAL SECRET NOTE"))));
+    }
+
+    @Test
+    @DisplayName("GET /complaints does not disclose student emails")
+    void shouldNotDiscloseStudentEmailsOnPublicRegistry() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-PRIV003",
+                "Registry Privacy Check",
+                "Registry issue description",
+                "Academics & Faculty",
+                "Academic Affairs Office",
+                "hidden.student@campus.edu"
+        );
+        complaint.setId(203L);
+
+        when(complaintService.getAllComplaints()).thenReturn(List.of(complaint));
+
+        mockMvc.perform(get("/complaints"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/list"))
+                .andExpect(content().string(containsString("CP-2026-PRIV003")))
+                .andExpect(content().string(not(containsString("hidden.student@campus.edu"))));
     }
 }

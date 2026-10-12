@@ -2,12 +2,14 @@ package com.campuspulse.controller;
 
 import com.campuspulse.model.Complaint;
 import com.campuspulse.model.ComplaintEscalationAudit;
+import com.campuspulse.model.ComplaintPriority;
 import com.campuspulse.model.ComplaintStatus;
 import com.campuspulse.model.ComplaintStatusHistory;
 import com.campuspulse.service.ComplaintService;
 import com.campuspulse.service.SlaEscalationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 
@@ -49,21 +51,32 @@ public class AdminComplaintController {
     }
 
     /**
-     * Renders the administrative grievance dashboard with summary counts, filter controls,
-     * SLA compliance metrics, and filtered complaint records.
+     * Renders the administrative grievance dashboard with summary counts, keyword search,
+     * filter controls, SLA compliance metrics, and Spring Data paginated complaint records.
      *
+     * @param searchParam optional free-text search query across referenceId, title, description, and studentEmail
      * @param statusParam optional status filter parameter
      * @param categoryParam optional category filter parameter
      * @param slaStatusParam optional SLA status filter parameter
+     * @param pageParam zero-based page number (defaults to 0)
+     * @param sizeParam page size (defaults to 10)
      * @param model Spring MVC model
      * @return template name for administrative dashboard
      */
     @GetMapping
     public String dashboard(
+            @RequestParam(name = "q", required = false) String searchParam,
             @RequestParam(name = "status", required = false) String statusParam,
             @RequestParam(name = "category", required = false) String categoryParam,
+            @RequestParam(name = "department", required = false) String departmentParam,
+            @RequestParam(name = "priority", required = false) String priorityParam,
             @RequestParam(name = "slaStatus", required = false) String slaStatusParam,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer pageParam,
+            @RequestParam(name = "size", required = false, defaultValue = "10") Integer sizeParam,
             Model model) {
+
+        int page = (pageParam != null && pageParam >= 0) ? pageParam : 0;
+        int size = (sizeParam != null && sizeParam > 0) ? Math.min(sizeParam, ComplaintService.MAX_PAGE_SIZE) : ComplaintService.DEFAULT_PAGE_SIZE;
 
         ComplaintStatus selectedStatus = null;
         if (statusParam != null && !statusParam.isBlank()) {
@@ -75,22 +88,62 @@ public class AdminComplaintController {
         }
 
         String selectedCategory = (categoryParam != null && !categoryParam.isBlank()) ? categoryParam.trim() : null;
-        String selectedSlaStatus = (slaStatusParam != null && !slaStatusParam.isBlank()) ? slaStatusParam.trim().toUpperCase() : "";
+        String selectedDepartment = (departmentParam != null && !departmentParam.isBlank()) ? departmentParam.trim() : null;
 
-        List<Complaint> complaints = (!selectedSlaStatus.isBlank() && !"ALL".equalsIgnoreCase(selectedSlaStatus))
-                ? complaintService.getFilteredComplaints(selectedStatus, selectedCategory, selectedSlaStatus)
-                : complaintService.getFilteredComplaints(selectedStatus, selectedCategory);
+        ComplaintPriority selectedPriority = null;
+        if (priorityParam != null && !priorityParam.isBlank()) {
+            try {
+                selectedPriority = ComplaintPriority.valueOf(priorityParam.trim().toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                log.warn("Invalid priority filter specified: {}", priorityParam);
+            }
+        }
+
+        String selectedSlaStatus = (slaStatusParam != null && !slaStatusParam.isBlank()) ? slaStatusParam.trim().toUpperCase() : "";
+        String searchQuery = (searchParam != null && !searchParam.isBlank()) ? searchParam.trim() : "";
+
+        Page<Complaint> complaintsPage = (selectedDepartment != null || selectedPriority != null)
+                ? complaintService.searchComplaints(
+                        searchQuery,
+                        selectedStatus,
+                        selectedCategory,
+                        selectedDepartment,
+                        selectedPriority,
+                        selectedSlaStatus,
+                        page,
+                        size
+                )
+                : complaintService.searchComplaints(
+                        searchQuery,
+                        selectedStatus,
+                        selectedCategory,
+                        selectedSlaStatus,
+                        page,
+                        size
+                );
+
         Map<String, Long> statusCounts = complaintService.getStatusCounts();
         Map<String, Long> slaCounts = complaintService.getSlaCounts();
 
-        model.addAttribute("complaints", complaints);
+        model.addAttribute("complaintsPage", complaintsPage);
+        model.addAttribute("complaints", complaintsPage.getContent());
+        model.addAttribute("searchQuery", searchQuery);
         model.addAttribute("statusCounts", statusCounts);
         model.addAttribute("slaCounts", slaCounts);
         model.addAttribute("selectedStatus", selectedStatus != null ? selectedStatus.name() : "");
         model.addAttribute("selectedCategory", selectedCategory != null ? selectedCategory : "");
+        model.addAttribute("selectedDepartment", selectedDepartment != null ? selectedDepartment : "");
+        model.addAttribute("selectedPriority", selectedPriority != null ? selectedPriority.name() : "");
         model.addAttribute("selectedSlaStatus", selectedSlaStatus);
+        model.addAttribute("currentPage", complaintsPage.getNumber());
+        model.addAttribute("totalPages", complaintsPage.getTotalPages());
+        model.addAttribute("totalElements", complaintsPage.getTotalElements());
+        model.addAttribute("pageSize", complaintsPage.getSize());
+        model.addAttribute("pageSizeOptions", List.of(10, 20, 50));
         model.addAttribute("statuses", ComplaintStatus.values());
         model.addAttribute("categories", complaintService.getAllowedCategories());
+        model.addAttribute("departments", complaintService.getAllowedDepartments());
+        model.addAttribute("priorities", ComplaintPriority.values());
 
         return "admin/complaints/index";
     }
@@ -118,6 +171,9 @@ public class AdminComplaintController {
                             : Collections.emptyList();
                     model.addAttribute("complaint", complaint);
                     model.addAttribute("statuses", ComplaintStatus.values());
+                    model.addAttribute("departments", complaintService.getAllowedDepartments());
+                    model.addAttribute("categories", complaintService.getAllowedCategories());
+                    model.addAttribute("priorities", ComplaintPriority.values());
                     model.addAttribute("statusHistory", statusHistory);
                     model.addAttribute("escalationAudits", escalationAudits);
                     return "admin/complaints/detail";
@@ -164,6 +220,12 @@ public class AdminComplaintController {
             return "redirect:/admin/complaints/" + referenceId;
         }
 
+        if (note != null && note.trim().length() > ComplaintService.MAX_RESOLUTION_NOTE_LENGTH) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Resolution note cannot exceed " + ComplaintService.MAX_RESOLUTION_NOTE_LENGTH + " characters.");
+            return "redirect:/admin/complaints/" + referenceId;
+        }
+
         // Actor username is strictly obtained from the authenticated Spring Security principal
         String actorUsername = resolveActorUsername(principal, request);
 
@@ -178,6 +240,206 @@ public class AdminComplaintController {
             log.error("Failed to update status for complaint {}", referenceId, ex);
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Failed to update status: " + ex.getMessage());
+        }
+
+        return "redirect:/admin/complaints/" + referenceId;
+    }
+
+    /**
+     * Handles administrative resolution note corrections for already-resolved grievances.
+     * Enforces non-blank content, maximum length constraints, and auditable history tracking.
+     *
+     * @param referenceId unique reference identifier
+     * @param resolutionNote updated resolution note content
+     * @param principal authenticated admin principal
+     * @param request HTTP servlet request
+     * @param redirectAttributes flash attributes container
+     * @return redirect to complaint detail view
+     */
+    @PostMapping("/{referenceId}/resolution-note")
+    public String updateResolutionNote(
+            @PathVariable("referenceId") String referenceId,
+            @RequestParam("resolutionNote") String resolutionNote,
+            java.security.Principal principal,
+            jakarta.servlet.http.HttpServletRequest request,
+            RedirectAttributes redirectAttributes) {
+
+        if (resolutionNote == null || resolutionNote.isBlank()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Resolution note must not be blank.");
+            return "redirect:/admin/complaints/" + referenceId;
+        }
+
+        if (resolutionNote.trim().length() > ComplaintService.MAX_RESOLUTION_NOTE_LENGTH) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Resolution note cannot exceed " + ComplaintService.MAX_RESOLUTION_NOTE_LENGTH + " characters.");
+            return "redirect:/admin/complaints/" + referenceId;
+        }
+
+        String actorUsername = resolveActorUsername(principal, request);
+
+        try {
+            complaintService.updateResolutionNote(referenceId, resolutionNote, actorUsername);
+            redirectAttributes.addFlashAttribute("successMessage", "Resolution note successfully updated.");
+        } catch (IllegalArgumentException ex) {
+            log.warn("Resolution note update rejected for complaint {}: {}", referenceId, ex.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            log.error("Failed to update resolution note for complaint {}", referenceId, ex);
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Failed to update resolution note: " + ex.getMessage());
+        }
+
+        return "redirect:/admin/complaints/" + referenceId;
+    }
+
+    /**
+     * Handles department reassignment for a complaint.
+     * Enforces validated, controlled department values, CSRF protection, and audit logging.
+     */
+    @PostMapping("/{referenceId}/department")
+    public String updateDepartment(
+            @PathVariable("referenceId") String referenceId,
+            @RequestParam("department") String department,
+            java.security.Principal principal,
+            jakarta.servlet.http.HttpServletRequest request,
+            RedirectAttributes redirectAttributes) {
+
+        if (department == null || department.isBlank()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Department must not be blank.");
+            return "redirect:/admin/complaints/" + referenceId;
+        }
+
+        String actorUsername = resolveActorUsername(principal, request);
+
+        try {
+            Complaint updated = complaintService.updateDepartment(referenceId, department, actorUsername);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Department successfully reassigned to " + updated.getDepartment() + ".");
+        } catch (IllegalArgumentException ex) {
+            log.warn("Department reassignment rejected for complaint {}: {}", referenceId, ex.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            log.error("Failed to reassign department for complaint {}", referenceId, ex);
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Failed to reassign department: " + ex.getMessage());
+        }
+
+        return "redirect:/admin/complaints/" + referenceId;
+    }
+
+    /**
+     * Handles administrative category correction (e.g. amending AI suggestion).
+     * Enforces validated, controlled category values, CSRF protection, and audit logging.
+     */
+    @PostMapping("/{referenceId}/category")
+    public String updateCategory(
+            @PathVariable("referenceId") String referenceId,
+            @RequestParam("category") String category,
+            java.security.Principal principal,
+            jakarta.servlet.http.HttpServletRequest request,
+            RedirectAttributes redirectAttributes) {
+
+        if (category == null || category.isBlank()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Category must not be blank.");
+            return "redirect:/admin/complaints/" + referenceId;
+        }
+
+        String actorUsername = resolveActorUsername(principal, request);
+
+        try {
+            Complaint updated = complaintService.updateCategory(referenceId, category, actorUsername);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Category successfully corrected to " + updated.getCategory() + ".");
+        } catch (IllegalArgumentException ex) {
+            log.warn("Category correction rejected for complaint {}: {}", referenceId, ex.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            log.error("Failed to correct category for complaint {}", referenceId, ex);
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Failed to correct category: " + ex.getMessage());
+        }
+
+        return "redirect:/admin/complaints/" + referenceId;
+    }
+
+    /**
+     * Handles complaint priority level updates.
+     * Enforces valid ComplaintPriority values, CSRF protection, and audit logging.
+     */
+    @PostMapping("/{referenceId}/priority")
+    public String updatePriority(
+            @PathVariable("referenceId") String referenceId,
+            @RequestParam("priority") String priorityParam,
+            java.security.Principal principal,
+            jakarta.servlet.http.HttpServletRequest request,
+            RedirectAttributes redirectAttributes) {
+
+        if (priorityParam == null || priorityParam.isBlank()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Priority must not be blank.");
+            return "redirect:/admin/complaints/" + referenceId;
+        }
+
+        ComplaintPriority newPriority;
+        try {
+            newPriority = ComplaintPriority.valueOf(priorityParam.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            log.warn("Invalid priority value provided for {}: {}", referenceId, priorityParam);
+            redirectAttributes.addFlashAttribute("errorMessage", "Invalid priority value provided: " + priorityParam);
+            return "redirect:/admin/complaints/" + referenceId;
+        }
+
+        String actorUsername = resolveActorUsername(principal, request);
+
+        try {
+            Complaint updated = complaintService.updatePriority(referenceId, newPriority, actorUsername);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Priority successfully updated to " + updated.getPriority().getDisplayName() + ".");
+        } catch (IllegalArgumentException ex) {
+            log.warn("Priority update rejected for complaint {}: {}", referenceId, ex.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            log.error("Failed to update priority for complaint {}", referenceId, ex);
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Failed to update priority: " + ex.getMessage());
+        }
+
+        return "redirect:/admin/complaints/" + referenceId;
+    }
+
+    /**
+     * Handles simultaneous assignment of department and category correction.
+     */
+    @PostMapping("/{referenceId}/assignment")
+    public String updateAssignment(
+            @PathVariable("referenceId") String referenceId,
+            @RequestParam("department") String department,
+            @RequestParam("category") String category,
+            java.security.Principal principal,
+            jakarta.servlet.http.HttpServletRequest request,
+            RedirectAttributes redirectAttributes) {
+
+        if (department == null || department.isBlank()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Department must not be blank.");
+            return "redirect:/admin/complaints/" + referenceId;
+        }
+        if (category == null || category.isBlank()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Category must not be blank.");
+            return "redirect:/admin/complaints/" + referenceId;
+        }
+
+        String actorUsername = resolveActorUsername(principal, request);
+
+        try {
+            complaintService.updateAssignment(referenceId, department, category, actorUsername);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Complaint assignment and category successfully updated.");
+        } catch (IllegalArgumentException ex) {
+            log.warn("Assignment update rejected for complaint {}: {}", referenceId, ex.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            log.error("Failed to update assignment for complaint {}", referenceId, ex);
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Failed to update assignment: " + ex.getMessage());
         }
 
         return "redirect:/admin/complaints/" + referenceId;

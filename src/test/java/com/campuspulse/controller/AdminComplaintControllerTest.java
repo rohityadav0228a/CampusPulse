@@ -1,6 +1,7 @@
 package com.campuspulse.controller;
 
 import com.campuspulse.model.Complaint;
+import com.campuspulse.model.ComplaintPriority;
 import com.campuspulse.model.ComplaintStatus;
 import com.campuspulse.model.ComplaintStatusHistory;
 import com.campuspulse.service.ComplaintService;
@@ -17,6 +18,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
@@ -70,20 +75,24 @@ class AdminComplaintControllerTest {
         );
         c1.setId(1L);
 
-        when(complaintService.getFilteredComplaints(null, null)).thenReturn(List.of(c1));
+        Page<Complaint> pageResult = new PageImpl<>(List.of(c1), PageRequest.of(0, 10), 1);
+        when(complaintService.searchComplaints("", null, null, "", 0, 10)).thenReturn(pageResult);
         when(complaintService.getStatusCounts()).thenReturn(createSampleCounts());
         when(complaintService.getAllowedCategories()).thenReturn(List.of("Infrastructure & Labs"));
 
         mockMvc.perform(get("/admin/complaints"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/complaints/index"))
-                .andExpect(model().attributeExists("complaints", "statusCounts", "statuses", "categories"))
+                .andExpect(model().attributeExists("complaints", "complaintsPage", "statusCounts", "statuses", "categories"))
+                .andExpect(model().attribute("currentPage", 0))
+                .andExpect(model().attribute("totalPages", 1))
+                .andExpect(model().attribute("totalElements", 1L))
                 .andExpect(content().string(containsString("Admin Complaint Management")))
                 .andExpect(content().string(containsString("Authenticated Session")))
                 .andExpect(content().string(containsString("CP-2026-ADM00001")))
                 .andExpect(content().string(containsString("Projector Malfunction in Hall 4")));
 
-        verify(complaintService, times(1)).getFilteredComplaints(null, null);
+        verify(complaintService, times(1)).searchComplaints("", null, null, "", 0, 10);
         verify(complaintService, times(1)).getStatusCounts();
     }
 
@@ -99,8 +108,9 @@ class AdminComplaintControllerTest {
         );
         c1.setId(2L);
 
-        when(complaintService.getFilteredComplaints(ComplaintStatus.SUBMITTED, "Academic Affairs"))
-                .thenReturn(List.of(c1));
+        Page<Complaint> pageResult = new PageImpl<>(List.of(c1), PageRequest.of(0, 10), 1);
+        when(complaintService.searchComplaints("", ComplaintStatus.SUBMITTED, "Academic Affairs", "", 0, 10))
+                .thenReturn(pageResult);
         when(complaintService.getStatusCounts()).thenReturn(createSampleCounts());
         when(complaintService.getAllowedCategories()).thenReturn(List.of("Academic Affairs"));
 
@@ -114,7 +124,7 @@ class AdminComplaintControllerTest {
                 .andExpect(content().string(containsString("CP-2026-ADM00002")));
 
         verify(complaintService, times(1))
-                .getFilteredComplaints(ComplaintStatus.SUBMITTED, "Academic Affairs");
+                .searchComplaints("", ComplaintStatus.SUBMITTED, "Academic Affairs", "", 0, 10);
     }
 
     @Test
@@ -276,7 +286,8 @@ class AdminComplaintControllerTest {
         c1.setStatus(ComplaintStatus.SUBMITTED);
         c1.setResponseDeadline(LocalDateTime.now().minusHours(2));
 
-        when(complaintService.getFilteredComplaints(null, null, "OVERDUE")).thenReturn(List.of(c1));
+        Page<Complaint> pageResult = new PageImpl<>(List.of(c1), PageRequest.of(0, 10), 1);
+        when(complaintService.searchComplaints("", null, null, "OVERDUE", 0, 10)).thenReturn(pageResult);
         when(complaintService.getStatusCounts()).thenReturn(createSampleCounts());
         when(complaintService.getSlaCounts()).thenReturn(Map.of("OVERDUE", 1L, "RESPONSE_OVERDUE", 1L, "ON_TRACK", 0L));
         when(complaintService.getAllowedCategories()).thenReturn(List.of("Infrastructure & Labs"));
@@ -289,8 +300,99 @@ class AdminComplaintControllerTest {
                 .andExpect(content().string(containsString("CP-SLA-001")))
                 .andExpect(content().string(containsString("Resp Overdue")));
 
-        verify(complaintService, times(1)).getFilteredComplaints(null, null, "OVERDUE");
+        verify(complaintService, times(1)).searchComplaints("", null, null, "OVERDUE", 0, 10);
         verify(complaintService, times(1)).getSlaCounts();
+    }
+
+    @Test
+    @DisplayName("GET /admin/complaints with search query and pagination passes parameters to service")
+    void shouldSearchComplaintsWithKeywordAndPaginationParams() throws Exception {
+        Complaint c1 = new Complaint("CP-2026-SEARCH1", "Wi-Fi down", "Library wifi broken", "Library & Study Spaces", "Central Library Committee");
+        c1.setId(10L);
+        Page<Complaint> pageResult = new PageImpl<>(List.of(c1), PageRequest.of(1, 20), 21);
+
+        when(complaintService.searchComplaints("wifi", null, null, "", 1, 20)).thenReturn(pageResult);
+        when(complaintService.getStatusCounts()).thenReturn(createSampleCounts());
+        when(complaintService.getAllowedCategories()).thenReturn(List.of("Library & Study Spaces"));
+
+        mockMvc.perform(get("/admin/complaints")
+                        .param("q", "wifi")
+                        .param("page", "1")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/complaints/index"))
+                .andExpect(model().attribute("searchQuery", "wifi"))
+                .andExpect(model().attribute("currentPage", 1))
+                .andExpect(model().attribute("pageSize", 20))
+                .andExpect(model().attribute("totalPages", 2))
+                .andExpect(model().attribute("totalElements", 21L))
+                .andExpect(content().string(containsString("CP-2026-SEARCH1")));
+
+        verify(complaintService, times(1)).searchComplaints("wifi", null, null, "", 1, 20);
+    }
+
+    @Test
+    @DisplayName("GET /admin/complaints with negative page and excessive size clamps parameters safely")
+    void shouldHandleInvalidPageAndSizeSafely() throws Exception {
+        Page<Complaint> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 100), 0);
+        when(complaintService.searchComplaints("", null, null, "", 0, 100)).thenReturn(emptyPage);
+        when(complaintService.getStatusCounts()).thenReturn(createSampleCounts());
+        when(complaintService.getAllowedCategories()).thenReturn(List.of("Infrastructure & Labs"));
+
+        mockMvc.perform(get("/admin/complaints")
+                        .param("page", "-5")
+                        .param("size", "500"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/complaints/index"))
+                .andExpect(model().attribute("currentPage", 0))
+                .andExpect(model().attribute("pageSize", 100));
+
+        verify(complaintService, times(1)).searchComplaints("", null, null, "", 0, 100);
+    }
+
+    @Test
+    @DisplayName("GET /admin/complaints preserves search keyword and filter criteria across pagination links")
+    void shouldPreserveSearchAndFilterParametersInPaginationLinks() throws Exception {
+        List<Complaint> items = List.of(
+                new Complaint("CP-2026-PAG01", "Lab issue 1", "desc 1", "Infrastructure & Labs", "Campus Facilities & Works"),
+                new Complaint("CP-2026-PAG02", "Lab issue 2", "desc 2", "Infrastructure & Labs", "Campus Facilities & Works")
+        );
+        Page<Complaint> pageResult = new PageImpl<>(items, PageRequest.of(1, 10), 35);
+
+        when(complaintService.searchComplaints("lab", ComplaintStatus.SUBMITTED, "Infrastructure & Labs", "OVERDUE", 1, 10))
+                .thenReturn(pageResult);
+        when(complaintService.getStatusCounts()).thenReturn(createSampleCounts());
+        when(complaintService.getAllowedCategories()).thenReturn(List.of("Infrastructure & Labs"));
+
+        mockMvc.perform(get("/admin/complaints")
+                        .param("q", "lab")
+                        .param("status", "SUBMITTED")
+                        .param("category", "Infrastructure & Labs")
+                        .param("slaStatus", "OVERDUE")
+                        .param("page", "1")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/complaints/index"))
+                .andExpect(content().string(containsString("q=lab")))
+                .andExpect(content().string(containsString("status=SUBMITTED")))
+                .andExpect(content().string(containsString("category=Infrastructure%20%26%20Labs")))
+                .andExpect(content().string(containsString("slaStatus=OVERDUE")));
+    }
+
+    @Test
+    @DisplayName("GET /admin/complaints displays empty state when search produces no results")
+    void shouldRenderEmptyStateWhenNoMatchingComplaintsFound() throws Exception {
+        Page<Complaint> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
+
+        when(complaintService.searchComplaints("nonexistent", null, null, "", 0, 10)).thenReturn(emptyPage);
+        when(complaintService.getStatusCounts()).thenReturn(createSampleCounts());
+        when(complaintService.getAllowedCategories()).thenReturn(List.of("Infrastructure & Labs"));
+
+        mockMvc.perform(get("/admin/complaints").param("q", "nonexistent"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/complaints/index"))
+                .andExpect(content().string(containsString("No Matching Complaints Found")))
+                .andExpect(content().string(containsString("Clear All Filters &amp; Search")));
     }
 
     @Test
@@ -333,5 +435,275 @@ class AdminComplaintControllerTest {
                 .andExpect(content().string(containsString("admin-escalations@campuspulse.internal")));
 
         verify(slaEscalationService, times(1)).getEscalationAudits("CP-SLA-DETAIL");
+    }
+
+    @Test
+    @DisplayName("POST /admin/complaints/{refId}/resolution-note updates resolution note and redirects with success")
+    void shouldUpdateResolutionNoteWhenValid() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00004/resolution-note")
+                        .param("resolutionNote", "Power unit replaced with tested spare."))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00004"))
+                .andExpect(flash().attributeExists("successMessage"));
+
+        verify(complaintService, times(1))
+                .updateResolutionNote(eq("CP-2026-ADM00004"), eq("Power unit replaced with tested spare."), any());
+    }
+
+    @Test
+    @DisplayName("POST /admin/complaints/{refId}/resolution-note rejects blank note and redirects with error")
+    void shouldRejectBlankResolutionNoteCorrection() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00004/resolution-note")
+                        .param("resolutionNote", "   "))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00004"))
+                .andExpect(flash().attributeExists("errorMessage"));
+
+        verify(complaintService, never()).updateResolutionNote(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("POST /admin/complaints/{refId}/resolution-note rejects overly long note and redirects with error")
+    void shouldRejectOverlyLongResolutionNoteCorrection() throws Exception {
+        String tooLong = "X".repeat(1001);
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00004/resolution-note")
+                        .param("resolutionNote", tooLong))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00004"))
+                .andExpect(flash().attributeExists("errorMessage"));
+
+        verify(complaintService, never()).updateResolutionNote(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("GET /admin/complaints/{refId} displays resolution note and correction form when resolved")
+    void shouldDisplayResolutionNoteAndCorrectionFormOnDetailPageWhenResolved() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-DETAIL-RES",
+                "Laboratory Workstation Fix",
+                "Workstation motherboard fault",
+                "Infrastructure & Labs",
+                "Campus Facilities & Works"
+        );
+        complaint.setStatus(ComplaintStatus.RESOLVED);
+        complaint.setResolutionNote("Motherboard replaced and workstation diagnostics completed.");
+        complaint.setResolvedAt(LocalDateTime.of(2026, 10, 12, 10, 0));
+
+        when(complaintService.getByReferenceId("CP-2026-DETAIL-RES")).thenReturn(Optional.of(complaint));
+        when(complaintService.getStatusHistory("CP-2026-DETAIL-RES")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/admin/complaints/CP-2026-DETAIL-RES"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/complaints/detail"))
+                .andExpect(content().string(containsString("Official Resolution Note")))
+                .andExpect(content().string(containsString("Motherboard replaced and workstation diagnostics completed.")))
+                .andExpect(content().string(containsString("Correct Resolution Note")));
+    }
+
+    @Test
+    @DisplayName("POST /admin/complaints/{refId}/status rejects note exceeding 1000 characters")
+    void shouldRejectOverlyLongNoteInStatusUpdate() throws Exception {
+        String longNote = "Z".repeat(1001);
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00004/status")
+                        .param("status", "RESOLVED")
+                        .param("note", longNote))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00004"))
+                .andExpect(flash().attributeExists("errorMessage"));
+
+        verify(complaintService, never()).updateComplaintStatus(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("GET /admin/complaints filters by department and priority")
+    void shouldFilterComplaintsByDepartmentAndPriority() throws Exception {
+        Complaint c = new Complaint("CP-2026-FILT01", "Lab AC issue", "desc", "Infrastructure & Labs", "Campus Facilities & Works");
+        c.setPriority(ComplaintPriority.HIGH);
+
+        Page<Complaint> pageResult = new PageImpl<>(List.of(c), PageRequest.of(0, 10), 1);
+        when(complaintService.searchComplaints("", null, null, "Campus Facilities & Works", ComplaintPriority.HIGH, "", 0, 10))
+                .thenReturn(pageResult);
+        when(complaintService.getStatusCounts()).thenReturn(createSampleCounts());
+        when(complaintService.getAllowedDepartments()).thenReturn(List.of("Campus Facilities & Works"));
+        when(complaintService.getAllowedCategories()).thenReturn(List.of("Infrastructure & Labs"));
+
+        mockMvc.perform(get("/admin/complaints")
+                        .param("department", "Campus Facilities & Works")
+                        .param("priority", "HIGH"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/complaints/index"))
+                .andExpect(model().attribute("selectedDepartment", "Campus Facilities & Works"))
+                .andExpect(model().attribute("selectedPriority", "HIGH"))
+                .andExpect(model().attributeExists("departments", "priorities"))
+                .andExpect(content().string(containsString("CP-2026-FILT01")));
+
+        verify(complaintService, times(1))
+                .searchComplaints("", null, null, "Campus Facilities & Works", ComplaintPriority.HIGH, "", 0, 10);
+    }
+
+    @Test
+    @DisplayName("POST /admin/complaints/{refId}/department updates department and redirects")
+    void shouldSuccessfullyUpdateDepartment() throws Exception {
+        Complaint c = new Complaint("CP-2026-ADM00005", "Title", "Desc", "Infrastructure & Labs", "Hostel Administration");
+        when(complaintService.updateDepartment(eq("CP-2026-ADM00005"), eq("Hostel Administration"), any()))
+                .thenReturn(c);
+
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00005/department")
+                        .param("department", "Hostel Administration"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00005"))
+                .andExpect(flash().attribute("successMessage", "Department successfully reassigned to Hostel Administration."));
+
+        verify(complaintService, times(1))
+                .updateDepartment(eq("CP-2026-ADM00005"), eq("Hostel Administration"), any());
+    }
+
+    @Test
+    @DisplayName("POST /admin/complaints/{refId}/department rejects blank or service-rejected values")
+    void shouldRejectInvalidDepartmentUpdate() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00005/department")
+                        .param("department", "   "))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00005"))
+                .andExpect(flash().attribute("errorMessage", "Department must not be blank."));
+
+        verify(complaintService, never()).updateDepartment(any(), any(), any());
+
+        when(complaintService.updateDepartment(eq("CP-2026-ADM00005"), eq("Invalid Dept"), any()))
+                .thenThrow(new IllegalArgumentException("Invalid department: Invalid Dept"));
+
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00005/department")
+                        .param("department", "Invalid Dept"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00005"))
+                .andExpect(flash().attribute("errorMessage", "Invalid department: Invalid Dept"));
+    }
+
+    @Test
+    @DisplayName("POST /admin/complaints/{refId}/category updates category and redirects")
+    void shouldSuccessfullyUpdateCategory() throws Exception {
+        Complaint c = new Complaint("CP-2026-ADM00006", "Title", "Desc", "Library & Study Spaces", "Campus Facilities & Works");
+        when(complaintService.updateCategory(eq("CP-2026-ADM00006"), eq("Library & Study Spaces"), any()))
+                .thenReturn(c);
+
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00006/category")
+                        .param("category", "Library & Study Spaces"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00006"))
+                .andExpect(flash().attribute("successMessage", "Category successfully corrected to Library & Study Spaces."));
+
+        verify(complaintService, times(1))
+                .updateCategory(eq("CP-2026-ADM00006"), eq("Library & Study Spaces"), any());
+    }
+
+    @Test
+    @DisplayName("POST /admin/complaints/{refId}/category rejects blank or service-rejected values")
+    void shouldRejectInvalidCategoryUpdate() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00006/category")
+                        .param("category", ""))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00006"))
+                .andExpect(flash().attribute("errorMessage", "Category must not be blank."));
+
+        verify(complaintService, never()).updateCategory(any(), any(), any());
+
+        when(complaintService.updateCategory(eq("CP-2026-ADM00006"), eq("Invalid Cat"), any()))
+                .thenThrow(new IllegalArgumentException("Invalid category: Invalid Cat"));
+
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00006/category")
+                        .param("category", "Invalid Cat"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00006"))
+                .andExpect(flash().attribute("errorMessage", "Invalid category: Invalid Cat"));
+    }
+
+    @Test
+    @DisplayName("POST /admin/complaints/{refId}/priority updates priority and redirects")
+    void shouldSuccessfullyUpdatePriority() throws Exception {
+        Complaint c = new Complaint("CP-2026-ADM00007", "Title", "Desc", "Infrastructure & Labs", "Campus Facilities & Works");
+        c.setPriority(ComplaintPriority.CRITICAL);
+        when(complaintService.updatePriority(eq("CP-2026-ADM00007"), eq(ComplaintPriority.CRITICAL), any()))
+                .thenReturn(c);
+
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00007/priority")
+                        .param("priority", "CRITICAL"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00007"))
+                .andExpect(flash().attribute("successMessage", "Priority successfully updated to Critical."));
+
+        verify(complaintService, times(1))
+                .updatePriority(eq("CP-2026-ADM00007"), eq(ComplaintPriority.CRITICAL), any());
+    }
+
+    @Test
+    @DisplayName("POST /admin/complaints/{refId}/priority rejects blank, invalid enum, or unchanged values")
+    void shouldRejectInvalidPriorityUpdate() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00007/priority")
+                        .param("priority", "   "))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00007"))
+                .andExpect(flash().attribute("errorMessage", "Priority must not be blank."));
+
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00007/priority")
+                        .param("priority", "INVALID_PRIORITY"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00007"))
+                .andExpect(flash().attribute("errorMessage", "Invalid priority value provided: INVALID_PRIORITY"));
+
+        when(complaintService.updatePriority(eq("CP-2026-ADM00007"), eq(ComplaintPriority.MEDIUM), any()))
+                .thenThrow(new IllegalArgumentException("Complaint priority is already set to Medium"));
+
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00007/priority")
+                        .param("priority", "MEDIUM"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00007"))
+                .andExpect(flash().attribute("errorMessage", "Complaint priority is already set to Medium"));
+    }
+
+    @Test
+    @DisplayName("POST /admin/complaints/{refId}/assignment updates department and category atomically")
+    void shouldSuccessfullyUpdateAssignment() throws Exception {
+        Complaint c = new Complaint("CP-2026-ADM00008", "Title", "Desc", "Hostel & Residence", "Hostel Administration");
+        when(complaintService.updateAssignment(eq("CP-2026-ADM00008"), eq("Hostel Administration"), eq("Hostel & Residence"), any()))
+                .thenReturn(c);
+
+        mockMvc.perform(post("/admin/complaints/CP-2026-ADM00008/assignment")
+                        .param("department", "Hostel Administration")
+                        .param("category", "Hostel & Residence"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-ADM00008"))
+                .andExpect(flash().attribute("successMessage", "Complaint assignment and category successfully updated."));
+
+        verify(complaintService, times(1))
+                .updateAssignment(eq("CP-2026-ADM00008"), eq("Hostel Administration"), eq("Hostel & Residence"), any());
+    }
+
+    @Test
+    @DisplayName("GET /admin/complaints preserves department and priority across pagination links")
+    void shouldPreserveDepartmentAndPriorityInPaginationLinks() throws Exception {
+        List<Complaint> items = List.of(
+                new Complaint("CP-2026-PAG03", "Dept issue 1", "desc 1", "Infrastructure & Labs", "Campus Facilities & Works")
+        );
+        Page<Complaint> pageResult = new PageImpl<>(items, PageRequest.of(1, 10), 25);
+
+        when(complaintService.searchComplaints("water", ComplaintStatus.SUBMITTED, "Hostel & Residence", "Hostel Administration", ComplaintPriority.CRITICAL, "OVERDUE", 1, 10))
+                .thenReturn(pageResult);
+        when(complaintService.getStatusCounts()).thenReturn(createSampleCounts());
+        when(complaintService.getAllowedDepartments()).thenReturn(List.of("Hostel Administration"));
+        when(complaintService.getAllowedCategories()).thenReturn(List.of("Hostel & Residence"));
+
+        mockMvc.perform(get("/admin/complaints")
+                        .param("q", "water")
+                        .param("status", "SUBMITTED")
+                        .param("category", "Hostel & Residence")
+                        .param("department", "Hostel Administration")
+                        .param("priority", "CRITICAL")
+                        .param("slaStatus", "OVERDUE")
+                        .param("page", "1")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/complaints/index"))
+                .andExpect(content().string(containsString("department=Hostel%20Administration")))
+                .andExpect(content().string(containsString("priority=CRITICAL")));
     }
 }

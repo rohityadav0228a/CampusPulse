@@ -8,7 +8,7 @@
     <!-- Google Fonts for Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" th:href="@{/css/style.css}" href="../../../static/css/style.css">
 </head>
@@ -220,8 +220,8 @@
                     <svg id="trend-svg" width="100%" height="100%" viewBox="0 0 800 240" preserveAspectRatio="none" style="overflow: visible;">
                         <defs>
                             <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.25"/>
-                                <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.0"/>
+                                <stop offset="0%" stop-color="#4F46E5" stop-opacity="0.25"/>
+                                <stop offset="100%" stop-color="#4F46E5" stop-opacity="0.0"/>
                             </linearGradient>
                         </defs>
                         <!-- Grid lines, area, line path, and data points injected via JS -->
@@ -363,7 +363,7 @@
                 text.setAttribute('text-anchor', 'end');
                 text.setAttribute('fill', '#94a3b8');
                 text.setAttribute('font-size', '10');
-                text.setAttribute('font-family', 'Plus Jakarta Sans, sans-serif');
+                text.setAttribute('font-family', 'Inter, sans-serif');
                 text.textContent = tickVal;
                 svg.appendChild(text);
             }
@@ -398,7 +398,7 @@
                 const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 linePath.setAttribute('d', pathD);
                 linePath.setAttribute('fill', 'none');
-                linePath.setAttribute('stroke', '#2563eb');
+                linePath.setAttribute('stroke', '#4F46E5');
                 linePath.setAttribute('stroke-width', '2.5');
                 linePath.setAttribute('stroke-linecap', 'round');
                 linePath.setAttribute('stroke-linejoin', 'round');
@@ -419,14 +419,14 @@
                 circle.setAttribute('cy', y);
                 circle.setAttribute('r', '4');
                 circle.setAttribute('fill', '#ffffff');
-                circle.setAttribute('stroke', '#2563eb');
+                circle.setAttribute('stroke', '#4F46E5');
                 circle.setAttribute('stroke-width', '2');
                 circle.setAttribute('style', 'cursor: pointer; transition: r 0.15s ease;');
 
                 // Hover interaction
                 circle.addEventListener('mouseenter', (e) => {
                     circle.setAttribute('r', '6');
-                    circle.setAttribute('fill', '#2563eb');
+                    circle.setAttribute('fill', '#4F46E5');
                     if (tooltip) {
                         tooltip.style.display = 'block';
                         tooltip.innerHTML = `<strong>${d.label || d.date}</strong><br/>${d.count} complaint${d.count === 1 ? '' : 's'}`;

@@ -229,7 +229,10 @@ public class ComplaintController {
 
         complaintService.getByReferenceId(normalizedRef)
                 .ifPresentOrElse(
-                        complaint -> model.addAttribute("complaint", complaint),
+                        complaint -> {
+                            model.addAttribute("complaint", complaint);
+                            model.addAttribute("statusHistory", complaintService.getStatusHistory(normalizedRef));
+                        },
                         () -> model.addAttribute("notFound", true)
                 );
 

@@ -161,4 +161,116 @@ class EmailNotificationServiceTest {
         assertThrows(IllegalArgumentException.class, () ->
                 emailNotificationService.sendNotification("student@test.edu", "CP-2026-TEST", null));
     }
+
+    @Test
+    @DisplayName("sendSubmissionConfirmation constructs and dispatches valid MIME message with recipient and subject")
+    void sendSubmissionConfirmationDispatchesMimeMessage() throws Exception {
+        Session session = Session.getInstance(new Properties());
+        MimeMessage mimeMessage = new MimeMessage(session);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        emailNotificationService.sendSubmissionConfirmation(
+                "freshman@college.edu",
+                "CP-2026-SUBMIT01"
+        );
+
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender, times(1)).send(captor.capture());
+
+        MimeMessage sentMessage = captor.getValue();
+        assertNotNull(sentMessage);
+
+        Address[] recipients = sentMessage.getAllRecipients();
+        assertNotNull(recipients);
+        assertEquals(1, recipients.length);
+        assertEquals("freshman@college.edu", recipients[0].toString());
+
+        assertTrue(sentMessage.getSubject().contains("CP-2026-SUBMIT01"));
+        assertTrue(sentMessage.getSubject().contains("Grievance Registered"));
+    }
+
+    @Test
+    @DisplayName("buildHtmlSubmissionConfirmationEmail contains branding, tracking link, SUBMITTED status, and instructions")
+    void buildHtmlSubmissionConfirmationEmailContainsRequiredElements() {
+        String trackingUrl = "https://campuspulse.edu/complaints/track?referenceId=CP-2026-SUBMIT01";
+        String html = emailNotificationService.buildHtmlSubmissionConfirmationEmail(
+                "CP-2026-SUBMIT01",
+                trackingUrl
+        );
+
+        assertNotNull(html);
+        assertTrue(html.contains("Campus<span style=\"color: #38bdf8;\">Pulse</span>"), "Must contain brand mark");
+        assertTrue(html.contains("CP-2026-SUBMIT01"), "Must include reference ID");
+        assertTrue(html.contains("SUBMITTED"), "Must include SUBMITTED status");
+        assertTrue(html.contains(trackingUrl), "Must include tracking URL");
+        assertTrue(html.contains("Track Grievance Status"), "Must include CTA button");
+        assertTrue(html.contains("How to Track Your Grievance"), "Must include status instructions");
+        assertTrue(html.contains("Privacy &amp; Security Notice"), "Must include privacy disclaimer");
+    }
+
+    @Test
+    @DisplayName("buildPlainTextSubmissionConfirmationEmail contains clean plain text and instructions without HTML")
+    void buildPlainTextSubmissionConfirmationEmailContainsPlainContent() {
+        String trackingUrl = "https://campuspulse.edu/complaints/track?referenceId=CP-2026-SUBMIT01";
+        String text = emailNotificationService.buildPlainTextSubmissionConfirmationEmail(
+                "CP-2026-SUBMIT01",
+                trackingUrl
+        );
+
+        assertNotNull(text);
+        assertFalse(text.contains("<"), "Plain text alternative must not contain HTML tags");
+        assertTrue(text.contains("CP-2026-SUBMIT01"));
+        assertTrue(text.contains("SUBMITTED"));
+        assertTrue(text.contains(trackingUrl));
+        assertTrue(text.contains("Instructions for Checking Status"));
+        assertTrue(text.contains("Privacy Notice"));
+    }
+
+    @Test
+    @DisplayName("Submission confirmation templates never expose complaint description or sensitive administrator notes")
+    void submissionConfirmationTemplatesNeverExposeSensitiveData() {
+        String sensitiveDescription = "Confidential student disciplinary conflict";
+        String adminNote = "Dean recommended immediate mediation";
+        String trackingUrl = "https://campuspulse.edu/complaints/track?referenceId=CP-2026-PRIVACY1";
+
+        String html = emailNotificationService.buildHtmlSubmissionConfirmationEmail("CP-2026-PRIVACY1", trackingUrl);
+        String text = emailNotificationService.buildPlainTextSubmissionConfirmationEmail("CP-2026-PRIVACY1", trackingUrl);
+
+        assertFalse(html.contains(sensitiveDescription));
+        assertFalse(html.contains(adminNote));
+        assertFalse(text.contains(sensitiveDescription));
+        assertFalse(text.contains(adminNote));
+    }
+
+    @Test
+    @DisplayName("sendSubmissionConfirmation propagates MailException when SMTP fails")
+    void sendSubmissionConfirmationPropagatesMailException() {
+        Session session = Session.getInstance(new Properties());
+        MimeMessage mimeMessage = new MimeMessage(session);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        doThrow(new MailSendException("SMTP relay refused connection")).when(mailSender).send(any(MimeMessage.class));
+
+        assertThrows(MailSendException.class, () ->
+                emailNotificationService.sendSubmissionConfirmation(
+                        "student@college.edu",
+                        "CP-2026-FAIL0002"
+                )
+        );
+    }
+
+    @Test
+    @DisplayName("sendSubmissionConfirmation validates recipient email and reference ID")
+    void sendSubmissionConfirmationValidatesArguments() {
+        assertThrows(IllegalArgumentException.class, () ->
+                emailNotificationService.sendSubmissionConfirmation(null, "CP-2026-TEST"));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                emailNotificationService.sendSubmissionConfirmation("   ", "CP-2026-TEST"));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                emailNotificationService.sendSubmissionConfirmation("student@test.edu", null));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                emailNotificationService.sendSubmissionConfirmation("student@test.edu", "   "));
+    }
 }

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CampusPulse Student Portal Login. Secure student access to file, track, and manage campus grievances.">
+    <title>Student Login | CampusPulse</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../static/css/style.css">
+</head>
+<body style="min-height: 100vh; display: flex; flex-direction: column;">
+
+    <!-- Site Header -->
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar" aria-label="Main Navigation">
+                <a th:href="@{/}" href="/" class="brand-logo" id="nav-brand">
+                    <span class="brand-icon-wrap" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </span>
+                    <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                </a>
+
+                <ul class="nav-links">
+                    <li><a th:href="@{/}" href="/" class="nav-link">Home</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Registry</a></li>
+                    <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Track Grievance</a></li>
+                </ul>
+
+                <div class="nav-actions">
+                    <a th:href="@{/}" href="/" class="btn btn-outline btn-sm">
+                        &larr; Back to Home
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="section section-alt" style="flex: 1; display: flex; align-items: center; padding: 3.5rem 0;">
+        <div class="container" style="max-width: 460px;">
+
+            <!-- Login Card -->
+            <div class="form-card" style="padding: 2.5rem 2.25rem;">
+
+                <!-- Header with Student Icon -->
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: var(--radius-md); background-color: var(--indigo-50); color: var(--indigo-500); margin-bottom: 1rem; border: 1px solid var(--indigo-100); box-shadow: var(--shadow-xs);">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <h1 class="page-title" style="font-size: 1.5rem; margin-bottom: 0.45rem;" id="student-login-heading">Student Sign In</h1>
+                    <p class="page-subtitle" style="font-size: 0.875rem;">
+                        Sign in with your registered campus email to file and track your grievances.
+                    </p>
+                </div>
+
+                <!-- Registration Success Banner -->
+                <div th:if="${param.registered != null or successMessage != null}" class="alert-banner alert-success" role="status" id="login-registered-alert">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px;">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <div>
+                        <strong style="display: block; font-weight: 700; margin-bottom: 0.15rem;">Account Ready</strong>
+                        <span th:text="${successMessage != null ? successMessage : 'Your account has been created successfully. Please sign in below.'}">
+                            Your account has been created successfully. Please sign in below.
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Error Alert Banner -->
+                <div th:if="${param.error != null or errorMessage != null}" class="alert-banner alert-error" role="alert" id="student-login-error-alert">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <div>
+                        <strong style="display: block; font-weight: 700; margin-bottom: 0.15rem;">Authentication Failed</strong>
+                        <span th:text="${errorMessage != null ? errorMessage : 'Invalid student email or password. Please verify your credentials and try again.'}">
+                            Invalid student email or password. Please verify your credentials and try again.
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Logout Alert Banner -->
+                <div th:if="${param.logout != null or logoutMessage != null}" class="alert-banner alert-success" role="status" id="student-login-logout-alert">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px;">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <div>
+                        <strong style="display: block; font-weight: 700; margin-bottom: 0.15rem;">Signed Out</strong>
+                        <span th:text="${logoutMessage != null ? logoutMessage : 'You have been successfully signed out.'}">
+                            You have been successfully signed out.
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Student Login Form -->
+                <form th:action="@{/login}" method="post" id="student-login-form">
+                    <input type="hidden" name="loginType" value="student" />
+
+                    <div class="form-group">
+                        <label for="username" class="form-label">
+                            Student Email <span class="required" aria-hidden="true">*</span>
+                        </label>
+                        <input
+                            type="email"
+                            id="username"
+                            name="username"
+                            class="form-control"
+                            placeholder="e.g. rohit@college.edu"
+                            required
+                            autofocus
+                            autocomplete="username"
+                        />
+                        <span class="form-hint">Use the email address you registered with.</span>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1.75rem;">
+                        <label for="password" class="form-label">
+                            Password <span class="required" aria-hidden="true">*</span>
+                        </label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="form-control"
+                            placeholder="Enter your account password"
+                            required
+                            autocomplete="current-password"
+                        />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="btn-student-login-submit" style="width: 100%; justify-content: center; font-size: 0.9375rem; height: 42px;">
+                        Sign In as Student &rarr;
+                    </button>
+                </form>
+
+                <div style="margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--border-color); text-align: center; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <p style="font-size: 0.875rem; color: var(--text-muted); margin: 0;">
+                        Don't have a student account?
+                        <a th:href="@{/student/register}" href="/student/register" style="font-weight: 600; color: var(--indigo-500);" id="link-to-register">
+                            Register here
+                        </a>
+                    </p>
+                    <p style="font-size: 0.8125rem; color: var(--text-muted); margin: 0;">
+                        Campus administrator?
+                        <a th:href="@{/login}" href="/login" style="color: var(--navy-900); font-weight: 600;" id="link-to-admin-login">
+                            Admin Sign In &rarr;
+                        </a>
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Site Footer -->
+    <footer class="site-footer" style="padding: 2rem 0; background-color: var(--navy-900); border-top: 1px solid var(--navy-850);">
+        <div class="container" style="text-align: center;">
+            <p style="font-size: 0.8125rem; color: #94A3B8;">
+                &copy; 2026 CampusPulse &bull; Campus Grievance and Feedback Management System.
+            </p>
+        </div>
+    </footer>
+
+</body>
+</html>

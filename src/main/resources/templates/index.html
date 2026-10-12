@@ -8,7 +8,7 @@
     <!-- Google Fonts for Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" th:href="@{/css/style.css}" href="../static/css/style.css">
 </head>
@@ -41,8 +41,11 @@
                     <a th:href="@{/complaints/track}" href="/complaints/track" class="btn btn-outline btn-sm" id="nav-track-btn">
                         Track Status
                     </a>
-                    <a th:href="@{/complaints/new}" href="/complaints/new" class="btn btn-primary btn-sm" id="nav-submit-btn">
-                        Submit Complaint
+                    <a th:href="@{/student/login}" href="/student/login" class="btn btn-primary btn-sm" id="nav-student-login-btn">
+                        Student Login
+                    </a>
+                    <a th:href="@{/login}" href="/login" class="btn btn-outline btn-sm" id="nav-admin-login-btn">
+                        Admin Login
                     </a>
                 </div>
             </nav>
@@ -67,37 +70,101 @@
                     </h1>
 
                     <p class="hero-desc">
-                        CampusPulse is a centralized digital portal designed to streamline campus grievance reporting,
-                        monitor resolution progress, and enable campus administrators to review and address student feedback with accountability.
+                        CampusPulse is a campus grievance and complaint management platform designed to streamline grievance reporting,
+                        monitor resolution progress with real-time tracking, and enable campus administrators to review and address student feedback with accountability and SLA tracking.
                     </p>
 
-                    <div class="hero-cta-group">
-                        <div class="cta-wrapper">
-                            <a th:href="@{/complaints/new}" href="/complaints/new" class="btn btn-primary btn-lg" id="hero-submit-cta">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M12 20h9"></path>
-                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                                </svg>
-                                Submit a Complaint
+                    <!-- Three Prominent Authentication Options -->
+                    <div class="auth-options-grid" aria-label="Portal Access Options">
+                        <!-- 1. Student Login -->
+                        <div class="auth-portal-card" id="card-student-login">
+                            <div class="auth-card-top">
+                                <div class="auth-card-icon student" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                </div>
+                                <span class="auth-card-tag student">Student</span>
+                            </div>
+                            <h3 class="auth-card-title">Student Login</h3>
+                            <p class="auth-card-desc">
+                                Sign in to submit grievances, view resolution progress, and monitor timeline updates.
+                            </p>
+                            <a th:href="@{/student/login}" href="/student/login" class="btn btn-primary auth-card-btn" id="hero-student-login-cta">
+                                Student Sign In &rarr;
                             </a>
-                            <span class="cta-subtext">Route: <code>/complaints/new</code> (Active Module)</span>
                         </div>
 
-                        <div class="cta-wrapper">
-                            <a th:href="@{/complaints/track}" href="/complaints/track" class="btn btn-outline btn-lg" id="hero-track-cta">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                </svg>
-                                Track Complaint Status
+                        <!-- 2. Student Register -->
+                        <div class="auth-portal-card" id="card-student-register">
+                            <div class="auth-card-top">
+                                <div class="auth-card-icon register" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="8.5" cy="7" r="4"></circle>
+                                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                                    </svg>
+                                </div>
+                                <span class="auth-card-tag register">New</span>
+                            </div>
+                            <h3 class="auth-card-title">Student Register</h3>
+                            <p class="auth-card-desc">
+                                Create a student account using your campus email to begin filing and tracking grievances.
+                            </p>
+                            <a th:href="@{/student/register}" href="/student/register" class="btn btn-outline auth-card-btn" id="hero-student-register-cta">
+                                Create Account &rarr;
                             </a>
-                            <span class="cta-subtext">Route: <code>/complaints/track</code> (Active Module)</span>
+                        </div>
+
+                        <!-- 3. Admin Login -->
+                        <div class="auth-portal-card" id="card-admin-login">
+                            <div class="auth-card-top">
+                                <div class="auth-card-icon admin" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                </div>
+                                <span class="auth-card-tag admin">Staff</span>
+                            </div>
+                            <h3 class="auth-card-title">Admin Login</h3>
+                            <p class="auth-card-desc">
+                                Administrative portal access to review submissions, assign departments, and manage SLAs.
+                            </p>
+                            <a th:href="@{/login}" href="/login" class="btn btn-outline auth-card-btn" id="hero-admin-login-cta">
+                                Admin Sign In &rarr;
+                            </a>
                         </div>
                     </div>
 
-                    <p class="hero-meta-notice">
-                        <strong>Project Status:</strong> Landing page, student grievance submission (<code>/complaints/new</code>), and complaint tracking (<code>/complaints/track</code>) are active. Administrative review is planned for the next milestone.
-                    </p>
+                    <!-- Secondary Quick Actions -->
+                    <div class="hero-secondary-actions" aria-label="Quick Access Actions">
+                        <span class="secondary-actions-label">Quick Actions:</span>
+                        <a th:href="@{/complaints/track}" href="/complaints/track" class="secondary-action-link" id="hero-track-btn">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            Track Complaint Status
+                        </a>
+                        <span class="action-divider" aria-hidden="true">&bull;</span>
+                        <a th:href="@{/complaints/new}" href="/complaints/new" class="secondary-action-link" id="hero-submit-cta">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20h9"></path>
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                            </svg>
+                            Submit a Complaint
+                        </a>
+                        <span class="action-divider" aria-hidden="true">&bull;</span>
+                        <a th:href="@{/complaints}" href="/complaints" class="secondary-action-link" id="hero-registry-btn">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                            Public Registry
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Visual Preview Card: Complaint Lifecycle Pipeline -->

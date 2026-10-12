@@ -1,6 +1,7 @@
 package com.campuspulse.repository;
 
 import com.campuspulse.model.Complaint;
+import com.campuspulse.model.ComplaintPriority;
 import com.campuspulse.model.ComplaintStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,10 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -178,6 +183,219 @@ class ComplaintRepositoryTest {
 
         List<Complaint> resCandidates = complaintRepository.findResolutionOverdueCandidates(now);
         assertThat(resCandidates).extracting(Complaint::getReferenceId).containsExactly("CP-SLA-REPO-2");
+    }
+
+    @Test
+    @DisplayName("searchWithFilters searches referenceId, title, description, and studentEmail case-insensitively")
+    void searchWithFiltersMatchesAllFieldsCaseInsensitively() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime threshold = now.plusHours(6);
+        PageRequest pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Complaint c1 = new Complaint("CP-2026-REF101", "Lab Projector Defect", "Bulb burnt out", "Infrastructure & Labs", "Campus Facilities & Works");
+        c1.setStudentEmail("student.one@campuspulse.internal");
+        c1.setCreatedAt(now.minusHours(5));
+        complaintRepository.save(c1);
+
+        Complaint c2 = new Complaint("CP-2026-REF102", "Hostel Heating Cold", "Radiator valve leaking", "Hostel & Residence", "Hostel Administration");
+        c2.setStudentEmail("student.two@campuspulse.internal");
+        c2.setCreatedAt(now.minusHours(4));
+        complaintRepository.save(c2);
+
+        Complaint c3 = new Complaint("CP-2026-REF103", "Library Noise Issue", "Group study room loud screaming", "Library & Study Spaces", "Central Library Committee");
+        c3.setStudentEmail("alex.johnson@campuspulse.internal");
+        c3.setCreatedAt(now.minusHours(3));
+        complaintRepository.save(c3);
+
+        // 1. Search by referenceId (case-insensitive: lowercase match)
+        Page<Complaint> refMatch = complaintRepository.searchWithFilters("ref101", null, null, null, now, threshold, pageable);
+        assertThat(refMatch.getContent()).extracting(Complaint::getReferenceId).containsExactly("CP-2026-REF101");
+
+        // 2. Search by title (case-insensitive: mixed case match)
+        Page<Complaint> titleMatch = complaintRepository.searchWithFilters("pRoJeCtOr", null, null, null, now, threshold, pageable);
+        assertThat(titleMatch.getContent()).extracting(Complaint::getReferenceId).containsExactly("CP-2026-REF101");
+
+        // 3. Search by description (case-insensitive: partial phrase match)
+        Page<Complaint> descMatch = complaintRepository.searchWithFilters("vAlVe LeAkInG", null, null, null, now, threshold, pageable);
+        assertThat(descMatch.getContent()).extracting(Complaint::getReferenceId).containsExactly("CP-2026-REF102");
+
+        // 4. Search by studentEmail (case-insensitive: domain or prefix)
+        Page<Complaint> emailMatch = complaintRepository.searchWithFilters("ALEX.JOHNSON", null, null, null, now, threshold, pageable);
+        assertThat(emailMatch.getContent()).extracting(Complaint::getReferenceId).containsExactly("CP-2026-REF103");
+
+        // 5. Search with no matches returns empty page
+        Page<Complaint> noMatch = complaintRepository.searchWithFilters("completely_absent_term", null, null, null, now, threshold, pageable);
+        assertThat(noMatch.getContent()).isEmpty();
+        assertThat(noMatch.getTotalElements()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("searchWithFilters combines search keyword with status, category, and SLA filters")
+    void searchWithFiltersCombinedWithStatusCategoryAndSla() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime threshold = now.plusHours(6);
+        PageRequest pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        // c1: Infrastructure, SUBMITTED, response deadline passed (RESPONSE_OVERDUE), keyword: "printer"
+        Complaint c1 = new Complaint("CP-COMBO-1", "Lab Printer Jam", "3D printer jammed", "Infrastructure & Labs", "Campus Facilities & Works");
+        c1.setStatus(ComplaintStatus.SUBMITTED);
+        c1.setResponseDeadline(now.minusHours(3));
+        c1.setResolutionDeadline(now.plusHours(40));
+        complaintRepository.save(c1);
+
+        // c2: Infrastructure, IN_PROGRESS, response SLA acknowledged (ON_TRACK), keyword: "printer"
+        Complaint c2 = new Complaint("CP-COMBO-2", "Lab Laser Printer", "Paper tray cracked", "Infrastructure & Labs", "Campus Facilities & Works");
+        c2.setStatus(ComplaintStatus.IN_PROGRESS);
+        c2.setAcknowledgedAt(now.minusHours(10));
+        c2.setResponseDeadline(now.minusHours(10));
+        c2.setResolutionDeadline(now.plusHours(20)); // not overdue and not approaching threshold
+        complaintRepository.save(c2);
+
+        // c3: Library, SUBMITTED, response deadline passed (RESPONSE_OVERDUE), keyword: "printer"
+        Complaint c3 = new Complaint("CP-COMBO-3", "Library Desk Printer", "Out of toner", "Library & Study Spaces", "Central Library Committee");
+        c3.setStatus(ComplaintStatus.SUBMITTED);
+        c3.setResponseDeadline(now.minusHours(1));
+        c3.setResolutionDeadline(now.plusHours(30));
+        complaintRepository.save(c3);
+
+        // c4: Infrastructure, RESOLVED (MET), keyword: "printer"
+        Complaint c4 = new Complaint("CP-COMBO-4", "Network Printer Fixed", "Driver installed", "Infrastructure & Labs", "Campus Facilities & Works");
+        c4.setStatus(ComplaintStatus.RESOLVED);
+        complaintRepository.save(c4);
+
+        // Keyword "printer" + status SUBMITTED -> c1, c3
+        Page<Complaint> submittedPrinters = complaintRepository.searchWithFilters("printer", ComplaintStatus.SUBMITTED, null, null, now, threshold, pageable);
+        assertThat(submittedPrinters.getContent()).extracting(Complaint::getReferenceId).containsExactlyInAnyOrder("CP-COMBO-1", "CP-COMBO-3");
+
+        // Keyword "printer" + status SUBMITTED + category "Infrastructure & Labs" -> c1
+        Page<Complaint> infraSubmitted = complaintRepository.searchWithFilters("printer", ComplaintStatus.SUBMITTED, "Infrastructure & Labs", null, now, threshold, pageable);
+        assertThat(infraSubmitted.getContent()).extracting(Complaint::getReferenceId).containsExactly("CP-COMBO-1");
+
+        // Keyword "printer" + slaStatus "RESPONSE_OVERDUE" -> c1, c3
+        Page<Complaint> respOverduePrinters = complaintRepository.searchWithFilters("printer", null, null, "RESPONSE_OVERDUE", now, threshold, pageable);
+        assertThat(respOverduePrinters.getContent()).extracting(Complaint::getReferenceId).containsExactlyInAnyOrder("CP-COMBO-1", "CP-COMBO-3");
+
+        // Keyword "printer" + category "Infrastructure & Labs" + slaStatus "RESPONSE_OVERDUE" -> c1 only
+        Page<Complaint> comboFilter = complaintRepository.searchWithFilters("printer", null, "Infrastructure & Labs", "RESPONSE_OVERDUE", now, threshold, pageable);
+        assertThat(comboFilter.getContent()).extracting(Complaint::getReferenceId).containsExactly("CP-COMBO-1");
+
+        // Keyword "printer" + slaStatus "MET" -> c4 only
+        Page<Complaint> metPrinters = complaintRepository.searchWithFilters("printer", null, null, "MET", now, threshold, pageable);
+        assertThat(metPrinters.getContent()).extracting(Complaint::getReferenceId).containsExactly("CP-COMBO-4");
+    }
+
+    @Test
+    @DisplayName("searchWithFilters handles empty search text and executes database pagination across pages")
+    void searchWithFiltersPaginationAndEmptySearch() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime threshold = now.plusHours(6);
+
+        for (int i = 1; i <= 5; i++) {
+            Complaint c = new Complaint("CP-PAG-" + i, "Issue number " + i, "Description for item " + i, "Infrastructure & Labs", "Campus Facilities & Works");
+            c.setCreatedAt(now.minusMinutes(10 * i));
+            complaintRepository.save(c);
+        }
+
+        // Empty string and null search term should return all 5 complaints paginated
+        Page<Complaint> emptySearchPage = complaintRepository.searchWithFilters("", null, null, null, now, threshold, PageRequest.of(0, 10));
+        assertThat(emptySearchPage.getTotalElements()).isEqualTo(5);
+
+        Page<Complaint> nullSearchPage = complaintRepository.searchWithFilters(null, null, null, null, now, threshold, PageRequest.of(0, 10));
+        assertThat(nullSearchPage.getTotalElements()).isEqualTo(5);
+
+        // Page 0 with size 2 (first page)
+        Page<Complaint> firstPage = complaintRepository.searchWithFilters("", null, null, null, now, threshold,
+                PageRequest.of(0, 2, Sort.by(Sort.Direction.DESC, "createdAt")));
+        assertThat(firstPage.getNumber()).isEqualTo(0);
+        assertThat(firstPage.getSize()).isEqualTo(2);
+        assertThat(firstPage.getTotalPages()).isEqualTo(3);
+        assertThat(firstPage.getTotalElements()).isEqualTo(5);
+        assertThat(firstPage.getContent()).hasSize(2);
+        assertThat(firstPage.hasNext()).isTrue();
+        assertThat(firstPage.hasPrevious()).isFalse();
+
+        // Page 1 with size 2 (middle page)
+        Page<Complaint> middlePage = complaintRepository.searchWithFilters("", null, null, null, now, threshold,
+                PageRequest.of(1, 2, Sort.by(Sort.Direction.DESC, "createdAt")));
+        assertThat(middlePage.getNumber()).isEqualTo(1);
+        assertThat(middlePage.getContent()).hasSize(2);
+        assertThat(middlePage.hasNext()).isTrue();
+        assertThat(middlePage.hasPrevious()).isTrue();
+
+        // Page 2 with size 2 (last page)
+        Page<Complaint> lastPage = complaintRepository.searchWithFilters("", null, null, null, now, threshold,
+                PageRequest.of(2, 2, Sort.by(Sort.Direction.DESC, "createdAt")));
+        assertThat(lastPage.getNumber()).isEqualTo(2);
+        assertThat(lastPage.getContent()).hasSize(1);
+        assertThat(lastPage.hasNext()).isFalse();
+        assertThat(lastPage.hasPrevious()).isTrue();
+    }
+
+    @Test
+    @DisplayName("searchWithFilters filters by department and priority accurately")
+    void shouldFilterByDepartmentAndPriority() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime threshold = now.plusHours(6);
+
+        Complaint c1 = new Complaint("CP-2026-DP1", "Hostel Wi-Fi", "Slow internet", "Hostel & Residence", "Hostel Administration");
+        c1.setPriority(ComplaintPriority.CRITICAL);
+        complaintRepository.save(c1);
+
+        Complaint c2 = new Complaint("CP-2026-DP2", "Library PC", "Mouse broken", "Library & Study Spaces", "Central Library Committee");
+        c2.setPriority(ComplaintPriority.LOW);
+        complaintRepository.save(c2);
+
+        Complaint c3 = new Complaint("CP-2026-DP3", "Hostel Water", "Leak in washroom", "Hostel & Residence", "Hostel Administration");
+        c3.setPriority(ComplaintPriority.HIGH);
+        complaintRepository.save(c3);
+
+        // Filter by Department only
+        Page<Complaint> deptPage = complaintRepository.searchWithFilters(
+                null, null, null, "Hostel Administration", null, null, now, threshold, PageRequest.of(0, 10)
+        );
+        assertThat(deptPage.getContent()).hasSize(2);
+        assertThat(deptPage.getContent()).allMatch(c -> c.getDepartment().equals("Hostel Administration"));
+
+        // Filter by Priority only
+        Page<Complaint> priorityPage = complaintRepository.searchWithFilters(
+                null, null, null, null, ComplaintPriority.CRITICAL, null, now, threshold, PageRequest.of(0, 10)
+        );
+        assertThat(priorityPage.getContent()).hasSize(1);
+        assertThat(priorityPage.getContent().get(0).getReferenceId()).isEqualTo("CP-2026-DP1");
+
+        // Filter by Department and Priority combined
+        Page<Complaint> combinedPage = complaintRepository.searchWithFilters(
+                null, null, null, "Hostel Administration", ComplaintPriority.HIGH, null, now, threshold, PageRequest.of(0, 10)
+        );
+        assertThat(combinedPage.getContent()).hasSize(1);
+        assertThat(combinedPage.getContent().get(0).getReferenceId()).isEqualTo("CP-2026-DP3");
+
+        // Filter by Keyword + Department + Priority combined
+        Page<Complaint> keywordCombined = complaintRepository.searchWithFilters(
+                "washroom", null, null, "Hostel Administration", ComplaintPriority.HIGH, null, now, threshold, PageRequest.of(0, 10)
+        );
+        assertThat(keywordCombined.getContent()).hasSize(1);
+        assertThat(keywordCombined.getContent().get(0).getReferenceId()).isEqualTo("CP-2026-DP3");
+
+        // Non-matching priority
+        Page<Complaint> emptyPage = complaintRepository.searchWithFilters(
+                null, null, null, "Central Library Committee", ComplaintPriority.CRITICAL, null, now, threshold, PageRequest.of(0, 10)
+        );
+        assertThat(emptyPage.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Existing complaints without explicit priority default cleanly to MEDIUM on persistence and load")
+    void shouldHandleNullPriorityCleanlyWithDefaultMedium() {
+        Complaint complaint = new Complaint("CP-2026-LEGACY1", "Old ticket", "Legacy ticket before priority field", "Hostel & Residence", "Hostel Administration");
+        complaint.setPriority(null);
+        assertThat(complaint.getPriority()).isEqualTo(ComplaintPriority.MEDIUM);
+
+        Complaint saved = complaintRepository.saveAndFlush(complaint);
+        assertThat(saved.getPriority()).isEqualTo(ComplaintPriority.MEDIUM);
+
+        Complaint reloaded = complaintRepository.findById(saved.getId()).orElseThrow();
+        assertThat(reloaded.getPriority()).isEqualTo(ComplaintPriority.MEDIUM);
     }
 }
 

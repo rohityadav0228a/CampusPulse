@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.PostLoad;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -22,7 +23,9 @@ import java.time.LocalDateTime;
         @Index(name = "idx_complaint_created_at", columnList = "created_at"),
         @Index(name = "idx_complaint_response_deadline", columnList = "response_deadline"),
         @Index(name = "idx_complaint_resolution_deadline", columnList = "resolution_deadline"),
-        @Index(name = "idx_complaint_escalation_stage", columnList = "escalation_stage")
+        @Index(name = "idx_complaint_escalation_stage", columnList = "escalation_stage"),
+        @Index(name = "idx_complaint_priority", columnList = "priority"),
+        @Index(name = "idx_complaint_department", columnList = "department")
 })
 public class Complaint {
 
@@ -74,8 +77,16 @@ public class Complaint {
     @Column(name = "last_escalated_at")
     private LocalDateTime lastEscalatedAt;
 
+    @Column(name = "resolution_note", length = 1000)
+    private String resolutionNote;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "priority", nullable = false, length = 20, columnDefinition = "varchar(20) not null default 'MEDIUM'")
+    private ComplaintPriority priority = ComplaintPriority.MEDIUM;
+
     public Complaint() {
         this.escalationStage = SlaEscalationStage.NONE;
+        this.priority = ComplaintPriority.MEDIUM;
     }
 
     public Complaint(String referenceId, String title, String description, String category, String department) {
@@ -94,6 +105,7 @@ public class Complaint {
         this.responseDeadline = this.createdAt.plusHours(24);
         this.resolutionDeadline = this.createdAt.plusHours(72);
         this.escalationStage = SlaEscalationStage.NONE;
+        this.priority = ComplaintPriority.MEDIUM;
     }
 
     @PrePersist
@@ -112,6 +124,16 @@ public class Complaint {
         }
         if (this.escalationStage == null) {
             this.escalationStage = SlaEscalationStage.NONE;
+        }
+        if (this.priority == null) {
+            this.priority = ComplaintPriority.MEDIUM;
+        }
+    }
+
+    @PostLoad
+    protected void onPostLoad() {
+        if (this.priority == null) {
+            this.priority = ComplaintPriority.MEDIUM;
         }
     }
 
@@ -235,6 +257,14 @@ public class Complaint {
         this.lastEscalatedAt = lastEscalatedAt;
     }
 
+    public String getResolutionNote() {
+        return resolutionNote;
+    }
+
+    public void setResolutionNote(String resolutionNote) {
+        this.resolutionNote = resolutionNote;
+    }
+
     // =========================================================================
     // SLA Domain Helper Methods
     // =========================================================================
@@ -331,6 +361,30 @@ public class Complaint {
 
     public String getSlaStatusString() {
         return getSlaStatusString(LocalDateTime.now());
+    }
+
+    public ComplaintPriority getPriority() {
+        return priority != null ? priority : ComplaintPriority.MEDIUM;
+    }
+
+    public void setPriority(ComplaintPriority priority) {
+        this.priority = (priority != null) ? priority : ComplaintPriority.MEDIUM;
+    }
+
+    /**
+     * Returns masked student email for public display (e.g. s***@college.edu)
+     * preventing disclosure of personal email addresses on public pages.
+     */
+    public String getMaskedStudentEmail() {
+        if (studentEmail == null || studentEmail.isBlank()) {
+            return null;
+        }
+        String trimmed = studentEmail.trim();
+        int atIndex = trimmed.indexOf('@');
+        if (atIndex <= 1) {
+            return "***" + (atIndex >= 0 ? trimmed.substring(atIndex) : "");
+        }
+        return trimmed.charAt(0) + "***" + trimmed.substring(atIndex);
     }
 }
 

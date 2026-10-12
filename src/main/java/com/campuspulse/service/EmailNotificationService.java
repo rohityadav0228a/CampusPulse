@@ -219,6 +219,172 @@ public class EmailNotificationService {
     }
 
     /**
+     * Sends an email notification to the student confirming initial registration of their complaint.
+     * Contains the reference ID, tracking link, and status checking instructions.
+     * Strictly avoids exposing complaint descriptions or sensitive personal details.
+     *
+     * @param recipientEmail student email address
+     * @param referenceId unique complaint reference ID
+     * @throws MailException if SMTP delivery fails
+     */
+    public void sendSubmissionConfirmation(String recipientEmail, String referenceId) {
+        if (recipientEmail == null || recipientEmail.isBlank()) {
+            throw new IllegalArgumentException("Recipient email must not be blank");
+        }
+        if (referenceId == null || referenceId.isBlank()) {
+            throw new IllegalArgumentException("Reference ID must not be blank");
+        }
+
+        String trackingUrl = baseUrl + "/complaints/track?referenceId=" + referenceId.trim();
+        String subject = "[CampusPulse] Grievance Registered: " + referenceId.trim();
+
+        String htmlContent = buildHtmlSubmissionConfirmationEmail(referenceId.trim(), trackingUrl);
+        String plainTextContent = buildPlainTextSubmissionConfirmationEmail(referenceId.trim(), trackingUrl);
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+
+            helper.setFrom(mailFrom);
+            helper.setTo(recipientEmail.trim());
+            helper.setSubject(subject);
+            helper.setText(plainTextContent, htmlContent);
+
+            log.info("Dispatching submission confirmation email for referenceId={} to {}",
+                    referenceId, maskEmail(recipientEmail));
+
+            mailSender.send(message);
+
+            log.info("Successfully delivered submission confirmation email for referenceId={} to {}",
+                    referenceId, maskEmail(recipientEmail));
+        } catch (MessagingException ex) {
+            log.error("Failed to construct MIME email message for submission confirmation referenceId={}: {}",
+                    referenceId, ex.getMessage());
+            throw new org.springframework.mail.MailSendException("Failed to construct email message", ex);
+        }
+    }
+
+    /**
+     * Builds responsive HTML submission confirmation email with CampusPulse branding and tracking link.
+     * Strictly avoids exposing complaint descriptions or sensitive admin notes.
+     */
+    String buildHtmlSubmissionConfirmationEmail(String referenceId, String trackingUrl) {
+        return "<!DOCTYPE html>\n"
+                + "<html lang=\"en\">\n"
+                + "<head>\n"
+                + "  <meta charset=\"UTF-8\">\n"
+                + "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+                + "  <title>CampusPulse Grievance Registration Confirmation</title>\n"
+                + "</head>\n"
+                + "<body style=\"margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.5;\">\n"
+                + "  <table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"background-color: #f8fafc; padding: 32px 16px;\">\n"
+                + "    <tr>\n"
+                + "      <td align=\"center\">\n"
+                + "        <table role=\"presentation\" width=\"100%\" style=\"max-width: 580px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0;\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\">\n"
+                + "          <!-- Header Banner -->\n"
+                + "          <tr>\n"
+                + "            <td style=\"background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 28px 32px; text-align: left;\">\n"
+                + "              <div style=\"color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.02em;\">\n"
+                + "                Campus<span style=\"color: #38bdf8;\">Pulse</span>\n"
+                + "              </div>\n"
+                + "              <div style=\"color: #94a3b8; font-size: 13px; margin-top: 4px; font-weight: 500;\">\n"
+                + "                Campus Grievance &amp; Feedback Management System\n"
+                + "              </div>\n"
+                + "            </td>\n"
+                + "          </tr>\n"
+                + "          <!-- Card Content -->\n"
+                + "          <tr>\n"
+                + "            <td style=\"padding: 32px;\">\n"
+                + "              <h2 style=\"font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px;\">\n"
+                + "                Grievance Successfully Registered\n"
+                + "              </h2>\n"
+                + "              <p style=\"font-size: 14px; color: #475569; margin: 0 0 24px 0;\">\n"
+                + "                Thank you for reaching out. Your campus grievance has been recorded in the CampusPulse system and assigned for administrative review.\n"
+                + "              </p>\n"
+                + "              <!-- Reference ID and Status Box -->\n"
+                + "              <table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 24px;\">\n"
+                + "                <tr>\n"
+                + "                  <td style=\"padding: 16px 20px; border-bottom: 1px solid #e2e8f0;\">\n"
+                + "                    <div style=\"font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; color: #64748b;\">Reference ID</div>\n"
+                + "                    <div style=\"font-family: monospace; font-size: 16px; font-weight: 700; color: #1e3a8a; margin-top: 2px;\">" + referenceId + "</div>\n"
+                + "                  </td>\n"
+                + "                </tr>\n"
+                + "                <tr>\n"
+                + "                  <td style=\"padding: 16px 20px;\">\n"
+                + "                    <div style=\"font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; color: #64748b;\">Initial Status</div>\n"
+                + "                    <div style=\"margin-top: 6px;\">\n"
+                + "                      <span style=\"display: inline-block; background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;\">SUBMITTED</span>\n"
+                + "                    </div>\n"
+                + "                  </td>\n"
+                + "                </tr>\n"
+                + "              </table>\n"
+                + "              <!-- Instructions -->\n"
+                + "              <div style=\"background-color: #f8fafc; border-radius: 8px; border-left: 4px solid #3b82f6; padding: 14px 18px; margin-bottom: 24px;\">\n"
+                + "                <div style=\"font-size: 13px; font-weight: 700; color: #1e3a8a; margin-bottom: 6px;\">How to Track Your Grievance:</div>\n"
+                + "                <ol style=\"font-size: 13px; color: #475569; margin: 0; padding-left: 18px; line-height: 1.6;\">\n"
+                + "                  <li>Keep your unique <strong>Reference ID</strong> handy for future inquiries.</li>\n"
+                + "                  <li>Visit the public tracking portal anytime to check the real-time resolution timeline.</li>\n"
+                + "                  <li>You will receive automated email updates as administrative actions are recorded.</li>\n"
+                + "                </ol>\n"
+                + "              </div>\n"
+                + "              <!-- CTA Button -->\n"
+                + "              <div style=\"text-align: center; margin: 32px 0 24px 0;\">\n"
+                + "                <a href=\"" + trackingUrl + "\" target=\"_blank\" style=\"display: inline-block; background: #1d4ed8; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);\">\n"
+                + "                  Track Grievance Status &rarr;\n"
+                + "                </a>\n"
+                + "              </div>\n"
+                + "              <!-- Direct Link Fallback -->\n"
+                + "              <p style=\"font-size: 12px; color: #64748b; line-height: 1.5; margin: 0 0 16px 0;\">\n"
+                + "                If the button above does not work, copy and paste this link into your browser:<br>\n"
+                + "                <a href=\"" + trackingUrl + "\" style=\"color: #1d4ed8; word-break: break-all;\">" + trackingUrl + "</a>\n"
+                + "              </p>\n"
+                + "              <!-- Privacy Notice -->\n"
+                + "              <div style=\"background-color: #f1f5f9; border-radius: 6px; padding: 12px 16px; margin-top: 24px;\">\n"
+                + "                <p style=\"font-size: 11px; color: #64748b; margin: 0;\">\n"
+                + "                  <strong>Privacy &amp; Security Notice:</strong> To protect student confidentiality, this automated notification does not include grievance descriptions or administrative notes. Please visit the public tracking page to view the timeline.\n"
+                + "                </p>\n"
+                + "              </div>\n"
+                + "            </td>\n"
+                + "          </tr>\n"
+                + "          <!-- Footer -->\n"
+                + "          <tr>\n"
+                + "            <td style=\"background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 32px; text-align: center; font-size: 11px; color: #94a3b8;\">\n"
+                + "              &copy; CampusPulse &bull; Campus Grievance and Feedback Management System<br>\n"
+                + "              This is an automated notification. Please do not reply directly to this email.\n"
+                + "            </td>\n"
+                + "          </tr>\n"
+                + "        </table>\n"
+                + "      </td>\n"
+                + "    </tr>\n"
+                + "  </table>\n"
+                + "</body>\n"
+                + "</html>";
+    }
+
+    /**
+     * Builds clean, legible plain-text submission confirmation email alternative.
+     */
+    String buildPlainTextSubmissionConfirmationEmail(String referenceId, String trackingUrl) {
+        return "CampusPulse Grievance & Feedback System\n"
+                + "==================================================\n\n"
+                + "Dear Student,\n\n"
+                + "Your campus grievance has been successfully submitted and registered in the CampusPulse system.\n\n"
+                + "Reference ID : " + referenceId + "\n"
+                + "Initial Status: SUBMITTED\n\n"
+                + "Track your grievance status and timeline on the public portal:\n"
+                + trackingUrl + "\n\n"
+                + "Instructions for Checking Status:\n"
+                + "1. Keep your Reference ID safe for your records.\n"
+                + "2. Visit the tracking link above to monitor review, assignment, and resolution progress.\n"
+                + "3. You will receive automated email updates as administrative actions are taken.\n\n"
+                + "--------------------------------------------------\n"
+                + "Privacy Notice: To protect student confidentiality, this automated notification\n"
+                + "does not include grievance descriptions or administrative notes.\n\n"
+                + "CampusPulse - Campus Grievance Management System\n"
+                + "This is an automated message. Please do not reply directly to this email.\n";
+    }
+
+    /**
      * Sends an SLA breach escalation alert to the administrative coordinator.
      * Strictly avoids exposing complaint descriptions or student personal details.
      *

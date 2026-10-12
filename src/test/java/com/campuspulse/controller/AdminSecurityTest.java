@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -116,6 +118,57 @@ class AdminSecurityTest {
     }
 
     @Test
+    @DisplayName("Unauthenticated POST /admin/complaints/{refId}/resolution-note redirects to /login")
+    void unauthenticatedPostResolutionNoteRedirectsToLogin() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/resolution-note")
+                        .with(csrf())
+                        .param("resolutionNote", "Access point replaced."))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    @DisplayName("Unauthenticated POST /admin/complaints/{refId}/department redirects to /login")
+    void unauthenticatedPostDepartmentRedirectsToLogin() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/department")
+                        .with(csrf())
+                        .param("department", "Hostel Administration"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    @DisplayName("Unauthenticated POST /admin/complaints/{refId}/category redirects to /login")
+    void unauthenticatedPostCategoryRedirectsToLogin() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/category")
+                        .with(csrf())
+                        .param("category", "Library & Study Spaces"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    @DisplayName("Unauthenticated POST /admin/complaints/{refId}/priority redirects to /login")
+    void unauthenticatedPostPriorityRedirectsToLogin() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/priority")
+                        .with(csrf())
+                        .param("priority", "HIGH"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    @DisplayName("Unauthenticated POST /admin/complaints/{refId}/assignment redirects to /login")
+    void unauthenticatedPostAssignmentRedirectsToLogin() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/assignment")
+                        .with(csrf())
+                        .param("department", "Hostel Administration")
+                        .param("category", "Hostel & Residence"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
     @DisplayName("Unauthenticated GET /admin/analytics redirects to /login")
     void unauthenticatedAnalyticsRedirectsToLogin() throws Exception {
         mockMvc.perform(get("/admin/analytics"))
@@ -158,6 +211,57 @@ class AdminSecurityTest {
                         .with(user("student_user").roles("USER"))
                         .with(csrf())
                         .param("status", "RESOLVED"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Authenticated user with USER role receives 403 Forbidden on resolution note modification")
+    void userRoleForbiddenOnPostResolutionNote() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/resolution-note")
+                        .with(user("student_user").roles("USER"))
+                        .with(csrf())
+                        .param("resolutionNote", "Attempted unauthorized note edit."))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Authenticated user with USER role receives 403 Forbidden on department update")
+    void userRoleForbiddenOnPostDepartment() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/department")
+                        .with(user("student_user").roles("USER"))
+                        .with(csrf())
+                        .param("department", "Hostel Administration"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Authenticated user with USER role receives 403 Forbidden on category update")
+    void userRoleForbiddenOnPostCategory() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/category")
+                        .with(user("student_user").roles("USER"))
+                        .with(csrf())
+                        .param("category", "Library & Study Spaces"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Authenticated user with USER role receives 403 Forbidden on priority update")
+    void userRoleForbiddenOnPostPriority() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/priority")
+                        .with(user("student_user").roles("USER"))
+                        .with(csrf())
+                        .param("priority", "CRITICAL"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Authenticated user with USER role receives 403 Forbidden on assignment update")
+    void userRoleForbiddenOnPostAssignment() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/assignment")
+                        .with(user("student_user").roles("USER"))
+                        .with(csrf())
+                        .param("department", "Hostel Administration")
+                        .param("category", "Hostel & Residence"))
                 .andExpect(status().isForbidden());
     }
 
@@ -249,7 +353,8 @@ class AdminSecurityTest {
     @Test
     @DisplayName("Authenticated ADMIN can access /admin/complaints dashboard")
     void adminCanAccessDashboard() throws Exception {
-        when(complaintService.getFilteredComplaints(null, null)).thenReturn(Collections.emptyList());
+        when(complaintService.searchComplaints(any(), any(), any(), any(), anyInt(), anyInt()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(Collections.emptyList()));
         when(complaintService.getStatusCounts()).thenReturn(Map.of());
         when(complaintService.getAllowedCategories()).thenReturn(List.of("Academic Affairs"));
 
@@ -264,7 +369,8 @@ class AdminSecurityTest {
     @Test
     @DisplayName("Authenticated ADMIN can access /admin/complaints with SLA filter")
     void adminCanAccessSlaFilter() throws Exception {
-        when(complaintService.getFilteredComplaints(null, null, "OVERDUE")).thenReturn(Collections.emptyList());
+        when(complaintService.searchComplaints(any(), any(), any(), any(), anyInt(), anyInt()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(Collections.emptyList()));
         when(complaintService.getStatusCounts()).thenReturn(Map.of());
         when(complaintService.getSlaCounts()).thenReturn(Map.of("OVERDUE", 0L));
         when(complaintService.getAllowedCategories()).thenReturn(List.of("Academic Affairs"));
@@ -323,6 +429,90 @@ class AdminSecurityTest {
 
         org.mockito.Mockito.verify(complaintService, org.mockito.Mockito.times(1))
                 .updateComplaintStatus("CP-2026-TEST0001", ComplaintStatus.IN_PROGRESS, "testadmin", null);
+    }
+
+    @Test
+    @DisplayName("Authenticated ADMIN can update resolution note with CSRF token")
+    void adminCanUpdateResolutionNoteWithCsrf() throws Exception {
+        Complaint resolvedComplaint = new Complaint(
+                "CP-2026-TEST0001",
+                "Library Wi-Fi Down",
+                "No internet connection available in reading hall 2.",
+                "Infrastructure & Labs",
+                "Campus Facilities & Works"
+        );
+        resolvedComplaint.setStatus(ComplaintStatus.RESOLVED);
+        resolvedComplaint.setResolutionNote("Access point AP-204 was rebooted and tested.");
+
+        when(complaintService.updateResolutionNote("CP-2026-TEST0001", "Access point AP-204 was rebooted and tested.", "testadmin"))
+                .thenReturn(resolvedComplaint);
+
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/resolution-note")
+                        .with(user("testadmin").roles("ADMIN"))
+                        .with(csrf())
+                        .param("resolutionNote", "Access point AP-204 was rebooted and tested."))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-TEST0001"));
+
+        org.mockito.Mockito.verify(complaintService, org.mockito.Mockito.times(1))
+                .updateResolutionNote("CP-2026-TEST0001", "Access point AP-204 was rebooted and tested.", "testadmin");
+    }
+
+    @Test
+    @DisplayName("Authenticated ADMIN can update department with CSRF token")
+    void adminCanUpdateDepartmentWithCsrf() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/department")
+                        .with(user("testadmin").roles("ADMIN"))
+                        .with(csrf())
+                        .param("department", "Hostel Administration"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-TEST0001"));
+
+        org.mockito.Mockito.verify(complaintService, org.mockito.Mockito.times(1))
+                .updateDepartment(org.mockito.ArgumentMatchers.eq("CP-2026-TEST0001"), org.mockito.ArgumentMatchers.eq("Hostel Administration"), org.mockito.ArgumentMatchers.eq("testadmin"));
+    }
+
+    @Test
+    @DisplayName("Authenticated ADMIN can update category with CSRF token")
+    void adminCanUpdateCategoryWithCsrf() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/category")
+                        .with(user("testadmin").roles("ADMIN"))
+                        .with(csrf())
+                        .param("category", "Library & Study Spaces"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-TEST0001"));
+
+        org.mockito.Mockito.verify(complaintService, org.mockito.Mockito.times(1))
+                .updateCategory(org.mockito.ArgumentMatchers.eq("CP-2026-TEST0001"), org.mockito.ArgumentMatchers.eq("Library & Study Spaces"), org.mockito.ArgumentMatchers.eq("testadmin"));
+    }
+
+    @Test
+    @DisplayName("Authenticated ADMIN can update priority with CSRF token")
+    void adminCanUpdatePriorityWithCsrf() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/priority")
+                        .with(user("testadmin").roles("ADMIN"))
+                        .with(csrf())
+                        .param("priority", "CRITICAL"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-TEST0001"));
+
+        org.mockito.Mockito.verify(complaintService, org.mockito.Mockito.times(1))
+                .updatePriority(org.mockito.ArgumentMatchers.eq("CP-2026-TEST0001"), org.mockito.ArgumentMatchers.eq(com.campuspulse.model.ComplaintPriority.CRITICAL), org.mockito.ArgumentMatchers.eq("testadmin"));
+    }
+
+    @Test
+    @DisplayName("Authenticated ADMIN can update assignment with CSRF token")
+    void adminCanUpdateAssignmentWithCsrf() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/assignment")
+                        .with(user("testadmin").roles("ADMIN"))
+                        .with(csrf())
+                        .param("department", "Hostel Administration")
+                        .param("category", "Hostel & Residence"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints/CP-2026-TEST0001"));
+
+        org.mockito.Mockito.verify(complaintService, org.mockito.Mockito.times(1))
+                .updateAssignment(org.mockito.ArgumentMatchers.eq("CP-2026-TEST0001"), org.mockito.ArgumentMatchers.eq("Hostel Administration"), org.mockito.ArgumentMatchers.eq("Hostel & Residence"), org.mockito.ArgumentMatchers.eq("testadmin"));
     }
 
     // =========================================================================
@@ -486,6 +676,52 @@ class AdminSecurityTest {
     }
 
     @Test
+    @DisplayName("State-changing POST /admin/complaints/{refId}/resolution-note without CSRF token is rejected with 403 Forbidden")
+    void adminPostResolutionNoteWithoutCsrfIsRejected() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/resolution-note")
+                        .with(user("testadmin").roles("ADMIN"))
+                        .param("resolutionNote", "Access point AP-204 was rebooted."))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("State-changing POST /admin/complaints/{refId}/department without CSRF token is rejected with 403 Forbidden")
+    void adminPostDepartmentWithoutCsrfIsRejected() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/department")
+                        .with(user("testadmin").roles("ADMIN"))
+                        .param("department", "Hostel Administration"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("State-changing POST /admin/complaints/{refId}/category without CSRF token is rejected with 403 Forbidden")
+    void adminPostCategoryWithoutCsrfIsRejected() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/category")
+                        .with(user("testadmin").roles("ADMIN"))
+                        .param("category", "Library & Study Spaces"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("State-changing POST /admin/complaints/{refId}/priority without CSRF token is rejected with 403 Forbidden")
+    void adminPostPriorityWithoutCsrfIsRejected() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/priority")
+                        .with(user("testadmin").roles("ADMIN"))
+                        .param("priority", "HIGH"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("State-changing POST /admin/complaints/{refId}/assignment without CSRF token is rejected with 403 Forbidden")
+    void adminPostAssignmentWithoutCsrfIsRejected() throws Exception {
+        mockMvc.perform(post("/admin/complaints/CP-2026-TEST0001/assignment")
+                        .with(user("testadmin").roles("ADMIN"))
+                        .param("department", "Hostel Administration")
+                        .param("category", "Hostel & Residence"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @DisplayName("Public POST /complaints without CSRF token is rejected with 403 Forbidden")
     void publicComplaintSubmissionWithoutCsrfIsRejected() throws Exception {
         mockMvc.perform(post("/complaints")
@@ -511,5 +747,17 @@ class AdminSecurityTest {
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Broken lab computers\",\"description\":\"Cannot start PCs\"}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("SecurityConfig safely initializes UserDetailsService with temporary credentials when no password is provided in environment")
+    void securityConfigSafelyInitializesWithEmptyPassword() {
+        SecurityConfig config = new SecurityConfig();
+        org.springframework.security.crypto.password.PasswordEncoder encoder = config.passwordEncoder();
+        org.springframework.security.core.userdetails.UserDetailsService uds = config.userDetailsService(encoder);
+        org.springframework.security.core.userdetails.UserDetails userDetails = uds.loadUserByUsername("admin");
+        org.junit.jupiter.api.Assertions.assertNotNull(userDetails);
+        org.junit.jupiter.api.Assertions.assertTrue(
+                userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
     }
 }

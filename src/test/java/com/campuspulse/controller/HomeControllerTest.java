@@ -30,6 +30,14 @@ class HomeControllerTest {
                 .andExpect(content().string(containsString("Submit a Complaint")))
                 .andExpect(content().string(containsString("Track Complaint Status")))
                 .andExpect(content().string(containsString("Centralized Grievance Registry")))
-                .andExpect(content().string(containsString("CAT-ACAD")));
+                .andExpect(content().string(containsString("CAT-ACAD")))
+                .andExpect(content().string(containsString("Student Login")))
+                .andExpect(content().string(containsString("Student Register")))
+                .andExpect(content().string(containsString("Admin Login")))
+                .andExpect(content().string(containsString("id=\"nav-admin-login-btn\"")))
+                .andExpect(content().string(containsString("id=\"hero-admin-login-cta\"")))
+                .andExpect(content().string(containsString("href=\"/login\"")))
+                .andExpect(content().string(containsString("href=\"/student/login\"")))
+                .andExpect(content().string(containsString("href=\"/student/register\"")));
     }
 }

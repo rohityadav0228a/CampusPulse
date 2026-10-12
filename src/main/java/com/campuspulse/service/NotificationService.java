@@ -249,6 +249,115 @@ public class NotificationService {
     }
 
     /**
+     * Queues and immediately dispatches an initial complaint submission confirmation email.
+     * Prevents duplicate confirmation notifications by checking if a confirmation entry already exists
+     * for this reference ID (idempotency guarantee).
+     * If recipient email is missing, safely records SKIPPED_NO_EMAIL without sending.
+     * If recipient email is permanently malformed, safely records PERMANENTLY_FAILED.
+     * If SMTP delivery fails, marks the outbox item as FAILED with exponential backoff without throwing,
+     * ensuring the caller's complaint creation transaction is never rolled back.
+     *
+     * @param complaint persisted complaint entity
+     * @return persisted NotificationOutbox entry, or null if duplicate or complaint is null
+     */
+    @Transactional
+    public NotificationOutbox queueAndDispatchSubmissionConfirmation(Complaint complaint) {
+        if (complaint == null) {
+            log.warn("Cannot queue submission confirmation for null complaint");
+            return null;
+        }
+
+        String referenceId = complaint.getReferenceId();
+        if (referenceId == null || referenceId.isBlank()) {
+            log.warn("Cannot queue submission confirmation: complaint has no reference ID");
+            return null;
+        }
+
+        // Idempotency: prevent duplicate confirmation emails if submission processing is retried
+        if (outboxRepository.existsByReferenceIdAndNotificationType(
+                referenceId.trim(), com.campuspulse.model.NotificationType.SUBMISSION_CONFIRMATION)) {
+            log.info("Submission confirmation email already queued for referenceId={}. Skipping duplicate.",
+                    referenceId);
+            return null;
+        }
+
+        String recipientEmail = complaint.getStudentEmail();
+        boolean hasEmail = (recipientEmail != null && !recipientEmail.trim().isEmpty());
+
+        NotificationOutbox outbox = new NotificationOutbox(
+                complaint,
+                referenceId.trim(),
+                hasEmail ? recipientEmail.trim() : null,
+                com.campuspulse.model.NotificationType.SUBMISSION_CONFIRMATION
+        );
+
+        if (!hasEmail) {
+            outbox.setStatus(NotificationStatus.SKIPPED_NO_EMAIL);
+            outbox.setLastError("No student email address provided on complaint submission");
+            outbox.setNextRetryAt(null);
+            NotificationOutbox saved = outboxRepository.save(outbox);
+            log.info("Complaint {} has no student email address. Recorded outbox entry as SKIPPED_NO_EMAIL.",
+                    referenceId);
+            return saved;
+        }
+
+        if (isPermanentlyInvalidEmail(recipientEmail)) {
+            outbox.setStatus(NotificationStatus.PERMANENTLY_FAILED);
+            outbox.setLastError("Permanently invalid email format: " + maskEmail(recipientEmail));
+            outbox.setNextRetryAt(null);
+            NotificationOutbox saved = outboxRepository.save(outbox);
+            log.warn("Complaint {} has permanently invalid email format {}. Recorded as PERMANENTLY_FAILED.",
+                    referenceId, maskEmail(recipientEmail));
+            return saved;
+        }
+
+        // Initialize in PROCESSING state so concurrent scheduled retry workers do not race
+        outbox.setStatus(NotificationStatus.PROCESSING);
+        outbox.setLastAttemptedAt(LocalDateTime.now());
+        outbox.setNextRetryAt(null);
+        NotificationOutbox savedOutbox = outboxRepository.save(outbox);
+
+        // Immediate dispatch attempt with fault tolerance
+        try {
+            emailNotificationService.sendSubmissionConfirmation(
+                    savedOutbox.getRecipientEmail(),
+                    savedOutbox.getReferenceId()
+            );
+
+            savedOutbox.setStatus(NotificationStatus.SENT);
+            savedOutbox.setSentAt(LocalDateTime.now());
+            savedOutbox.setLastAttemptedAt(LocalDateTime.now());
+            savedOutbox.setAttemptCount(1);
+            savedOutbox.setLastError(null);
+            savedOutbox.setNextRetryAt(null);
+            log.info("Submission confirmation email successfully sent for referenceId={} to {}",
+                    savedOutbox.getReferenceId(), maskEmail(savedOutbox.getRecipientEmail()));
+            return outboxRepository.save(savedOutbox);
+        } catch (Exception ex) {
+            log.warn("Immediate submission confirmation email delivery failed for referenceId={} (marked for backoff retry): {}",
+                    savedOutbox.getReferenceId(), ex.getMessage());
+            savedOutbox.setLastAttemptedAt(LocalDateTime.now());
+            savedOutbox.setAttemptCount(1);
+            savedOutbox.setLastError(truncateError(ex.getMessage()));
+
+            boolean permanent = isPermanentFailure(ex) || (1 >= maxAttempts);
+            if (permanent) {
+                savedOutbox.setStatus(NotificationStatus.PERMANENTLY_FAILED);
+                savedOutbox.setNextRetryAt(null);
+                log.warn("Immediate submission confirmation failure for referenceId={} determined to be permanent. Marked PERMANENTLY_FAILED.",
+                        savedOutbox.getReferenceId());
+            } else {
+                savedOutbox.setStatus(NotificationStatus.FAILED);
+                long backoffMs = calculateBackoffDelayMs(1);
+                savedOutbox.setNextRetryAt(LocalDateTime.now().plus(backoffMs, ChronoUnit.MILLIS));
+                log.info("Scheduled retry for submission confirmation referenceId={} with initial backoff {}ms",
+                        savedOutbox.getReferenceId(), backoffMs);
+            }
+            return outboxRepository.save(savedOutbox);
+        }
+    }
+
+    /**
      * Executes retry delivery for eligible PENDING and FAILED notifications.
      * Prevents duplicate deliveries and concurrent worker conflicts via atomic database claims.
      * Honors exponential backoff and maximum retry thresholds.
@@ -327,6 +436,11 @@ public class NotificationService {
                         outbox.getEscalationReason(),
                         cat,
                         dept
+                );
+            } else if (outbox.getNotificationType() == com.campuspulse.model.NotificationType.SUBMISSION_CONFIRMATION) {
+                emailNotificationService.sendSubmissionConfirmation(
+                        outbox.getRecipientEmail(),
+                        outbox.getReferenceId()
                 );
             } else {
                 emailNotificationService.sendNotification(

@@ -5,5 +5,6 @@ package com.campuspulse.model;
  */
 public enum NotificationType {
     STATUS_UPDATE,
-    SLA_ESCALATION
+    SLA_ESCALATION,
+    SUBMISSION_CONFIRMATION
 }

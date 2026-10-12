@@ -1,10 +1,16 @@
 package com.campuspulse.repository;
 
 import com.campuspulse.model.Complaint;
+import com.campuspulse.model.ComplaintPriority;
 import com.campuspulse.model.ComplaintStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -210,6 +216,76 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
             "c.resolutionDeadline < :now AND " +
             "c.escalationStage != com.campuspulse.model.SlaEscalationStage.STAGE_2_RESOLUTION_OVERDUE")
     List<Complaint> findResolutionOverdueCandidates(@org.springframework.data.repository.query.Param("now") java.time.LocalDateTime now);
+
+    /**
+     * Executes database-level paginated search combined with status, category, and SLA deadline filters.
+     * Evaluates case-insensitive keyword search across referenceId, title, description, and studentEmail.
+     * Uses parameterized query to prevent SQL injection and executes count query for total page calculation.
+     *
+     * @param searchTerm case-insensitive keyword matching referenceId, title, description, or studentEmail (null/empty for all)
+     * @param status lifecycle status to filter (null for all)
+     * @param category campus category to filter (null/empty for all)
+     * @param slaStatus normalized SLA status code (null/empty/'ALL' for no SLA filter)
+     * @param now current evaluation timestamp in institutional timezone
+     * @param threshold approaching deadline upper threshold timestamp
+     * @param pageable Spring Data pagination and sorting specification
+     * @return page of matching complaints
+     */
+    @Query(value = "SELECT c FROM Complaint c WHERE " +
+            "(:searchTerm IS NULL OR :searchTerm = '' OR " +
+            " LOWER(c.referenceId) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            " LOWER(c.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            " LOWER(c.description) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            " (c.studentEmail IS NOT NULL AND LOWER(c.studentEmail) LIKE LOWER(CONCAT('%', :searchTerm, '%')))) AND " +
+            "(:status IS NULL OR c.status = :status) AND " +
+            "(:category IS NULL OR :category = '' OR c.category = :category) AND " +
+            "(:department IS NULL OR :department = '' OR c.department = :department) AND " +
+            "(:priority IS NULL OR c.priority = :priority) AND " +
+            "(:slaStatus IS NULL OR :slaStatus = '' OR :slaStatus = 'ALL' OR " +
+            " (:slaStatus = 'RESPONSE_OVERDUE' AND c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND c.acknowledgedAt IS NULL AND c.responseDeadline < :now) OR " +
+            " (:slaStatus = 'RESOLUTION_OVERDUE' AND c.status != com.campuspulse.model.ComplaintStatus.RESOLVED AND c.resolutionDeadline < :now) OR " +
+            " (:slaStatus = 'OVERDUE' AND ((c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND c.acknowledgedAt IS NULL AND c.responseDeadline < :now) OR (c.status != com.campuspulse.model.ComplaintStatus.RESOLVED AND c.resolutionDeadline < :now))) OR " +
+            " (:slaStatus = 'APPROACHING_DEADLINE' AND c.status != com.campuspulse.model.ComplaintStatus.RESOLVED AND ((c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND c.acknowledgedAt IS NULL AND c.responseDeadline >= :now AND c.responseDeadline <= :threshold) OR (c.resolutionDeadline >= :now AND c.resolutionDeadline <= :threshold))) OR " +
+            " (:slaStatus = 'ON_TRACK' AND c.status != com.campuspulse.model.ComplaintStatus.RESOLVED AND NOT (c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND c.acknowledgedAt IS NULL AND c.responseDeadline < :now) AND NOT (c.resolutionDeadline < :now) AND NOT ((c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND c.acknowledgedAt IS NULL AND c.responseDeadline >= :now AND c.responseDeadline <= :threshold) OR (c.resolutionDeadline >= :now AND c.resolutionDeadline <= :threshold))) OR " +
+            " (:slaStatus = 'MET' AND c.status = com.campuspulse.model.ComplaintStatus.RESOLVED))",
+            countQuery = "SELECT COUNT(c) FROM Complaint c WHERE " +
+            "(:searchTerm IS NULL OR :searchTerm = '' OR " +
+            " LOWER(c.referenceId) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            " LOWER(c.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            " LOWER(c.description) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            " (c.studentEmail IS NOT NULL AND LOWER(c.studentEmail) LIKE LOWER(CONCAT('%', :searchTerm, '%')))) AND " +
+            "(:status IS NULL OR c.status = :status) AND " +
+            "(:category IS NULL OR :category = '' OR c.category = :category) AND " +
+            "(:department IS NULL OR :department = '' OR c.department = :department) AND " +
+            "(:priority IS NULL OR c.priority = :priority) AND " +
+            "(:slaStatus IS NULL OR :slaStatus = '' OR :slaStatus = 'ALL' OR " +
+            " (:slaStatus = 'RESPONSE_OVERDUE' AND c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND c.acknowledgedAt IS NULL AND c.responseDeadline < :now) OR " +
+            " (:slaStatus = 'RESOLUTION_OVERDUE' AND c.status != com.campuspulse.model.ComplaintStatus.RESOLVED AND c.resolutionDeadline < :now) OR " +
+            " (:slaStatus = 'OVERDUE' AND ((c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND c.acknowledgedAt IS NULL AND c.responseDeadline < :now) OR (c.status != com.campuspulse.model.ComplaintStatus.RESOLVED AND c.resolutionDeadline < :now))) OR " +
+            " (:slaStatus = 'APPROACHING_DEADLINE' AND c.status != com.campuspulse.model.ComplaintStatus.RESOLVED AND ((c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND c.acknowledgedAt IS NULL AND c.responseDeadline >= :now AND c.responseDeadline <= :threshold) OR (c.resolutionDeadline >= :now AND c.resolutionDeadline <= :threshold))) OR " +
+            " (:slaStatus = 'ON_TRACK' AND c.status != com.campuspulse.model.ComplaintStatus.RESOLVED AND NOT (c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND c.acknowledgedAt IS NULL AND c.responseDeadline < :now) AND NOT (c.resolutionDeadline < :now) AND NOT ((c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND c.acknowledgedAt IS NULL AND c.responseDeadline >= :now AND c.responseDeadline <= :threshold) OR (c.resolutionDeadline >= :now AND c.resolutionDeadline <= :threshold))) OR " +
+            " (:slaStatus = 'MET' AND c.status = com.campuspulse.model.ComplaintStatus.RESOLVED))")
+    Page<Complaint> searchWithFilters(
+            @Param("searchTerm") String searchTerm,
+            @Param("status") ComplaintStatus status,
+            @Param("category") String category,
+            @Param("department") String department,
+            @Param("priority") ComplaintPriority priority,
+            @Param("slaStatus") String slaStatus,
+            @Param("now") LocalDateTime now,
+            @Param("threshold") LocalDateTime threshold,
+            Pageable pageable);
+
+    default Page<Complaint> searchWithFilters(
+            String searchTerm,
+            ComplaintStatus status,
+            String category,
+            String slaStatus,
+            LocalDateTime now,
+            LocalDateTime threshold,
+            Pageable pageable) {
+        return searchWithFilters(searchTerm, status, category, null, null, slaStatus, now, threshold, pageable);
+    }
 }
 
 

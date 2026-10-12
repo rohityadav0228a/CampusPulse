@@ -31,7 +31,12 @@ public class AuthController {
     ) {
         if (authentication != null && authentication.isAuthenticated()
                 && !(authentication instanceof AnonymousAuthenticationToken)) {
-            return "redirect:/admin/complaints";
+            boolean isAdmin = authentication.getAuthorities().stream()
+                    .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                    .anyMatch(r -> "ROLE_ADMIN".equals(r) || "ADMIN".equals(r));
+            if (isAdmin) {
+                return "redirect:/admin/complaints";
+            }
         }
 
         if (error != null) {
