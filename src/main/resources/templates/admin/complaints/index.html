@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CampusPulse Admin Complaint Management Dashboard">
+    <title>Admin Complaint Dashboard | CampusPulse</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../../../static/css/style.css">
+</head>
+<body>
+
+    <!-- Header & Navigation -->
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar" aria-label="Admin Navigation">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <a th:href="@{/}" href="/" class="brand-logo" id="nav-brand">
+                        <span class="brand-icon-wrap" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </span>
+                        <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                    </a>
+                    <span class="admin-badge">Admin Portal</span>
+                </div>
+
+                <ul class="nav-links">
+                    <li><a th:href="@{/admin/complaints}" href="/admin/complaints" class="nav-link" style="color: var(--blue-600); font-weight: 700;">Dashboard</a></li>
+                    <li><a th:href="@{/admin/analytics}" href="/admin/analytics" class="nav-link">Analytics</a></li>
+                    <li><a th:href="@{/admin/insights}" href="/admin/insights" class="nav-link">AI Insights</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Public Registry</a></li>
+                    <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Student Tracker</a></li>
+                </ul>
+
+                <div class="nav-actions" style="display: flex; align-items: center; gap: 0.75rem;">
+                    <a th:href="@{/}" href="/" class="btn btn-outline btn-sm">
+                        &larr; Return to Home
+                    </a>
+                    <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
+                        <button type="submit" class="btn btn-outline btn-sm" id="btn-admin-logout" style="color: #ef4444; border-color: #fca5a5;">
+                            Log Out
+                        </button>
+                    </form>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="section">
+        <div class="container">
+
+            <!-- Breadcrumbs -->
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a th:href="@{/}" href="/">Home</a>
+                <span class="breadcrumb-sep">&gt;</span>
+                <span aria-current="page">Admin Complaints Dashboard</span>
+            </nav>
+
+            <div class="page-header-row">
+                <div>
+                    <h1 class="page-title">Admin Complaint Management</h1>
+                    <p class="page-subtitle">
+                        Review, filter, and update student grievances across all campus departments.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Security & Authentication Session Banner -->
+            <div class="admin-notice-banner" role="status" style="border-left-color: var(--blue-600); background-color: var(--blue-50);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px; color: var(--blue-600);">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <div>
+                    <div class="admin-notice-title" style="color: var(--navy-900);">Authenticated Session &bull; Role-Based Access Control Active</div>
+                    <p style="margin: 0; color: var(--navy-700);">
+                        You are signed in as an authorized administrator. All administrative endpoints are guarded by Spring Security with BCrypt hashing and CSRF protection.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Global / Flash Error Alert -->
+            <div class="alert-banner alert-error" th:if="${errorMessage}" role="alert">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span th:text="${errorMessage}">Error message</span>
+            </div>
+
+            <!-- Summary Metrics Cards -->
+            <section class="summary-cards-grid" aria-label="Grievance Summary Metrics">
+                <div class="summary-card total">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">Total Registered</span>
+                    </div>
+                    <span class="summary-card-count" id="count-total" th:text="${statusCounts['TOTAL'] != null ? statusCounts['TOTAL'] : 0}">0</span>
+                </div>
+                <div class="summary-card submitted">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">Submitted</span>
+                    </div>
+                    <span class="summary-card-count" id="count-submitted" th:text="${statusCounts['SUBMITTED'] != null ? statusCounts['SUBMITTED'] : 0}">0</span>
+                </div>
+                <div class="summary-card under-review">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">Under Review</span>
+                    </div>
+                    <span class="summary-card-count" id="count-under-review" th:text="${statusCounts['UNDER_REVIEW'] != null ? statusCounts['UNDER_REVIEW'] : 0}">0</span>
+                </div>
+                <div class="summary-card in-progress">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">In Progress</span>
+                    </div>
+                    <span class="summary-card-count" id="count-in-progress" th:text="${statusCounts['IN_PROGRESS'] != null ? statusCounts['IN_PROGRESS'] : 0}">0</span>
+                </div>
+                <div class="summary-card resolved">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">Resolved</span>
+                    </div>
+                    <span class="summary-card-count" id="count-resolved" th:text="${statusCounts['RESOLVED'] != null ? statusCounts['RESOLVED'] : 0}">0</span>
+                </div>
+            </section>
+
+            <!-- SLA Compliance & Overdue Status Strip -->
+            <section class="sla-summary-strip" aria-label="SLA Compliance and Overdue Status">
+                <a th:href="@{/admin/complaints(slaStatus='RESPONSE_OVERDUE')}"
+                   class="sla-summary-pill-card danger"
+                   id="card-sla-response-overdue"
+                   title="Filter complaints with unacknowledged response SLA breached">
+                    <div>
+                        <div class="sla-pill-title">Response Overdue</div>
+                        <span class="sla-pill-count" id="count-sla-response-overdue"
+                              th:text="${slaCounts != null and slaCounts['RESPONSE_OVERDUE'] != null ? slaCounts['RESPONSE_OVERDUE'] : 0}">0</span>
+                    </div>
+                    <span class="sla-badge OVERDUE_RESPONSE">
+                        <span class="sla-badge-dot"></span>Overdue &gt;24h
+                    </span>
+                </a>
+
+                <a th:href="@{/admin/complaints(slaStatus='RESOLUTION_OVERDUE')}"
+                   class="sla-summary-pill-card danger"
+                   id="card-sla-resolution-overdue"
+                   title="Filter complaints with unresolved resolution SLA breached">
+                    <div>
+                        <div class="sla-pill-title">Resolution Overdue</div>
+                        <span class="sla-pill-count" id="count-sla-resolution-overdue"
+                              th:text="${slaCounts != null and slaCounts['RESOLUTION_OVERDUE'] != null ? slaCounts['RESOLUTION_OVERDUE'] : 0}">0</span>
+                    </div>
+                    <span class="sla-badge OVERDUE_RESOLUTION">
+                        <span class="sla-badge-dot"></span>Overdue &gt;72h
+                    </span>
+                </a>
+
+                <a th:href="@{/admin/complaints(slaStatus='APPROACHING_DEADLINE')}"
+                   class="sla-summary-pill-card warning"
+                   id="card-sla-approaching"
+                   title="Filter complaints approaching deadline within 6 hours">
+                    <div>
+                        <div class="sla-pill-title">Approaching Deadline</div>
+                        <span class="sla-pill-count" id="count-sla-approaching"
+                              th:text="${slaCounts != null and slaCounts['APPROACHING_DEADLINE'] != null ? slaCounts['APPROACHING_DEADLINE'] : 0}">0</span>
+                    </div>
+                    <span class="sla-badge APPROACHING">
+                        <span class="sla-badge-dot"></span>&lt;6h left
+                    </span>
+                </a>
+
+                <a th:href="@{/admin/complaints(slaStatus='ON_TRACK')}"
+                   class="sla-summary-pill-card success"
+                   id="card-sla-on-track"
+                   title="Filter active complaints within SLA deadlines">
+                    <div>
+                        <div class="sla-pill-title">SLA On Track</div>
+                        <span class="sla-pill-count" id="count-sla-on-track"
+                              th:text="${slaCounts != null and slaCounts['ON_TRACK'] != null ? slaCounts['ON_TRACK'] : 0}">0</span>
+                    </div>
+                    <span class="sla-badge ON_TRACK">
+                        <span class="sla-badge-dot"></span>Healthy
+                    </span>
+                </a>
+            </section>
+
+            <!-- Filtering Toolbar -->
+            <div class="filter-card">
+                <form th:action="@{/admin/complaints}" method="get" class="filter-form" id="filter-form">
+                    <div class="filter-group">
+                        <label for="filter-status">Filter by Status</label>
+                        <select id="filter-status" name="status" class="form-control">
+                            <option value="">-- All Statuses --</option>
+                            <option th:each="st : ${statuses}"
+                                    th:value="${st.name()}"
+                                    th:text="${st.displayName}"
+                                    th:selected="${selectedStatus == st.name()}">
+                                Status
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filter-category">Filter by Campus Domain</label>
+                        <select id="filter-category" name="category" class="form-control">
+                            <option value="">-- All Categories --</option>
+                            <option th:each="cat : ${categories}"
+                                    th:value="${cat}"
+                                    th:text="${cat}"
+                                    th:selected="${selectedCategory == cat}">
+                                Category
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filter-sla">Filter by SLA Status</label>
+                        <select id="filter-sla" name="slaStatus" class="form-control">
+                            <option value="">-- All SLA Statuses --</option>
+                            <option value="OVERDUE" th:selected="${selectedSlaStatus == 'OVERDUE'}">Any Overdue (Response or Resolution)</option>
+                            <option value="RESPONSE_OVERDUE" th:selected="${selectedSlaStatus == 'RESPONSE_OVERDUE'}">Response Overdue (&gt;24h unacknowledged)</option>
+                            <option value="RESOLUTION_OVERDUE" th:selected="${selectedSlaStatus == 'RESOLUTION_OVERDUE'}">Resolution Overdue (&gt;72h unresolved)</option>
+                            <option value="APPROACHING_DEADLINE" th:selected="${selectedSlaStatus == 'APPROACHING_DEADLINE'}">Approaching Deadline (&lt;6h left)</option>
+                            <option value="ON_TRACK" th:selected="${selectedSlaStatus == 'ON_TRACK'}">On Track (Within SLA)</option>
+                            <option value="MET" th:selected="${selectedSlaStatus == 'MET'}">SLA Met (Resolved)</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary" id="btn-apply-filters">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                            </svg>
+                            Filter
+                        </button>
+                        <a th:href="@{/admin/complaints}" href="/admin/complaints" class="btn btn-outline" id="btn-reset-filters">
+                            Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Complaints Table -->
+            <div class="table-card" th:if="${#lists.isEmpty(complaints)}">
+                <div class="empty-state">
+                    <div class="empty-state-icon" aria-hidden="true">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
+                    <h2 class="empty-state-title">No Matching Complaints Found</h2>
+                    <p class="empty-state-desc">
+                        No complaint records match the selected filter criteria. Try resetting filters or checking all statuses.
+                    </p>
+                    <a th:href="@{/admin/complaints}" href="/admin/complaints" class="btn btn-primary">
+                        View All Complaints
+                    </a>
+                </div>
+            </div>
+
+            <div class="table-card" th:if="${not #lists.isEmpty(complaints)}">
+                <div class="table-responsive">
+                    <table class="complaints-table" aria-label="Table of administrator manageable complaints">
+                        <thead>
+                            <tr>
+                                <th scope="col">Reference ID</th>
+                                <th scope="col">Title</th>
+                                <th scope="col">Category</th>
+                                <th scope="col">Department</th>
+                                <th scope="col">Submission Date</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">SLA Status</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="complaint : ${complaints}">
+                                <td>
+                                    <span class="ref-code" th:text="${complaint.referenceId}">CP-2026-XXXXXXXX</span>
+                                </td>
+                                <td>
+                                    <div class="complaint-title-cell" th:text="${complaint.title}" th:title="${complaint.title}">Complaint Title</div>
+                                </td>
+                                <td>
+                                    <span th:text="${complaint.category}">Category</span>
+                                </td>
+                                <td>
+                                    <span th:text="${complaint.department}">Department</span>
+                                </td>
+                                <td>
+                                    <time th:datetime="${complaint.createdAt}"
+                                          th:text="${#temporals.format(complaint.createdAt, 'dd MMM yyyy, hh:mm a')}">
+                                        Date
+                                    </time>
+                                </td>
+                                <td>
+                                    <span class="status-pill"
+                                          th:classappend="${complaint.status.name()}"
+                                          th:text="${complaint.status.displayName}">
+                                        SUBMITTED
+                                    </span>
+                                </td>
+                                <td>
+                                    <div style="display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start;">
+                                        <span th:if="${complaint.resolved}" class="sla-badge MET">
+                                            <span class="sla-badge-dot"></span>SLA Met
+                                        </span>
+                                        <span th:if="${!complaint.resolved and complaint.responseOverdue}" class="sla-badge OVERDUE_RESPONSE">
+                                            <span class="sla-badge-dot"></span>Resp Overdue
+                                        </span>
+                                        <span th:if="${!complaint.resolved and complaint.resolutionOverdue}" class="sla-badge OVERDUE_RESOLUTION">
+                                            <span class="sla-badge-dot"></span>Res Overdue
+                                        </span>
+                                        <span th:if="${!complaint.resolved and !complaint.responseOverdue and !complaint.resolutionOverdue and complaint.approachingDeadline}" class="sla-badge APPROACHING">
+                                            <span class="sla-badge-dot"></span>Approaching
+                                        </span>
+                                        <span th:if="${!complaint.resolved and !complaint.responseOverdue and !complaint.resolutionOverdue and !complaint.approachingDeadline}" class="sla-badge ON_TRACK">
+                                            <span class="sla-badge-dot"></span>On Track
+                                        </span>
+                                        <span th:if="${complaint.escalationStage != null and complaint.escalationStage.name() != 'NONE'}"
+                                              class="escalation-badge"
+                                              th:classappend="${complaint.escalationStage.name()}"
+                                              th:text="${complaint.escalationStage.displayName}">
+                                            Stage 1 Escalated
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <a th:href="@{'/admin/complaints/' + ${complaint.referenceId}}"
+                                       class="btn btn-outline btn-sm"
+                                       style="padding: 0.35rem 0.85rem; font-size: 0.8rem;">
+                                       Review Details &rarr;
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; CampusPulse. Campus Grievance and Feedback Management System &bull; Admin Portal.</p>
+                <p><a th:href="@{/}" href="/" style="color: var(--slate-300);">Return to Homepage</a></p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

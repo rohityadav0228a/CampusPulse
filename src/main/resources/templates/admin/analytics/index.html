@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CampusPulse Admin Analytics & Grievance Intelligence Dashboard">
+    <title>Grievance Analytics | CampusPulse Admin</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../../../static/css/style.css">
+</head>
+<body>
+
+    <!-- Header & Navigation -->
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar" aria-label="Admin Navigation">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <a th:href="@{/}" href="/" class="brand-logo" id="nav-brand">
+                        <span class="brand-icon-wrap" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </span>
+                        <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                    </a>
+                    <span class="admin-badge">Admin Portal</span>
+                </div>
+
+                <ul class="nav-links">
+                    <li><a th:href="@{/admin/complaints}" href="/admin/complaints" class="nav-link">Dashboard</a></li>
+                    <li><a th:href="@{/admin/analytics}" href="/admin/analytics" class="nav-link" style="color: var(--blue-600); font-weight: 700;">Analytics</a></li>
+                    <li><a th:href="@{/admin/insights}" href="/admin/insights" class="nav-link">AI Insights</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Public Registry</a></li>
+                    <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Student Tracker</a></li>
+                </ul>
+
+                <div class="nav-actions" style="display: flex; align-items: center; gap: 0.75rem;">
+                    <a th:href="@{/}" href="/" class="btn btn-outline btn-sm">
+                        &larr; Return to Home
+                    </a>
+                    <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
+                        <button type="submit" class="btn btn-outline btn-sm" id="btn-admin-logout" style="color: #ef4444; border-color: #fca5a5;">
+                            Log Out
+                        </button>
+                    </form>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="section">
+        <div class="container">
+
+            <!-- Breadcrumbs -->
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a th:href="@{/}" href="/">Home</a>
+                <span class="breadcrumb-sep">&gt;</span>
+                <a th:href="@{/admin/complaints}" href="/admin/complaints">Admin Portal</a>
+                <span class="breadcrumb-sep">&gt;</span>
+                <span aria-current="page">Grievance Analytics</span>
+            </nav>
+
+            <div class="page-header-row">
+                <div>
+                    <h1 class="page-title">Campus Grievance Analytics &amp; Insights</h1>
+                    <p class="page-subtitle">
+                        Real-time KPIs, department workload distributions, and grievance submission trends aggregated from database records.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <a th:href="@{/admin/insights}" href="/admin/insights" class="btn btn-primary btn-sm">
+                        AI Insights &amp; Recommendations &rarr;
+                    </a>
+                    <a th:href="@{/admin/complaints}" href="/admin/complaints" class="btn btn-outline btn-sm">
+                        &larr; Manage Complaints
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filtering Toolbar -->
+            <div class="filter-card" style="margin-bottom: 2rem;">
+                <form th:action="@{/admin/analytics}" method="get" class="filter-form" id="analytics-filter-form">
+                    <div class="filter-group">
+                        <label for="filter-status">Filter by Status</label>
+                        <select id="filter-status" name="status" class="form-control">
+                            <option value="">-- All Statuses --</option>
+                            <option th:each="st : ${statuses}"
+                                    th:value="${st.name()}"
+                                    th:text="${st.displayName}"
+                                    th:selected="${selectedStatus == st.name()}">
+                                Status
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filter-category">Filter by Campus Category</label>
+                        <select id="filter-category" name="category" class="form-control">
+                            <option value="">-- All Categories --</option>
+                            <option th:each="cat : ${categories}"
+                                    th:value="${cat}"
+                                    th:text="${cat}"
+                                    th:selected="${selectedCategory == cat}">
+                                Category
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filter-days">Timeframe</label>
+                        <select id="filter-days" name="days" class="form-control">
+                            <option value="7" th:selected="${selectedDays == 7}">Last 7 Days</option>
+                            <option value="14" th:selected="${selectedDays == 14}">Last 14 Days</option>
+                            <option value="30" th:selected="${selectedDays == 30}">Last 30 Days</option>
+                            <option value="0" th:selected="${selectedDays == 0}">All Time</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary" id="btn-apply-filters">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                            </svg>
+                            Apply Filters
+                        </button>
+                        <a th:href="@{/admin/analytics}" href="/admin/analytics" class="btn btn-outline" id="btn-reset-filters">
+                            Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Summary KPI Metrics Cards Grid (6 cards) -->
+            <section class="summary-cards-grid" aria-label="Grievance Performance Metrics" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 2rem;">
+                <div class="summary-card total">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">Total Complaints</span>
+                    </div>
+                    <span class="summary-card-count" id="metric-total" th:text="${summary.total}">0</span>
+                </div>
+
+                <div class="summary-card submitted">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">Pending (Submitted)</span>
+                    </div>
+                    <span class="summary-card-count" id="metric-pending" th:text="${summary.pending}">0</span>
+                </div>
+
+                <div class="summary-card under-review">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">Under Review</span>
+                    </div>
+                    <span class="summary-card-count" id="metric-under-review" th:text="${summary.underReview}">0</span>
+                </div>
+
+                <div class="summary-card in-progress">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">In Progress</span>
+                    </div>
+                    <span class="summary-card-count" id="metric-in-progress" th:text="${summary.inProgress}">0</span>
+                </div>
+
+                <div class="summary-card resolved">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">Resolved</span>
+                    </div>
+                    <span class="summary-card-count" id="metric-resolved" th:text="${summary.resolved}">0</span>
+                </div>
+
+                <div class="summary-card" style="border-top: 4px solid var(--status-emerald); background: var(--white); box-shadow: var(--shadow-card); border-radius: var(--radius-md); padding: 1.25rem;">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label" style="color: var(--navy-600); font-weight: 600; font-size: 0.85rem;">Resolution Rate</span>
+                    </div>
+                    <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.25rem;">
+                        <span class="summary-card-count" id="metric-resolution-rate" style="color: var(--status-emerald); font-size: 2.2rem; font-weight: 800;" th:text="${summary.resolutionRateFormatted}">0.0%</span>
+                    </div>
+                    <div style="background: var(--slate-100); height: 6px; border-radius: var(--radius-full); margin-top: 0.6rem; overflow: hidden;">
+                        <div style="background: var(--status-emerald); height: 100%; border-radius: var(--radius-full); transition: width 0.5s ease;"
+                             th:style="'width: ' + ${summary.resolutionRate} + '%;'"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Trend Visualization Card -->
+            <section class="analytics-card" style="background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 1.75rem; margin-bottom: 2rem; border: 1px solid var(--slate-200);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--navy-900); margin: 0;">Grievance Submission Trend</h2>
+                        <p style="font-size: 0.85rem; color: var(--navy-500); margin: 0.25rem 0 0 0;">
+                            Daily complaint volume over time based on actual submission records.
+                        </p>
+                    </div>
+                    <span class="trend-badge" style="background: var(--blue-50); color: var(--blue-700); font-size: 0.775rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: var(--radius-full); border: 1px solid var(--blue-100);"
+                          th:text="${selectedDays == 0 ? 'All-Time Trend' : 'Last ' + selectedDays + ' Days'}">
+                        Trend Window
+                    </span>
+                </div>
+
+                <!-- Empty State if no trend data -->
+                <div th:if="${#lists.isEmpty(analytics.trendPoints)}" class="empty-state" style="padding: 2.5rem 1rem; text-align: center;">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin: 0 auto 0.75rem auto; color: var(--navy-400, #94a3b8);">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                    <h3 style="font-size: 1rem; color: var(--navy-800); margin-bottom: 0.25rem;">No Trend Data Available</h3>
+                    <p style="font-size: 0.85rem; color: var(--navy-500); margin: 0;">
+                        No grievance records match the selected status, category, or timeframe filters.
+                    </p>
+                </div>
+
+                <!-- SVG Trend Chart when data is present -->
+                <div th:if="${!#lists.isEmpty(analytics.trendPoints)}" id="trend-chart-container" style="position: relative; width: 100%; height: 260px;">
+                    <!-- Dynamic Interactive SVG rendered by client script below -->
+                    <svg id="trend-svg" width="100%" height="100%" viewBox="0 0 800 240" preserveAspectRatio="none" style="overflow: visible;">
+                        <defs>
+                            <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.25"/>
+                                <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.0"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- Grid lines, area, line path, and data points injected via JS -->
+                    </svg>
+                    <!-- Chart Tooltip -->
+                    <div id="chart-tooltip" style="position: absolute; display: none; background: var(--navy-900); color: var(--white); padding: 0.4rem 0.65rem; border-radius: var(--radius-sm); font-size: 0.75rem; pointer-events: none; z-index: 10; box-shadow: var(--shadow-md); white-space: nowrap;"></div>
+                </div>
+            </section>
+
+            <!-- Breakdowns Section (Category Distribution & Department Workload) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem;">
+
+                <!-- Category Breakdown Card -->
+                <section class="analytics-card" style="background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 1.75rem; border: 1px solid var(--slate-200);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                        <div>
+                            <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--navy-900); margin: 0;">Complaints by Campus Category</h2>
+                            <p style="font-size: 0.8rem; color: var(--navy-500); margin: 0.2rem 0 0 0;">Volume share across institutional domains</p>
+                        </div>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(analytics.categoryBreakdown)}" class="empty-state" style="padding: 2rem 1rem; text-align: center;">
+                        <p style="font-size: 0.85rem; color: var(--navy-500); margin: 0;">No category statistics recorded yet.</p>
+                    </div>
+
+                    <div th:if="${!#lists.isEmpty(analytics.categoryBreakdown)}" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div th:each="cat : ${analytics.categoryBreakdown}" style="display: flex; flex-direction: column; gap: 0.35rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 0.85rem;">
+                                <span style="font-weight: 600; color: var(--navy-800);" th:text="${cat.category}">Category Name</span>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span style="font-weight: 700; color: var(--blue-700);" th:text="${cat.count}">0</span>
+                                    <span style="color: var(--navy-500); font-size: 0.775rem;" th:text="'(' + ${cat.percentageFormatted} + ')'">(0.0%)</span>
+                                </div>
+                            </div>
+                            <div style="background: var(--slate-100); height: 8px; border-radius: var(--radius-full); overflow: hidden;">
+                                <div style="background: linear-gradient(90deg, var(--blue-600), var(--blue-500)); height: 100%; border-radius: var(--radius-full);"
+                                     th:style="'width: ' + ${cat.percentage} + '%;'"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Department Breakdown Card -->
+                <section class="analytics-card" style="background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 1.75rem; border: 1px solid var(--slate-200);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                        <div>
+                            <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--navy-900); margin: 0;">Complaints by Department</h2>
+                            <p style="font-size: 0.8rem; color: var(--navy-500); margin: 0.2rem 0 0 0;">Caseload assigned per campus administrative division</p>
+                        </div>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(analytics.departmentBreakdown)}" class="empty-state" style="padding: 2rem 1rem; text-align: center;">
+                        <p style="font-size: 0.85rem; color: var(--navy-500); margin: 0;">No department statistics recorded yet.</p>
+                    </div>
+
+                    <div th:if="${!#lists.isEmpty(analytics.departmentBreakdown)}" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div th:each="dept : ${analytics.departmentBreakdown}" style="display: flex; flex-direction: column; gap: 0.35rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 0.85rem;">
+                                <span style="font-weight: 600; color: var(--navy-800);" th:text="${dept.department}">Department Name</span>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span style="font-weight: 700; color: var(--status-purple);" th:text="${dept.count}">0</span>
+                                    <span style="color: var(--navy-500); font-size: 0.775rem;" th:text="'(' + ${dept.percentageFormatted} + ')'">(0.0%)</span>
+                                </div>
+                            </div>
+                            <div style="background: var(--slate-100); height: 8px; border-radius: var(--radius-full); overflow: hidden;">
+                                <div style="background: linear-gradient(90deg, #7c3aed, #a855f7); height: 100%; border-radius: var(--radius-full);"
+                                     th:style="'width: ' + ${dept.percentage} + '%;'"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; CampusPulse. Campus Grievance and Feedback Management System &bull; Admin Analytics.</p>
+                <p><a th:href="@{/admin/complaints}" href="/admin/complaints" style="color: var(--slate-300);">Return to Complaints Management</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Trend Data for Dynamic SVG Rendering -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const trendData = /*[[${analytics.trendPoints}]]*/ [];
+        /*]]>*/
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!trendData || trendData.length === 0) return;
+
+            const svg = document.getElementById('trend-svg');
+            const tooltip = document.getElementById('chart-tooltip');
+            const container = document.getElementById('trend-chart-container');
+            if (!svg || !container) return;
+
+            const width = 800;
+            const height = 240;
+            const padLeft = 45;
+            const padRight = 20;
+            const padTop = 20;
+            const padBottom = 40;
+
+            const plotW = width - padLeft - padRight;
+            const plotH = height - padTop - padBottom;
+
+            const maxVal = Math.max(...trendData.map(d => d.count), 5);
+            const n = trendData.length;
+
+            // Generate X coordinates
+            const getX = (idx) => padLeft + (n > 1 ? (idx / (n - 1)) * plotW : plotW / 2);
+            // Generate Y coordinates
+            const getY = (val) => padTop + plotH - ((val / maxVal) * plotH);
+
+            // Create Gridlines & Y-Axis Labels
+            const yTicks = 4;
+            for (let i = 0; i <= yTicks; i++) {
+                const tickVal = Math.round((maxVal / yTicks) * i);
+                const yPos = getY(tickVal);
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', padLeft);
+                line.setAttribute('y1', yPos);
+                line.setAttribute('x2', width - padRight);
+                line.setAttribute('y2', yPos);
+                line.setAttribute('stroke', '#e2e8f0');
+                line.setAttribute('stroke-dasharray', i === 0 ? 'none' : '3,3');
+                line.setAttribute('stroke-width', '1');
+                svg.appendChild(line);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', padLeft - 8);
+                text.setAttribute('y', yPos + 4);
+                text.setAttribute('text-anchor', 'end');
+                text.setAttribute('fill', '#94a3b8');
+                text.setAttribute('font-size', '10');
+                text.setAttribute('font-family', 'Plus Jakarta Sans, sans-serif');
+                text.textContent = tickVal;
+                svg.appendChild(text);
+            }
+
+            // Build Area Path and Line Path
+            let pathD = '';
+            let areaD = '';
+
+            trendData.forEach((d, idx) => {
+                const x = getX(idx);
+                const y = getY(d.count);
+                if (idx === 0) {
+                    pathD += `M ${x} ${y}`;
+                    areaD += `M ${x} ${getY(0)} L ${x} ${y}`;
+                } else {
+                    pathD += ` L ${x} ${y}`;
+                    areaD += ` L ${x} ${y}`;
+                }
+            });
+
+            if (n > 0) {
+                const lastX = getX(n - 1);
+                areaD += ` L ${lastX} ${getY(0)} Z`;
+
+                // Append Area polygon
+                const areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                areaPath.setAttribute('d', areaD);
+                areaPath.setAttribute('fill', 'url(#trendGradient)');
+                svg.appendChild(areaPath);
+
+                // Append Line path
+                const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                linePath.setAttribute('d', pathD);
+                linePath.setAttribute('fill', 'none');
+                linePath.setAttribute('stroke', '#2563eb');
+                linePath.setAttribute('stroke-width', '2.5');
+                linePath.setAttribute('stroke-linecap', 'round');
+                linePath.setAttribute('stroke-linejoin', 'round');
+                svg.appendChild(linePath);
+            }
+
+            // Append Points and X-Axis Labels
+            // Determine label step interval to avoid crowding on mobile or wide date ranges
+            const step = Math.max(1, Math.floor(n / 7));
+
+            trendData.forEach((d, idx) => {
+                const x = getX(idx);
+                const y = getY(d.count);
+
+                // Circle dot
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', x);
+                circle.setAttribute('cy', y);
+                circle.setAttribute('r', '4');
+                circle.setAttribute('fill', '#ffffff');
+                circle.setAttribute('stroke', '#2563eb');
+                circle.setAttribute('stroke-width', '2');
+                circle.setAttribute('style', 'cursor: pointer; transition: r 0.15s ease;');
+
+                // Hover interaction
+                circle.addEventListener('mouseenter', (e) => {
+                    circle.setAttribute('r', '6');
+                    circle.setAttribute('fill', '#2563eb');
+                    if (tooltip) {
+                        tooltip.style.display = 'block';
+                        tooltip.innerHTML = `<strong>${d.label || d.date}</strong><br/>${d.count} complaint${d.count === 1 ? '' : 's'}`;
+                        const rect = container.getBoundingClientRect();
+                        const clientX = e.clientX - rect.left;
+                        const clientY = e.clientY - rect.top;
+                        tooltip.style.left = (clientX + 10) + 'px';
+                        tooltip.style.top = (clientY - 35) + 'px';
+                    }
+                });
+
+                circle.addEventListener('mouseleave', () => {
+                    circle.setAttribute('r', '4');
+                    circle.setAttribute('fill', '#ffffff');
+                    if (tooltip) tooltip.style.display = 'none';
+                });
+
+                svg.appendChild(circle);
+
+                // X label on select intervals or endpoints
+                if (idx % step === 0 || idx === n - 1) {
+                    const xText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    xText.setAttribute('x', x);
+                    xText.setAttribute('y', height - 12);
+                    xText.setAttribute('text-anchor', 'middle');
+                    xText.setAttribute('fill', '#64748b');
+                    xText.setAttribute('font-size', '10');
+                    xText.setAttribute('font-family', 'Plus Jakarta Sans, sans-serif');
+                    xText.textContent = d.label || d.date;
+                    svg.appendChild(xText);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

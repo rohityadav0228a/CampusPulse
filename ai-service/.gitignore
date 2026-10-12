@@ -1,0 +1,25 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Byte-code / caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local environment / secrets
+.env
+.env.*
+*.local
+
+# macOS system files
+.DS_Store
+
+# Generated model artifacts (re-creatable via training script)
+models/*.joblib
+!models/.gitkeep

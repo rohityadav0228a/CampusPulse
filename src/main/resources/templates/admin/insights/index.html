@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CampusPulse Admin AI-Powered Grievance Insights, Trend Comparisons, and Operational Recommendations">
+    <title>AI Grievance Insights &amp; Recommendations | CampusPulse Admin</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../../../static/css/style.css">
+</head>
+<body>
+
+    <!-- Header & Navigation -->
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar" aria-label="Admin Navigation">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <a th:href="@{/}" href="/" class="brand-logo" id="nav-brand">
+                        <span class="brand-icon-wrap" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </span>
+                        <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                    </a>
+                    <span class="admin-badge">Admin Portal</span>
+                </div>
+
+                <ul class="nav-links">
+                    <li><a th:href="@{/admin/complaints}" href="/admin/complaints" class="nav-link">Dashboard</a></li>
+                    <li><a th:href="@{/admin/analytics}" href="/admin/analytics" class="nav-link">Analytics</a></li>
+                    <li><a th:href="@{/admin/insights}" href="/admin/insights" class="nav-link" style="color: var(--blue-600); font-weight: 700;">AI Insights</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Public Registry</a></li>
+                    <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Student Tracker</a></li>
+                </ul>
+
+                <div class="nav-actions" style="display: flex; align-items: center; gap: 0.75rem;">
+                    <a th:href="@{/}" href="/" class="btn btn-outline btn-sm">
+                        &larr; Return to Home
+                    </a>
+                    <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
+                        <button type="submit" class="btn btn-outline btn-sm" id="btn-admin-logout" style="color: #ef4444; border-color: #fca5a5;">
+                            Log Out
+                        </button>
+                    </form>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="section">
+        <div class="container">
+
+            <!-- Breadcrumbs -->
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a th:href="@{/}" href="/">Home</a>
+                <span class="breadcrumb-sep">&gt;</span>
+                <a th:href="@{/admin/complaints}" href="/admin/complaints">Admin Portal</a>
+                <span class="breadcrumb-sep">&gt;</span>
+                <span aria-current="page">AI Grievance Insights</span>
+            </nav>
+
+            <div class="page-header-row" style="margin-bottom: 1.5rem;">
+                <div>
+                    <h1 class="page-title">AI-Powered Grievance Insights &amp; Recommendations</h1>
+                    <p class="page-subtitle">
+                        Automated comparative period trend detection, department workload backlogs, and transparent, evidence-backed operational guidance.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                    <a th:href="@{/admin/analytics}" href="/admin/analytics" class="btn btn-outline btn-sm">
+                        &larr; View Analytics
+                    </a>
+                    <a th:href="@{/admin/complaints}" href="/admin/complaints" class="btn btn-outline btn-sm">
+                        Manage Complaints
+                    </a>
+                </div>
+            </div>
+
+            <!-- Timeframe Selection Toolbar -->
+            <div class="filter-card" style="margin-bottom: 2rem;">
+                <form th:action="@{/admin/insights}" method="get" class="filter-form" id="insights-filter-form" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        <span style="font-weight: 700; color: var(--navy-900); font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            Comparison Timeframe Window:
+                        </span>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <a th:href="@{/admin/insights(days=7)}"
+                               class="btn btn-sm"
+                               th:classappend="${selectedDays == 7 ? 'btn-primary' : 'btn-outline'}"
+                               id="btn-window-7">Last 7 Days</a>
+                            <a th:href="@{/admin/insights(days=14)}"
+                               class="btn btn-sm"
+                               th:classappend="${selectedDays == 14 ? 'btn-primary' : 'btn-outline'}"
+                               id="btn-window-14">Last 14 Days</a>
+                            <a th:href="@{/admin/insights(days=30)}"
+                               class="btn btn-sm"
+                               th:classappend="${selectedDays == 30 ? 'btn-primary' : 'btn-outline'}"
+                               id="btn-window-30">Last 30 Days</a>
+                            <a th:href="@{/admin/insights(days=60)}"
+                               class="btn btn-sm"
+                               th:classappend="${selectedDays == 60 ? 'btn-primary' : 'btn-outline'}"
+                               id="btn-window-60">Last 60 Days</a>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 0.85rem; color: var(--navy-600);">
+                        Comparing with preceding <strong th:text="${selectedDays}">14</strong>-day baseline
+                    </div>
+                </form>
+            </div>
+
+            <!-- Insights Period Banner (Volume Trend Overview) -->
+            <div class="insights-period-banner" id="banner-period-comparison">
+                <div class="insights-period-meta">
+                    <h2>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        Period Volume Trend Analysis
+                        <span class="insights-period-badge" th:text="${comparison.currentPeriodLabel}">Current Window</span>
+                    </h2>
+                    <p th:text="${comparison.summaryText}">Period comparison metrics</p>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--slate-300);">Current vs Previous</div>
+                        <div style="font-size: 1.35rem; font-weight: 800; color: var(--white);">
+                            <span th:text="${comparison.currentCount}">0</span>
+                            <span style="font-size: 0.9rem; font-weight: 500; color: var(--slate-300);"> / </span>
+                            <span style="font-size: 1.1rem; font-weight: 600; color: var(--slate-300);" th:text="${comparison.previousCount}">0</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <!-- Trend badge -->
+                        <span th:if="${comparison.direction.name() == 'INCREASED'}" class="trend-badge trend-up" id="badge-trend-up">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+                            <span th:text="${comparison.formattedPercentage()}">+0.0%</span>
+                        </span>
+                        <span th:if="${comparison.direction.name() == 'DECREASED'}" class="trend-badge trend-down" id="badge-trend-down">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                            <span th:text="${comparison.formattedPercentage()}">-0.0%</span>
+                        </span>
+                        <span th:if="${comparison.direction.name() == 'STABLE' or comparison.direction.name() == 'INSUFFICIENT_DATA'}" class="trend-badge trend-stable" id="badge-trend-stable">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            <span>Volume Stable</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI Metric Cards Grid -->
+            <section class="summary-cards-grid" aria-label="Grievance Status Overview" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem;">
+                <div class="summary-card total">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">Total Grievances</span>
+                    </div>
+                    <span class="summary-card-count" id="insight-metric-total" th:text="${statusDistribution.totalCount}">0</span>
+                </div>
+
+                <div class="summary-card submitted">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">Unresolved Backlog</span>
+                    </div>
+                    <span class="summary-card-count" id="insight-metric-unresolved" style="color: var(--status-amber);" th:text="${statusDistribution.unresolvedCount}">0</span>
+                    <span style="font-size: 0.8rem; color: var(--navy-500); margin-top: 0.25rem;">
+                        <span th:text="${statusDistribution.unresolvedRate}">0.0</span>% of all complaints
+                    </span>
+                </div>
+
+                <div class="summary-card resolved">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">Resolved Grievances</span>
+                    </div>
+                    <span class="summary-card-count" id="insight-metric-resolved" style="color: var(--status-emerald);" th:text="${statusDistribution.resolvedCount}">0</span>
+                    <span style="font-size: 0.8rem; color: var(--navy-500); margin-top: 0.25rem;">
+                        <span th:text="${statusDistribution.resolutionRate}">0.0</span>% resolution rate
+                    </span>
+                </div>
+
+                <div class="summary-card in-progress">
+                    <div class="summary-card-header">
+                        <span class="summary-card-label">High-Risk Backlogs</span>
+                    </div>
+                    <span class="summary-card-count" id="insight-metric-risk" th:text="${insights.highRiskBacklogCount}" style="color: #ef4444;">0</span>
+                    <span style="font-size: 0.8rem; color: var(--navy-500); margin-top: 0.25rem;">Departments flagged</span>
+                </div>
+            </section>
+
+            <!-- SLA Compliance & Overdue Grievance KPI Strip -->
+            <section class="sla-summary-strip" aria-label="SLA Compliance and Overdue Performance" style="margin-bottom: 2rem;">
+                <a th:href="@{/admin/complaints(slaStatus='RESPONSE_OVERDUE')}"
+                   class="sla-summary-pill-card danger"
+                   id="insight-sla-response-overdue"
+                   title="View response overdue complaints">
+                    <div>
+                        <div class="sla-pill-title">Response Overdue</div>
+                        <span class="sla-pill-count" style="color: #dc2626;"
+                              th:text="${slaSummary != null ? slaSummary.responseOverdueCount : 0}">0</span>
+                    </div>
+                    <span class="sla-badge OVERDUE_RESPONSE">
+                        <span class="sla-badge-dot"></span>Overdue &gt;24h
+                    </span>
+                </a>
+
+                <a th:href="@{/admin/complaints(slaStatus='RESOLUTION_OVERDUE')}"
+                   class="sla-summary-pill-card danger"
+                   id="insight-sla-resolution-overdue"
+                   title="View resolution overdue complaints">
+                    <div>
+                        <div class="sla-pill-title">Resolution Overdue</div>
+                        <span class="sla-pill-count" style="color: #9f1239;"
+                              th:text="${slaSummary != null ? slaSummary.resolutionOverdueCount : 0}">0</span>
+                    </div>
+                    <span class="sla-badge OVERDUE_RESOLUTION">
+                        <span class="sla-badge-dot"></span>Overdue &gt;72h
+                    </span>
+                </a>
+
+                <a th:href="@{/admin/complaints(slaStatus='APPROACHING_DEADLINE')}"
+                   class="sla-summary-pill-card warning"
+                   id="insight-sla-approaching"
+                   title="View approaching deadline complaints">
+                    <div>
+                        <div class="sla-pill-title">Approaching Deadline</div>
+                        <span class="sla-pill-count" style="color: #d97706;"
+                              th:text="${slaSummary != null ? slaSummary.approachingDeadlineCount : 0}">0</span>
+                    </div>
+                    <span class="sla-badge APPROACHING">
+                        <span class="sla-badge-dot"></span>&lt;6h Remaining
+                    </span>
+                </a>
+
+                <div class="sla-summary-pill-card success" id="insight-sla-compliance">
+                    <div>
+                        <div class="sla-pill-title">SLA Compliance Rate</div>
+                        <span class="sla-pill-count" style="color: #059669;"
+                              th:text="${slaSummary != null ? slaSummary.complianceRate + '%' : '100%'}">100%</span>
+                    </div>
+                    <span class="sla-badge MET">
+                        <span class="sla-badge-dot"></span>Active Target
+                    </span>
+                </div>
+            </section>
+
+            <!-- 2-Column Insights Breakdown: Categories & Departments -->
+            <div class="insights-grid-2col">
+
+                <!-- Highest-Volume Complaint Categories -->
+                <div class="insight-card" id="card-top-categories">
+                    <div class="insight-card-header">
+                        <h2 class="insight-card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            Category Volume Distribution
+                        </h2>
+                        <span style="font-size: 0.8rem; font-weight: 600; color: var(--navy-500);">All Time</span>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(topCategories)}" class="empty-state" style="padding: 2rem; text-align: center;">
+                        <p style="color: var(--navy-500); margin: 0;">No category records recorded yet.</p>
+                    </div>
+
+                    <div th:unless="${#lists.isEmpty(topCategories)}">
+                        <div th:each="cat : ${topCategories}" class="category-insight-row">
+                            <div class="category-insight-header">
+                                <div class="category-name-wrap">
+                                    <span th:text="${cat.category}">Category Name</span>
+                                    <span th:if="${cat.isTopCategory and cat.totalCount > 0}" class="top-category-badge">Top Driver</span>
+                                </div>
+                                <div style="font-size: 0.825rem; color: var(--navy-600); font-weight: 600;">
+                                    <span th:text="${cat.totalCount}">0</span>
+                                    <span style="color: var(--navy-500); font-weight: 400;"> (<span th:text="${cat.sharePercentage}">0.0</span>%)</span>
+                                </div>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill"
+                                     th:classappend="${cat.isTopCategory ? 'top-fill' : ''}"
+                                     th:style="'width: ' + ${cat.sharePercentage} + '%;'"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Department Unresolved Backlog Analysis -->
+                <div class="insight-card" id="card-department-backlog">
+                    <div class="insight-card-header">
+                        <h2 class="insight-card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                            </svg>
+                            Department Unresolved Backlogs
+                        </h2>
+                        <span style="font-size: 0.8rem; font-weight: 600; color: var(--navy-500);">Active Grievances</span>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(departmentBacklogs)}" class="empty-state" style="padding: 2rem; text-align: center;">
+                        <p style="color: var(--navy-500); margin: 0;">No departmental data available.</p>
+                    </div>
+
+                    <div th:unless="${#lists.isEmpty(departmentBacklogs)}" style="overflow-x: auto;">
+                        <table class="table" style="font-size: 0.85rem; margin: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th style="text-align: right;">Pending</th>
+                                    <th style="text-align: right;">Total</th>
+                                    <th style="text-align: right;">Backlog %</th>
+                                    <th style="text-align: center;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="dept : ${departmentBacklogs}">
+                                    <td style="font-weight: 600; color: var(--navy-850);" th:text="${dept.department}">Department</td>
+                                    <td style="text-align: right; font-weight: 700;" th:text="${dept.unresolvedCount}">0</td>
+                                    <td style="text-align: right; color: var(--navy-600);" th:text="${dept.totalCount}">0</td>
+                                    <td style="text-align: right;">
+                                        <span th:text="${dept.backlogPercentage}">0.0</span>%
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <span th:if="${dept.highBacklogRisk}" class="backlog-risk-pill risk-high">
+                                            High Backlog
+                                        </span>
+                                        <span th:unless="${dept.highBacklogRisk}" class="backlog-risk-pill risk-normal">
+                                            Manageable
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- AI Operational Recommendations Section -->
+            <section class="recommendations-section" aria-label="Administrative Recommendations" id="section-recommendations">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                    <div>
+                        <h2 style="font-size: 1.35rem; font-weight: 700; color: var(--navy-900); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--blue-600);" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                            Evidence-Based Administrative Recommendations
+                        </h2>
+                        <p style="color: var(--navy-600); font-size: 0.9rem; margin: 0;">
+                            Deterministic, rule-based operational guidance synthesized directly from verified database measurements.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Recommendations List -->
+                <div th:each="rec : ${recommendations}"
+                     class="recommendation-card"
+                     th:classappend="'priority-' + ${rec.priority.badgeType}"
+                     th:id="${rec.id}">
+
+                    <div class="recommendation-header">
+                        <div class="recommendation-title-group">
+                            <h3 th:text="${rec.title}">Recommendation Title</h3>
+                            <div class="recommendation-tags">
+                                <span class="priority-tag"
+                                      th:classappend="${rec.priority.badgeType}"
+                                      th:text="${rec.priority.displayName}">Priority</span>
+                                <span class="category-tag" th:text="${rec.category}">Category</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recommendation-body">
+                        <!-- Observation -->
+                        <p class="recommendation-observation" th:text="${rec.observation}">
+                            Detailed analytical observation.
+                        </p>
+
+                        <!-- Measured Evidence Callout -->
+                        <div class="recommendation-evidence-box">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="evidence-icon" aria-hidden="true">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                            <div>
+                                <strong style="color: var(--navy-900);">Measured Evidence: </strong>
+                                <span th:text="${rec.evidence}">Evidence statement from database.</span>
+                            </div>
+                        </div>
+
+                        <!-- Actionable Recommendation -->
+                        <div class="recommendation-advice-box">
+                            <strong style="display: block; margin-bottom: 0.2rem; color: var(--navy-950);">Suggested Operational Guidance:</strong>
+                            <span th:text="${rec.recommendation}">Recommendation text.</span>
+                        </div>
+
+                        <!-- Suggested Action Steps -->
+                        <div class="recommendation-actions" th:if="${!#lists.isEmpty(rec.suggestedActions)}">
+                            <div class="recommendation-actions-title">Recommended Action Plan:</div>
+                            <ul class="recommendation-actions-list">
+                                <li th:each="action : ${rec.suggestedActions}" th:text="${action}">Action item</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2026 CampusPulse Grievance Redressal System. Administrative Access Only.</p>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <a th:href="@{/admin/complaints}" href="/admin/complaints" style="color: var(--slate-300); font-size: 0.875rem;">Dashboard</a>
+                    <a th:href="@{/admin/analytics}" href="/admin/analytics" style="color: var(--slate-300); font-size: 0.875rem;">Analytics</a>
+                    <a th:href="@{/admin/insights}" href="/admin/insights" style="color: var(--blue-100); font-size: 0.875rem; font-weight: 600;">AI Insights</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

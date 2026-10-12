@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Submit a campus complaint or feedback through CampusPulse.">
+    <title>Submit a Grievance | CampusPulse</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- CSRF Protection Meta for Asynchronous Requests -->
+    <meta th:if="${_csrf != null}" name="_csrf" th:content="${_csrf.token}">
+    <meta th:if="${_csrf != null}" name="_csrf_header" th:content="${_csrf.headerName}">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../../static/css/style.css">
+</head>
+<body>
+
+    <!-- Header & Navigation -->
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar" aria-label="Main Navigation">
+                <a th:href="@{/}" href="/" class="brand-logo" id="nav-brand">
+                    <span class="brand-icon-wrap" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </span>
+                    <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                </a>
+
+                <ul class="nav-links">
+                    <li><a th:href="@{/}" href="/" class="nav-link">Home</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Grievance Registry</a></li>
+                    <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Track Status</a></li>
+                </ul>
+
+                <div class="nav-actions">
+                    <a th:href="@{/}" href="/" class="btn btn-outline btn-sm">
+                        &larr; Return to Home
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="section">
+        <div class="container">
+
+            <!-- Breadcrumbs -->
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a th:href="@{/}" href="/">Home</a>
+                <span class="breadcrumb-sep">&gt;</span>
+                <span aria-current="page">Submit Grievance</span>
+            </nav>
+
+            <div class="page-header-row">
+                <div>
+                    <h1 class="page-title">Submit a Campus Grievance</h1>
+                    <p class="page-subtitle">
+                        Please provide detailed, accurate information. Your submission will be recorded in the system and assigned a unique reference ID.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Database Error Alert (Shown only if DB persistence fails) -->
+            <div class="alert-banner alert-error" th:if="${databaseError}" role="alert">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span th:text="${databaseError}">We encountered an error saving your complaint. Please try again.</span>
+            </div>
+
+            <!-- Complaint Submission Form -->
+            <div class="form-card">
+                <form th:action="@{/complaints}" th:object="${complaintForm}" method="post" novalidate id="complaint-form">
+
+                    <!-- Title Field -->
+                    <div class="form-group">
+                        <label for="title" class="form-label">
+                            Complaint Title <span class="required" aria-hidden="true">*</span>
+                        </label>
+                        <input type="text"
+                               id="title"
+                               th:field="*{title}"
+                               class="form-control"
+                               th:classappend="${#fields.hasErrors('title')} ? 'is-invalid' : ''"
+                               placeholder="e.g. Broken water purifier on 2nd floor Hostel B"
+                               maxlength="120"
+                               required
+                               aria-describedby="title-hint title-error">
+                        <span id="title-hint" class="form-hint">Brief summary of the issue (5 to 120 characters)</span>
+                        <div id="title-error" class="form-error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}">
+                            Title error message
+                        </div>
+                    </div>
+
+                    <!-- Category Field with Advisory AI Suggestion -->
+                    <div class="form-group">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.5rem;">
+                            <label for="category" class="form-label" style="margin-bottom: 0;">
+                                Campus Category <span class="required" aria-hidden="true">*</span>
+                            </label>
+                            <button type="button"
+                                    id="btn-ai-suggest"
+                                    class="btn-ai-suggest"
+                                    title="Get an advisory category suggestion using CampusPulse AI">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                                </svg>
+                                <span>AI Suggest Category</span>
+                            </button>
+                        </div>
+                        <select id="category"
+                                th:field="*{category}"
+                                class="form-control"
+                                th:classappend="${#fields.hasErrors('category')} ? 'is-invalid' : ''"
+                                required
+                                aria-describedby="category-hint category-error">
+                            <option value="">-- Select a Category --</option>
+                            <option th:each="cat : ${categories}" th:value="${cat}" th:text="${cat}">Category Option</option>
+                        </select>
+                        <span id="category-hint" class="form-hint">Select the campus domain relevant to your grievance</span>
+                        <div id="category-error" class="form-error" th:if="${#fields.hasErrors('category')}" th:errors="*{category}">
+                            Category error message
+                        </div>
+
+                        <!-- AI Suggestion Advisory Display Panel -->
+                        <div id="ai-suggestion-panel" class="ai-suggestion-panel" style="display: none;" role="region" aria-live="polite"></div>
+                    </div>
+
+                    <!-- Department Field -->
+                    <div class="form-group">
+                        <label for="department" class="form-label">
+                            Responsible Department <span class="required" aria-hidden="true">*</span>
+                        </label>
+                        <select id="department"
+                                th:field="*{department}"
+                                class="form-control"
+                                th:classappend="${#fields.hasErrors('department')} ? 'is-invalid' : ''"
+                                required
+                                aria-describedby="department-hint department-error">
+                            <option value="">-- Select a Department --</option>
+                            <option th:each="dept : ${departments}" th:value="${dept}" th:text="${dept}">Department Option</option>
+                        </select>
+                        <span id="department-hint" class="form-hint">Select the designated campus division to review this case</span>
+                        <div id="department-error" class="form-error" th:if="${#fields.hasErrors('department')}" th:errors="*{department}">
+                            Department error message
+                        </div>
+                    </div>
+
+                    <!-- Student Notification Email Field -->
+                    <div class="form-group">
+                        <label for="studentEmail" class="form-label">
+                            Notification Email <span class="form-hint" style="font-weight: normal; margin-left: 0.25rem;">(Optional)</span>
+                        </label>
+                        <input type="email"
+                               id="studentEmail"
+                               th:field="*{studentEmail}"
+                               class="form-control"
+                               th:classappend="${#fields.hasErrors('studentEmail')} ? 'is-invalid' : ''"
+                               placeholder="e.g. yourname@college.edu"
+                               maxlength="150"
+                               autocomplete="email"
+                               aria-describedby="studentEmail-hint studentEmail-error">
+                        <span id="studentEmail-hint" class="form-hint">Provide your email address to receive automated notifications when your grievance status changes</span>
+                        <div id="studentEmail-error" class="form-error" th:if="${#fields.hasErrors('studentEmail')}" th:errors="*{studentEmail}">
+                            Email error message
+                        </div>
+                    </div>
+
+                    <!-- Description Field -->
+                    <div class="form-group">
+                        <label for="description" class="form-label">
+                            Detailed Description <span class="required" aria-hidden="true">*</span>
+                        </label>
+                        <textarea id="description"
+                                  th:field="*{description}"
+                                  class="form-control"
+                                  th:classappend="${#fields.hasErrors('description')} ? 'is-invalid' : ''"
+                                  rows="6"
+                                  maxlength="2000"
+                                  placeholder="Describe the problem, specific location, impact, and when the issue started..."
+                                  required
+                                  aria-describedby="description-hint description-error"></textarea>
+                        <span id="description-hint" class="form-hint">Provide full details to enable prompt inspection (10 to 2000 characters)</span>
+                        <div id="description-error" class="form-error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">
+                            Description error message
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                        <a th:href="@{/}" href="/" class="btn btn-outline" id="btn-cancel">
+                            Cancel &amp; Return Home
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="btn-submit">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                            Submit Grievance
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; CampusPulse. Campus Grievance and Feedback Management System.</p>
+                <p><a th:href="@{/}" href="/" style="color: var(--slate-300);">Return to Homepage</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Advisory AI Category Suggestion Styles & Script -->
+    <style>
+        .btn-ai-suggest {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.65rem;
+            font-size: 0.775rem;
+            font-weight: 600;
+            font-family: inherit;
+            color: var(--blue-700);
+            background-color: var(--blue-50);
+            border: 1px solid var(--blue-100);
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        .btn-ai-suggest:hover:not(:disabled) {
+            background-color: var(--blue-100);
+            color: var(--blue-700);
+            border-color: var(--blue-500);
+            box-shadow: var(--shadow-sm);
+        }
+        .btn-ai-suggest:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+        .ai-suggestion-panel {
+            margin-top: 0.65rem;
+            padding: 0.75rem 0.95rem;
+            border-radius: var(--radius-md);
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            font-size: 0.85rem;
+            line-height: 1.5;
+            transition: all var(--transition-normal);
+        }
+        .ai-suggestion-panel.is-success {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #166534;
+        }
+        .ai-suggestion-panel.is-warning {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #92400e;
+        }
+        .ai-suggestion-panel.is-error {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+        .ai-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.15rem 0.5rem;
+            border-radius: var(--radius-full);
+            font-size: 0.72rem;
+            font-weight: 700;
+            margin-left: 0.35rem;
+        }
+        .ai-badge-success {
+            background: #dcfce7;
+            color: #15803d;
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const aiBtn = document.getElementById('btn-ai-suggest');
+            const aiPanel = document.getElementById('ai-suggestion-panel');
+            const titleInput = document.getElementById('title');
+            const descInput = document.getElementById('description');
+            const categorySelect = document.getElementById('category');
+
+            if (!aiBtn || !aiPanel || !categorySelect) return;
+
+            aiBtn.addEventListener('click', async function () {
+                const titleVal = titleInput ? titleInput.value.trim() : '';
+                const descVal = descInput ? descInput.value.trim() : '';
+
+                if (!titleVal && !descVal) {
+                    aiPanel.className = 'ai-suggestion-panel is-warning';
+                    aiPanel.style.display = 'block';
+                    aiPanel.innerHTML = '<div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">' +
+                        '<div>⚠️ Please enter a <strong>title</strong> or <strong>description</strong> first so AI can analyze your grievance.</div>' +
+                        '<button type="button" class="btn btn-sm btn-outline btn-dismiss-ai" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;">Dismiss</button>' +
+                        '</div>';
+                    attachDismissHandler();
+                    return;
+                }
+
+                const combinedLength = (titleVal + (descVal ? ' ' + descVal : '')).length;
+                if (combinedLength < 5) {
+                    aiPanel.className = 'ai-suggestion-panel is-warning';
+                    aiPanel.style.display = 'block';
+                    aiPanel.innerHTML = '<div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">' +
+                        '<div>⚠️ Please enter at least 5 characters in the title or description to enable category suggestion.</div>' +
+                        '<button type="button" class="btn btn-sm btn-outline btn-dismiss-ai" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;">Dismiss</button>' +
+                        '</div>';
+                    attachDismissHandler();
+                    return;
+                }
+
+                // Show loading state
+                const origBtnText = aiBtn.innerHTML;
+                aiBtn.disabled = true;
+                aiBtn.innerHTML = '<span>⏳ Analyzing...</span>';
+
+                aiPanel.className = 'ai-suggestion-panel';
+                aiPanel.style.display = 'block';
+                aiPanel.innerHTML = '<div style="color: var(--navy-600); font-size: 0.85rem;">' +
+                    'Analyzing grievance details with CampusPulse AI microservice...' +
+                    '</div>';
+
+                // Retrieve CSRF token from page meta tags or hidden input
+                const csrfTokenMeta = document.querySelector('meta[name="_csrf"]');
+                const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+                const csrfInput = document.querySelector('input[name="_csrf"]');
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                };
+                if (csrfTokenMeta && csrfHeaderMeta) {
+                    headers[csrfHeaderMeta.getAttribute('content')] = csrfTokenMeta.getAttribute('content');
+                } else if (csrfInput) {
+                    headers['X-CSRF-TOKEN'] = csrfInput.value;
+                }
+
+                try {
+                    const response = await fetch('/complaints/suggest-category', {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({
+                            title: titleVal,
+                            description: descVal
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success && data.category) {
+                        const confPercent = data.confidence ? Math.round(data.confidence * 100) : null;
+                        const confBadge = confPercent !== null ? '<span class="ai-badge ai-badge-success">' + confPercent + '% confidence</span>' : '';
+
+                        aiPanel.className = 'ai-suggestion-panel is-success';
+                        aiPanel.innerHTML =
+                            '<div style="display: flex; flex-direction: column; gap: 0.45rem;">' +
+                            '  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">' +
+                            '    <div>' +
+                            '      <strong>✨ Suggested Category:</strong> <span style="font-weight: 700;">' + escapeHtml(data.category) + '</span>' +
+                            confBadge +
+                            '    </div>' +
+                            '    <div style="display: flex; gap: 0.4rem;">' +
+                            '      <button type="button" id="btn-apply-suggestion" class="btn btn-sm btn-primary" style="padding: 0.2rem 0.55rem; font-size: 0.775rem;">' +
+                            '        Use Suggestion' +
+                            '      </button>' +
+                            '      <button type="button" class="btn btn-sm btn-outline btn-dismiss-ai" style="padding: 0.2rem 0.55rem; font-size: 0.775rem;">' +
+                            '        Dismiss' +
+                            '      </button>' +
+                            '    </div>' +
+                            '  </div>' +
+                            '  <div style="font-size: 0.76rem; color: #15803d;">' +
+                            '    💡 <em>Suggestions are advisory. You retain full control to accept, change, or ignore this recommendation.</em>' +
+                            '  </div>' +
+                            '</div>';
+
+                        document.getElementById('btn-apply-suggestion')?.addEventListener('click', function () {
+                            categorySelect.value = data.category;
+                            categorySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                            this.textContent = '✓ Applied';
+                            this.disabled = true;
+                        });
+
+                        attachDismissHandler();
+
+                    } else {
+                        const errorMsg = (data && data.message)
+                            ? data.message
+                            : 'AI service is currently unavailable. Please select your category manually from the list above.';
+
+                        aiPanel.className = 'ai-suggestion-panel is-warning';
+                        aiPanel.innerHTML =
+                            '<div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">' +
+                            '  <div><span style="margin-right: 0.35rem;">⚠️</span>' + escapeHtml(errorMsg) + '</div>' +
+                            '  <button type="button" class="btn btn-sm btn-outline btn-dismiss-ai" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;">Dismiss</button>' +
+                            '</div>';
+
+                        attachDismissHandler();
+                    }
+                } catch (err) {
+                    aiPanel.className = 'ai-suggestion-panel is-error';
+                    aiPanel.innerHTML =
+                        '<div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">' +
+                        '  <div><span style="margin-right: 0.35rem;">⚠️</span>AI category suggestion is temporarily unavailable. Please select a category manually.</div>' +
+                        '  <button type="button" class="btn btn-sm btn-outline btn-dismiss-ai" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;">Dismiss</button>' +
+                        '</div>';
+
+                    attachDismissHandler();
+                } finally {
+                    aiBtn.disabled = false;
+                    aiBtn.innerHTML = origBtnText;
+                }
+            });
+
+            function attachDismissHandler() {
+                aiPanel.querySelectorAll('.btn-dismiss-ai').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        aiPanel.style.display = 'none';
+                    });
+                });
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+        });
+    </script>
+</body>
+</html>

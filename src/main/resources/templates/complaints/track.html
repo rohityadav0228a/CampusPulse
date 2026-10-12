@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Track your campus complaint status in real-time with CampusPulse.">
+    <title>Track Complaint Status | CampusPulse</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../../static/css/style.css">
+</head>
+<body>
+
+    <!-- Header & Navigation -->
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar" aria-label="Main Navigation">
+                <a th:href="@{/}" href="/" class="brand-logo" id="nav-brand">
+                    <span class="brand-icon-wrap" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </span>
+                    <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                </a>
+
+                <ul class="nav-links">
+                    <li><a th:href="@{/}" href="/" class="nav-link">Home</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Grievance Registry</a></li>
+                    <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link" style="color: var(--blue-600); font-weight: 700;">Track Status</a></li>
+                </ul>
+
+                <div class="nav-actions">
+                    <a th:href="@{/complaints/new}" href="/complaints/new" class="btn btn-primary btn-sm">
+                        Submit Complaint
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="section">
+        <div class="container">
+
+            <!-- Breadcrumbs -->
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a th:href="@{/}" href="/">Home</a>
+                <span class="breadcrumb-sep">&gt;</span>
+                <a th:href="@{/complaints}" href="/complaints">Complaints</a>
+                <span class="breadcrumb-sep">&gt;</span>
+                <span aria-current="page">Track Status</span>
+            </nav>
+
+            <div class="page-header-row">
+                <div>
+                    <h1 class="page-title">Track Complaint Status</h1>
+                    <p class="page-subtitle">
+                        Enter your official reference ID to check the current resolution progress of your campus grievance.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Search Form Card -->
+            <div class="track-search-card">
+                <form th:action="@{/complaints/track}" method="get" class="track-search-form" id="track-form">
+                    <div class="form-group" style="margin-bottom: 0.75rem;">
+                        <label for="referenceId" class="form-label">
+                            Complaint Reference ID
+                        </label>
+                        <div class="track-input-group">
+                            <input type="text"
+                                   id="referenceId"
+                                   name="referenceId"
+                                   th:value="${searchedReferenceId}"
+                                   class="form-control"
+                                   placeholder="e.g. CP-2026-A8F3B91C"
+                                   maxlength="20"
+                                   required
+                                   aria-describedby="ref-hint">
+                            <button type="submit" class="btn btn-primary" id="btn-track-submit">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                Track Status
+                            </button>
+                        </div>
+                        <span id="ref-hint" class="form-hint">
+                            Format: <code>CP-YYYY-XXXXXXXX</code> (Letters are case-insensitive)
+                        </span>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Validation Error Alert -->
+            <div class="alert-banner alert-error" th:if="${validationError}" role="alert" style="max-width: 800px; margin: 1.5rem auto;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span th:text="${validationError}">Validation error message.</span>
+            </div>
+
+            <!-- Not Found Alert -->
+            <div class="alert-banner alert-error" th:if="${notFound}" role="alert" style="max-width: 800px; margin: 1.5rem auto;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>
+                    No complaint found with reference ID '<strong th:text="${searchedReferenceId}">CP-2026-XXXXXXXX</strong>'.
+                    Please check the identifier or <a th:href="@{/complaints/new}" style="color: #991b1b; text-decoration: underline; font-weight: 700;">submit a new complaint</a>.
+                </span>
+            </div>
+
+            <!-- Tracking Result Display (Shown only when a complaint is found) -->
+            <div class="tracking-result-card" th:if="${complaint != null}">
+                <div class="tracking-result-header">
+                    <div>
+                        <div class="tracking-ref-title">
+                            Complaint Reference: <span class="ref-code" th:text="${complaint.referenceId}">CP-2026-XXXXXXXX</span>
+                        </div>
+                        <h2 class="tracking-complaint-title" th:text="${complaint.title}">Complaint Title</h2>
+                    </div>
+                    <div>
+                        <span class="status-pill"
+                              th:classappend="${complaint.status.name()}"
+                              th:text="${complaint.status.displayName}">
+                            SUBMITTED
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Four-Stage Resolution Stepper -->
+                <div class="stepper-section">
+                    <h3 class="stepper-section-title">Resolution Lifecycle Progress</h3>
+                    <div class="stepper-track">
+
+                        <!-- Step 1: SUBMITTED -->
+                        <div class="step-item"
+                             th:classappend="${complaint.status.name() == 'SUBMITTED' ? 'active' : 'completed'}">
+                            <div class="step-marker" aria-hidden="true">
+                                <span th:if="${complaint.status.name() == 'SUBMITTED'}">1</span>
+                                <svg th:if="${complaint.status.name() != 'SUBMITTED'}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                            <div class="step-label">Submitted</div>
+                            <div class="step-subtext">Logged in System</div>
+                        </div>
+
+                        <!-- Step 2: UNDER_REVIEW -->
+                        <div class="step-item"
+                             th:classappend="${complaint.status.name() == 'UNDER_REVIEW' ? 'active' : (complaint.status.name() == 'IN_PROGRESS' || complaint.status.name() == 'RESOLVED' ? 'completed' : 'pending')}">
+                            <div class="step-marker" aria-hidden="true">
+                                <span th:if="${complaint.status.name() == 'SUBMITTED' || complaint.status.name() == 'UNDER_REVIEW'}">2</span>
+                                <svg th:if="${complaint.status.name() == 'IN_PROGRESS' || complaint.status.name() == 'RESOLVED'}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                            <div class="step-label">Under Review</div>
+                            <div class="step-subtext">Admin Triage</div>
+                        </div>
+
+                        <!-- Step 3: IN_PROGRESS -->
+                        <div class="step-item"
+                             th:classappend="${complaint.status.name() == 'IN_PROGRESS' ? 'active' : (complaint.status.name() == 'RESOLVED' ? 'completed' : 'pending')}">
+                            <div class="step-marker" aria-hidden="true">
+                                <span th:if="${complaint.status.name() != 'RESOLVED'}">3</span>
+                                <svg th:if="${complaint.status.name() == 'RESOLVED'}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                            <div class="step-label">In Progress</div>
+                            <div class="step-subtext">Department Action</div>
+                        </div>
+
+                        <!-- Step 4: RESOLVED -->
+                        <div class="step-item"
+                             th:classappend="${complaint.status.name() == 'RESOLVED' ? 'active completed-final' : 'pending'}">
+                            <div class="step-marker" aria-hidden="true">
+                                <span th:if="${complaint.status.name() != 'RESOLVED'}">4</span>
+                                <svg th:if="${complaint.status.name() == 'RESOLVED'}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                            <div class="step-label">Resolved</div>
+                            <div class="step-subtext">Verified &amp; Closed</div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- High-Level Tracking Metadata (Only public non-sensitive fields) -->
+                <div class="details-grid" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                    <div class="details-item">
+                        <span class="details-label">Campus Category</span>
+                        <span class="details-value" th:text="${complaint.category}">Category</span>
+                    </div>
+                    <div class="details-item">
+                        <span class="details-label">Assigned Department</span>
+                        <span class="details-value" th:text="${complaint.department}">Department</span>
+                    </div>
+                    <div class="details-item">
+                        <span class="details-label">Submission Date</span>
+                        <span class="details-value" th:text="${#temporals.format(complaint.createdAt, 'dd MMMM yyyy, hh:mm a')}">Date</span>
+                    </div>
+                    <div class="details-item">
+                        <span class="details-label">Current Status</span>
+                        <div>
+                            <span class="status-pill"
+                                  th:classappend="${complaint.status.name()}"
+                                  th:text="${complaint.status.displayName}">
+                                Status
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Links -->
+                <div class="success-actions" style="margin-top: 2rem;">
+                    <a th:href="@{/complaints}" href="/complaints" class="btn btn-outline" id="btn-view-all">
+                        View Grievance Registry
+                    </a>
+                    <a th:href="@{/complaints/new}" href="/complaints/new" class="btn btn-outline" id="btn-submit-new">
+                        Submit New Grievance
+                    </a>
+                    <a th:href="@{/}" href="/" class="btn btn-primary" id="btn-home">
+                        Return to Homepage
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; CampusPulse. Campus Grievance and Feedback Management System.</p>
+                <p><a th:href="@{/}" href="/" style="color: var(--slate-300);">Return to Homepage</a></p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

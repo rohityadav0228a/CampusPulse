@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CampusPulse - A campus grievance and feedback management system for students and campus administration.">
+    <title>CampusPulse | Campus Grievance &amp; Feedback Management</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../static/css/style.css">
+</head>
+<body>
+
+    <!-- ======================================================================
+         Header & Navigation
+         ====================================================================== -->
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar" aria-label="Main Navigation">
+                <a href="#overview" class="brand-logo" id="nav-brand">
+                    <span class="brand-icon-wrap" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </span>
+                    <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                </a>
+
+                <ul class="nav-links">
+                    <li><a href="#overview" class="nav-link">Overview</a></li>
+                    <li><a href="#lifecycle" class="nav-link">Resolution Flow</a></li>
+                    <li><a href="#features" class="nav-link">Features</a></li>
+                    <li><a href="#categories" class="nav-link">Categories</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Registry</a></li>
+                </ul>
+
+                <div class="nav-actions">
+                    <a th:href="@{/complaints/track}" href="/complaints/track" class="btn btn-outline btn-sm" id="nav-track-btn">
+                        Track Status
+                    </a>
+                    <a th:href="@{/complaints/new}" href="/complaints/new" class="btn btn-primary btn-sm" id="nav-submit-btn">
+                        Submit Complaint
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- ======================================================================
+         Hero Section
+         ====================================================================== -->
+    <section class="hero-section" id="overview">
+        <div class="container">
+            <div class="hero-grid">
+                <div class="hero-content">
+                    <div class="hero-pill">
+                        <span class="hero-pill-dot" aria-hidden="true"></span>
+                        <span>Campus Grievance &amp; Feedback Management System</span>
+                    </div>
+
+                    <h1 class="hero-title">
+                        Empowering Student Voices,
+                        <span class="text-highlight">Strengthening Campus Life.</span>
+                    </h1>
+
+                    <p class="hero-desc">
+                        CampusPulse is a centralized digital portal designed to streamline campus grievance reporting,
+                        monitor resolution progress, and enable campus administrators to review and address student feedback with accountability.
+                    </p>
+
+                    <div class="hero-cta-group">
+                        <div class="cta-wrapper">
+                            <a th:href="@{/complaints/new}" href="/complaints/new" class="btn btn-primary btn-lg" id="hero-submit-cta">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M12 20h9"></path>
+                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                                </svg>
+                                Submit a Complaint
+                            </a>
+                            <span class="cta-subtext">Route: <code>/complaints/new</code> (Active Module)</span>
+                        </div>
+
+                        <div class="cta-wrapper">
+                            <a th:href="@{/complaints/track}" href="/complaints/track" class="btn btn-outline btn-lg" id="hero-track-cta">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                Track Complaint Status
+                            </a>
+                            <span class="cta-subtext">Route: <code>/complaints/track</code> (Active Module)</span>
+                        </div>
+                    </div>
+
+                    <p class="hero-meta-notice">
+                        <strong>Project Status:</strong> Landing page, student grievance submission (<code>/complaints/new</code>), and complaint tracking (<code>/complaints/track</code>) are active. Administrative review is planned for the next milestone.
+                    </p>
+                </div>
+
+                <!-- Visual Preview Card: Complaint Lifecycle Pipeline -->
+                <div class="hero-visual-card" aria-label="Complaint Lifecycle Overview Card">
+                    <div class="pipeline-card-header">
+                        <div class="pipeline-card-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-600)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                            Planned Resolution Pipeline
+                        </div>
+                        <span class="roadmap-badge">System Workflow</span>
+                    </div>
+
+                    <div class="pipeline-step-preview">
+                        <div class="pipeline-item">
+                            <div class="pipeline-dot amber" aria-hidden="true">1</div>
+                            <div class="pipeline-item-content">
+                                <div class="pipeline-item-title">
+                                    <span>Submitted</span>
+                                    <span class="pipeline-badge amber">Initial</span>
+                                </div>
+                                <p class="pipeline-item-desc">Student files grievance with details and selected campus category.</p>
+                            </div>
+                        </div>
+
+                        <div class="pipeline-item">
+                            <div class="pipeline-dot blue" aria-hidden="true">2</div>
+                            <div class="pipeline-item-content">
+                                <div class="pipeline-item-title">
+                                    <span>Under Review</span>
+                                    <span class="pipeline-badge blue">Triage</span>
+                                </div>
+                                <p class="pipeline-item-desc">Admin verifies complaint details and assigns it to responsible department.</p>
+                            </div>
+                        </div>
+
+                        <div class="pipeline-item">
+                            <div class="pipeline-dot purple" aria-hidden="true">3</div>
+                            <div class="pipeline-item-content">
+                                <div class="pipeline-item-title">
+                                    <span>In Progress</span>
+                                    <span class="pipeline-badge purple">Action</span>
+                                </div>
+                                <p class="pipeline-item-desc">Concerned department investigates and initiates corrective measures.</p>
+                            </div>
+                        </div>
+
+                        <div class="pipeline-item">
+                            <div class="pipeline-dot emerald" aria-hidden="true">4</div>
+                            <div class="pipeline-item-content">
+                                <div class="pipeline-item-title">
+                                    <span>Resolved</span>
+                                    <span class="pipeline-badge emerald">Complete</span>
+                                </div>
+                                <p class="pipeline-item-desc">Action is confirmed, status is updated, and resolution is documented.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================================
+         Section: Complaint Lifecycle
+         ====================================================================== -->
+    <section class="section section-alt" id="lifecycle">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">System Workflow</span>
+                <h2 class="section-title">How Complaints Will Be Handled</h2>
+                <p class="section-subtitle">
+                    CampusPulse is being built around a clear 4-step lifecycle to ensure every student issue is acknowledged, reviewed, and resolved systematically.
+                </p>
+            </div>
+
+            <div class="lifecycle-grid">
+                <div class="lifecycle-card">
+                    <span class="lifecycle-num">01</span>
+                    <div class="lifecycle-icon" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="12" y1="18" x2="12" y2="12"></line>
+                            <line x1="9" y1="15" x2="15" y2="15"></line>
+                        </svg>
+                    </div>
+                    <h3 class="lifecycle-card-title">Submission</h3>
+                    <p class="lifecycle-card-desc">
+                        Students select the appropriate campus category, provide a specific description of the issue, and receive a reference number upon submission.
+                    </p>
+                </div>
+
+                <div class="lifecycle-card">
+                    <span class="lifecycle-num">02</span>
+                    <div class="lifecycle-icon" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                            <polyline points="17 11 19 13 23 9"></polyline>
+                        </svg>
+                    </div>
+                    <h3 class="lifecycle-card-title">Administrative Review</h3>
+                    <p class="lifecycle-card-desc">
+                        Campus administrators review pending submissions from their dashboard, validate urgency, and route the case to the concerned personnel.
+                    </p>
+                </div>
+
+                <div class="lifecycle-card">
+                    <span class="lifecycle-num">03</span>
+                    <div class="lifecycle-icon" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <h3 class="lifecycle-card-title">Departmental Action</h3>
+                    <p class="lifecycle-card-desc">
+                        The designated team addresses the reported issue on the ground, updating the complaint status from Pending to In Progress.
+                    </p>
+                </div>
+
+                <div class="lifecycle-card">
+                    <span class="lifecycle-num">04</span>
+                    <div class="lifecycle-icon" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
+                    <h3 class="lifecycle-card-title">Resolution &amp; Closure</h3>
+                    <p class="lifecycle-card-desc">
+                        Once corrective action is taken, the complaint status is marked as Resolved with closure notes accessible via the tracking lookup.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================================
+         Section: Core Features
+         ====================================================================== -->
+    <section class="section" id="features">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">System Features</span>
+                <h2 class="section-title">Designed for Campus Accountability</h2>
+                <p class="section-subtitle">
+                    The core architectural components being integrated into CampusPulse to provide a structured, transparent feedback system.
+                </p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon-box" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="9" y1="21" x2="9" y2="9"></line>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Centralized Grievance Registry</h3>
+                    <p class="feature-desc">
+                        A single unified database schema to manage submissions from across campus hostels, academic departments, and physical facilities.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-box" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Reference ID Tracking</h3>
+                    <p class="feature-desc">
+                        Planned lookup feature that allows students to check their complaint status anytime without needing to visit administrative offices.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-box" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Categorized Routing</h3>
+                    <p class="feature-desc">
+                        Explicit categorization segregates complaints into departments such as Academic, Hostel, Infrastructure, and Dining for targeted review.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-box" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Administrative Dashboard</h3>
+                    <p class="feature-desc">
+                        Planned staff interface to view submitted complaints, filter by category or status, and update resolution notes with audit trails.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-box" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Responsive Web Interface</h3>
+                    <p class="feature-desc">
+                        Engineered with clean HTML5 and CSS to provide optimal accessibility and readability across smartphones, tablets, and desktop workstations.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-box" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Data Validation &amp; Integrity</h3>
+                    <p class="feature-desc">
+                        Spring Validation and JPA persistence ensure complaint submissions meet required standards and persist reliably in the MySQL database.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================================
+         Section: Grievance Categories
+         ====================================================================== -->
+    <section class="section section-alt" id="categories">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Campus Domains</span>
+                <h2 class="section-title">Grievance Categories</h2>
+                <p class="section-subtitle">
+                    Submissions are organized into specific campus domains to direct each issue to the appropriate authority for timely attention.
+                </p>
+            </div>
+
+            <div class="categories-grid">
+                <div class="category-card">
+                    <div class="category-top">
+                        <div class="category-icon-box" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                            </svg>
+                        </div>
+                        <span class="category-code">CAT-ACAD</span>
+                    </div>
+                    <h3 class="category-title">Academic Affairs</h3>
+                    <p class="category-desc">Issues relating to classroom sessions, exam schedules, course materials, and department coordination.</p>
+                    <div class="category-examples">
+                        <span class="category-examples-label">Typical Topics:</span>
+                        <div class="category-tag-list">
+                            <span class="category-tag">Timetable Conflicts</span>
+                            <span class="category-tag">Course Access</span>
+                            <span class="category-tag">Evaluation</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="category-card">
+                    <div class="category-top">
+                        <div class="category-icon-box" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                            </svg>
+                        </div>
+                        <span class="category-code">CAT-HOSTEL</span>
+                    </div>
+                    <h3 class="category-title">Hostel &amp; Residence</h3>
+                    <p class="category-desc">Residential living conditions including room maintenance, electricity, plumbing, water supply, and hygiene.</p>
+                    <div class="category-examples">
+                        <span class="category-examples-label">Typical Topics:</span>
+                        <div class="category-tag-list">
+                            <span class="category-tag">Room Maintenance</span>
+                            <span class="category-tag">Water Supply</span>
+                            <span class="category-tag">Sanitation</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="category-card">
+                    <div class="category-top">
+                        <div class="category-icon-box" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                            </svg>
+                        </div>
+                        <span class="category-code">CAT-INFRA</span>
+                    </div>
+                    <h3 class="category-title">Infrastructure &amp; Labs</h3>
+                    <p class="category-desc">Campus facilities, computer labs, projectors, Wi-Fi networking, electrical fixtures, and building safety.</p>
+                    <div class="category-examples">
+                        <span class="category-examples-label">Typical Topics:</span>
+                        <div class="category-tag-list">
+                            <span class="category-tag">Lab Equipment</span>
+                            <span class="category-tag">Wi-Fi &amp; Internet</span>
+                            <span class="category-tag">Lighting</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="category-card">
+                    <div class="category-top">
+                        <div class="category-icon-box" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                            </svg>
+                        </div>
+                        <span class="category-code">CAT-LIB</span>
+                    </div>
+                    <h3 class="category-title">Library &amp; Study Spaces</h3>
+                    <p class="category-desc">Book catalog availability, digital library access, reading hall acoustics, and circulation desk procedures.</p>
+                    <div class="category-examples">
+                        <span class="category-examples-label">Typical Topics:</span>
+                        <div class="category-tag-list">
+                            <span class="category-tag">Book Availability</span>
+                            <span class="category-tag">Study Halls</span>
+                            <span class="category-tag">Digital Subscriptions</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="category-card">
+                    <div class="category-top">
+                        <div class="category-icon-box" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                                <line x1="6" y1="1" x2="6" y2="4"></line>
+                                <line x1="10" y1="1" x2="10" y2="4"></line>
+                                <line x1="14" y1="1" x2="14" y2="4"></line>
+                            </svg>
+                        </div>
+                        <span class="category-code">CAT-DINE</span>
+                    </div>
+                    <h3 class="category-title">Canteen &amp; Dining</h3>
+                    <p class="category-desc">Campus cafeteria cleanliness, meal serving timings, food quality standards, and drinking water facilities.</p>
+                    <div class="category-examples">
+                        <span class="category-examples-label">Typical Topics:</span>
+                        <div class="category-tag-list">
+                            <span class="category-tag">Food Hygiene</span>
+                            <span class="category-tag">Service Hours</span>
+                            <span class="category-tag">Drinking Water</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="category-card">
+                    <div class="category-top">
+                        <div class="category-icon-box" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="1" y="3" width="15" height="13"></rect>
+                                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                            </svg>
+                        </div>
+                        <span class="category-code">CAT-TRANS</span>
+                    </div>
+                    <h3 class="category-title">Transit &amp; Campus Grounds</h3>
+                    <p class="category-desc">Campus shuttle connectivity, vehicular parking management, grounds maintenance, and general safety.</p>
+                    <div class="category-examples">
+                        <span class="category-examples-label">Typical Topics:</span>
+                        <div class="category-tag-list">
+                            <span class="category-tag">Bus Timing</span>
+                            <span class="category-tag">Parking Access</span>
+                            <span class="category-tag">Walkway Lights</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================================
+         Section: Project Status & Roadmap Banner
+         ====================================================================== -->
+    <section class="section" id="roadmap">
+        <div class="container">
+            <div class="status-banner">
+                <div class="status-banner-content">
+                    <div>
+                        <span class="status-banner-tag">Project Status</span>
+                        <h2 class="status-banner-title">Development Roadmap</h2>
+                        <p class="status-banner-text">
+                            CampusPulse is being developed progressively. The current phase establishes the landing page,
+                            responsive design tokens, and Spring MVC structure. Subsequent phases will introduce the complaint submission form,
+                            status lookup, and administrative management panel.
+                        </p>
+                    </div>
+
+                    <div class="status-phases">
+                        <div class="status-phase-item">
+                            <span>Phase 1: Public Landing Page &amp; Layout</span>
+                            <span class="phase-pill active">Completed</span>
+                        </div>
+                        <div class="status-phase-item">
+                            <span>Phase 2: Complaint Submission &amp; Registry (<code>/complaints/new</code>)</span>
+                            <span class="phase-pill active">Completed</span>
+                        </div>
+                        <div class="status-phase-item">
+                            <span>Phase 3: Status Tracking (<code>/complaints/track</code>)</span>
+                            <span class="phase-pill active">Completed</span>
+                        </div>
+                        <div class="status-phase-item">
+                            <span>Phase 4: Admin Dashboard (<code>/admin/complaints</code>)</span>
+                            <span class="phase-pill planned">Planned</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================================
+         Footer
+         ====================================================================== -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="#overview" class="brand-logo">
+                        <span class="brand-icon-wrap" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </span>
+                        <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                    </a>
+                    <p class="footer-brand-desc">
+                        A structured campus grievance and feedback management system built with Java 21, Spring Boot, Thymeleaf, and MySQL.
+                    </p>
+                </div>
+
+                <div>
+                    <h3 class="footer-heading">Navigation</h3>
+                    <ul class="footer-links">
+                        <li><a href="#overview" class="footer-link">Overview</a></li>
+                        <li><a href="#lifecycle" class="footer-link">Resolution Flow</a></li>
+                        <li><a href="#features" class="footer-link">Features</a></li>
+                        <li><a href="#categories" class="footer-link">Grievance Categories</a></li>
+                        <li><a href="#roadmap" class="footer-link">Development Roadmap</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="footer-heading">Grievance Modules</h3>
+                    <ul class="footer-links">
+                        <li><a th:href="@{/complaints/new}" href="/complaints/new" class="footer-link">Submit Complaint</a></li>
+                        <li><a th:href="@{/complaints/track}" href="/complaints/track" class="footer-link">Track Complaint Status</a></li>
+                        <li><a th:href="@{/complaints}" href="/complaints" class="footer-link">Grievance Registry</a></li>
+                        <li><a th:href="@{/admin/complaints}" href="/admin/complaints" class="footer-link">Admin Review (Upcoming)</a></li>
+                    </ul>
+                    <p class="footer-note" style="margin-top: 1rem;">
+                        College Project Implementation &bull; Spring Boot Application
+                    </p>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; CampusPulse. Campus Grievance and Feedback Management System.</p>
+                <p>Built with Spring Boot &amp; Thymeleaf</p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,1 @@
+"""CampusPulse model training package."""

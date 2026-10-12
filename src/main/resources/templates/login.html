@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CampusPulse Administrator Portal Login. Secure administrative access to review and manage campus grievances.">
+    <title>Admin Login | CampusPulse</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../static/css/style.css">
+</head>
+<body style="min-height: 100vh; display: flex; flex-direction: column;">
+
+    <!-- Site Header -->
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar" aria-label="Main Navigation">
+                <a th:href="@{/}" href="/" class="brand-logo" id="nav-brand">
+                    <span class="brand-icon-wrap" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </span>
+                    <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                </a>
+
+                <ul class="nav-links">
+                    <li><a th:href="@{/}" href="/" class="nav-link">Home</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Registry</a></li>
+                    <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Student Tracker</a></li>
+                </ul>
+
+                <div class="nav-actions">
+                    <a th:href="@{/}" href="/" class="btn btn-outline btn-sm">
+                        &larr; Return to Home
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="section section-alt" style="flex: 1; display: flex; align-items: center; padding: 3rem 0;">
+        <div class="container" style="max-width: 480px;">
+
+            <!-- Login Card -->
+            <div class="form-card" style="padding: 2.25rem 2rem;">
+
+                <!-- Header with Security Shield -->
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background-color: var(--blue-50); color: var(--blue-600); margin-bottom: 1rem; border: 1px solid var(--blue-100);">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
+                    <h1 class="page-title" style="font-size: 1.5rem; margin-bottom: 0.5rem;">Admin Sign In</h1>
+                    <p class="page-subtitle" style="font-size: 0.875rem;">
+                        Enter your administrative credentials to access the complaint management dashboard.
+                    </p>
+                </div>
+
+                <!-- Error Alert Banner -->
+                <div th:if="${param.error != null or errorMessage != null}" class="alert-banner alert-error" role="alert" id="login-error-alert">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <div>
+                        <strong style="display: block; font-weight: 700; margin-bottom: 0.15rem;">Authentication Failed</strong>
+                        <span th:text="${errorMessage != null ? errorMessage : 'Invalid username or password. Please verify your credentials and try again.'}">
+                            Invalid username or password. Please verify your credentials and try again.
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Logout Alert Banner -->
+                <div th:if="${param.logout != null or logoutMessage != null}" class="alert-banner alert-success" role="status" id="login-logout-alert">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px;">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <div>
+                        <strong style="display: block; font-weight: 700; margin-bottom: 0.15rem;">Signed Out</strong>
+                        <span th:text="${logoutMessage != null ? logoutMessage : 'You have been successfully signed out of the administrative session.'}">
+                            You have been successfully signed out of the administrative session.
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Login Form -->
+                <form th:action="@{/login}" method="post" id="admin-login-form">
+                    <div class="form-group">
+                        <label for="username" class="form-label">
+                            Username <span class="required" aria-hidden="true">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            class="form-control"
+                            placeholder="e.g. admin"
+                            required
+                            autofocus
+                            autocomplete="username"
+                        />
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1.75rem;">
+                        <label for="password" class="form-label">
+                            Password <span class="required" aria-hidden="true">*</span>
+                        </label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="form-control"
+                            placeholder="Enter administrative password"
+                            required
+                            autocomplete="current-password"
+                        />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="btn-login-submit" style="width: 100%; justify-content: center; font-size: 0.95rem; padding: 0.75rem 1rem;">
+                        Sign In to Dashboard &rarr;
+                    </button>
+                </form>
+
+                <div style="margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--slate-200); text-align: center;">
+                    <a th:href="@{/}" href="/" style="font-size: 0.85rem; color: var(--navy-600); display: inline-flex; align-items: center; gap: 0.35rem;">
+                        &larr; Back to CampusPulse Home
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Site Footer -->
+    <footer class="site-footer" style="padding: 2rem 0; background-color: var(--navy-950); border-top: 1px solid rgba(255, 255, 255, 0.08);">
+        <div class="container" style="text-align: center;">
+            <p style="font-size: 0.8125rem; color: var(--navy-500);">
+                &copy; 2026 CampusPulse &bull; Administrative access is restricted to authorized campus staff.
+            </p>
+        </div>
+    </footer>
+
+</body>
+</html>

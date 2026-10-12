@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Complaint submission confirmation for CampusPulse.">
+    <title>Grievance Registered Successfully | CampusPulse</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../../static/css/style.css">
+</head>
+<body>
+
+    <!-- Header & Navigation -->
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar" aria-label="Main Navigation">
+                <a th:href="@{/}" href="/" class="brand-logo" id="nav-brand">
+                    <span class="brand-icon-wrap" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </span>
+                    <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                </a>
+
+                <ul class="nav-links">
+                    <li><a th:href="@{/}" href="/" class="nav-link">Home</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Grievance Registry</a></li>
+                    <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Track Status</a></li>
+                </ul>
+
+                <div class="nav-actions">
+                    <a th:href="@{/complaints/new}" href="/complaints/new" class="btn btn-primary btn-sm">
+                        Submit Another
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="section">
+        <div class="container">
+
+            <!-- Breadcrumbs -->
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a th:href="@{/}" href="/">Home</a>
+                <span class="breadcrumb-sep">&gt;</span>
+                <a th:href="@{/complaints}" href="/complaints">Complaints</a>
+                <span class="breadcrumb-sep">&gt;</span>
+                <span aria-current="page">Confirmation</span>
+            </nav>
+
+            <div class="success-container">
+                <div class="success-card">
+
+                    <!-- Success Icon -->
+                    <div class="success-icon-wrap" aria-hidden="true">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
+
+                    <h1 class="success-title">Grievance Registered Successfully</h1>
+                    <p class="success-subtitle">
+                        Your complaint has been recorded in the campus grievance system with the initial status of <strong>SUBMITTED</strong>.
+                    </p>
+
+                    <!-- Reference ID Box -->
+                    <div class="ref-box" aria-label="Complaint Reference ID">
+                        <div class="ref-box-label">Your Official Reference Identifier</div>
+                        <div class="ref-box-code" id="complaint-reference-id" th:text="${complaint.referenceId}">CP-2026-XXXXXXXX</div>
+                        <div class="ref-box-note">Please save this reference ID for official institutional correspondence.</div>
+                    </div>
+
+                    <!-- Summary Details Grid -->
+                    <div class="details-grid">
+                        <div class="details-item details-full">
+                            <span class="details-label">Title</span>
+                            <span class="details-value" th:text="${complaint.title}">Complaint Title</span>
+                        </div>
+                        <div class="details-item">
+                            <span class="details-label">Campus Category</span>
+                            <span class="details-value" th:text="${complaint.category}">Category Name</span>
+                        </div>
+                        <div class="details-item">
+                            <span class="details-label">Assigned Department</span>
+                            <span class="details-value" th:text="${complaint.department}">Department Name</span>
+                        </div>
+                        <div class="details-item">
+                            <span class="details-label">Initial Status</span>
+                            <div>
+                                <span class="status-pill SUBMITTED" th:text="${complaint.status}">SUBMITTED</span>
+                            </div>
+                        </div>
+                        <div class="details-item" th:if="${complaint.studentEmail}">
+                            <span class="details-label">Notification Email</span>
+                            <span class="details-value" th:text="${complaint.studentEmail}">student@college.edu</span>
+                        </div>
+                        <div class="details-item">
+                            <span class="details-label">Submission Timestamp</span>
+                            <span class="details-value" th:text="${#temporals.format(complaint.createdAt, 'dd MMM yyyy, hh:mm a')}">Timestamp</span>
+                        </div>
+                        <div class="details-item details-full">
+                            <span class="details-label">Description</span>
+                            <p class="details-value" style="font-weight: 400; font-size: 0.85rem; line-height: 1.5;" th:text="${complaint.description}">
+                                Complaint Description
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="success-actions">
+                        <a th:href="@{/complaints/track(referenceId=${complaint.referenceId})}" href="/complaints/track" class="btn btn-primary" id="btn-track-this">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            Track This Complaint
+                        </a>
+                        <a th:href="@{/complaints}" href="/complaints" class="btn btn-outline" id="btn-view-registry">
+                            View Grievance Registry
+                        </a>
+                        <a th:href="@{/complaints/new}" href="/complaints/new" class="btn btn-outline" id="btn-submit-another">
+                            Submit Another Complaint
+                        </a>
+                        <a th:href="@{/}" href="/" class="btn btn-outline" id="btn-return-home">
+                            Return to Homepage
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; CampusPulse. Campus Grievance and Feedback Management System.</p>
+                <p><a th:href="@{/}" href="/" style="color: var(--slate-300);">Return to Homepage</a></p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

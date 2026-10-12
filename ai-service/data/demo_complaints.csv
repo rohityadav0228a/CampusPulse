@@ -1,0 +1,61 @@
+text,category
+"The final semester timetable has overlapping exam slots for CS301 and CS305 on the same afternoon.",Academic Affairs
+"Grade discrepancy observed in mid-semester evaluation for Digital Signal Processing course after rechecking.",Academic Affairs
+"Course registration portal crashed during elective selection window for third-year engineering students.",Academic Affairs
+"Request for syllabus completion and extra tutorial sessions before end-semester examinations begin.",Academic Affairs
+"Faculty advisor unavailable for mandatory thesis project signature before the submission deadline.",Academic Affairs
+"Classroom projector and audio system failing during morning Computer Architecture lecture in hall 201.",Academic Affairs
+"Attendance record portal is not updating medical leave submitted two weeks ago with dean endorsement.",Academic Affairs
+"Significant delay in publishing internal assessment marks for the Mechanical Engineering laboratory practicals.",Academic Affairs
+"Missing credit points in academic transcript after successfully completing interdisciplinary elective.",Academic Affairs
+"Professor rescheduled morning lectures to late evening without prior notification to class representatives.",Academic Affairs
+"Geyser on the third floor of Hostel Block B has not been heating water for three consecutive days.",Hostel & Residence
+"Persistent water leakage from ceiling washroom in room 204 Hostel C causing mold and dampness.",Hostel & Residence
+"Broken door lock and latch in hostel room 112 leaving personal student belongings vulnerable.",Hostel & Residence
+"Drinking water RO purifier in ground floor mess lobby leaking and dispensing dirty discolored water.",Hostel & Residence
+"Hostel elevator stopped functioning between second and third floors during morning peak hours.",Hostel & Residence
+"Insect infestation in hostel corridors and washrooms needing urgent pest control and sanitization.",Hostel & Residence
+"Washing machine in hostel laundry room vibrating excessively and repeatedly tripping circuit breaker.",Hostel & Residence
+"Room window glass shattered due to heavy rain and wind requiring immediate maintenance replacement.",Hostel & Residence
+"Hostel bathroom flush valves leaking constantly wasting overhead storage tank water all night.",Hostel & Residence
+"Extremely low water pressure in fourth-floor residential wing during morning shower hours.",Hostel & Residence
+"Oscilloscope in Electronics Lab 3 is completely non-responsive and power cables are frayed.",Infrastructure & Labs
+"Air conditioning unit in Computer Science Lab 1 blowing warm air causing server rack overheating.",Infrastructure & Labs
+"Multiple electrical power sockets dead in Electrical Machines laboratory workbench 4.",Infrastructure & Labs
+"Chemistry laboratory fume hood exhaust fan malfunctioning during acid digestion practicals.",Infrastructure & Labs
+"Broken wooden benches and exposed electrical wiring in engineering mechanical workshop room 102.",Infrastructure & Labs
+"High-performance GPU workstation cluster in postgraduate research lab failing to boot up properly.",Infrastructure & Labs
+"Soldering station equipment in IoT hardware lab lacking proper grounding and giving mild electric shocks.",Infrastructure & Labs
+"Broken door handle and damaged ceiling tile in Civil Engineering surveying equipment lab.",Infrastructure & Labs
+"Microscope objective lenses in Biotechnology practical laboratory scratched and uncalibrated.",Infrastructure & Labs
+"Ethernet network switch in CAD laboratory repeatedly dropping connections across twenty computer terminals.",Infrastructure & Labs
+"Air conditioning in central library second-floor silent reading room completely non-operational.",Library & Study Spaces
+"Digital catalog OPAC search terminal at library entrance throwing database connection timeout errors.",Library & Study Spaces
+"Reading ceiling lights flickering and buzzing loudly disturbing students in the reference book section.",Library & Study Spaces
+"Study tables on third floor of central library have wobbly legs and damaged power surge strips.",Library & Study Spaces
+"Book scanner and self-checkout RFID kiosk out of order on ground floor circulation desk.",Library & Study Spaces
+"Continuous loud noise from nearby administrative corridor echoing into quiet study hall.",Library & Study Spaces
+"Acute shortage of reference copies of required Machine Learning textbooks during mid-term preparation.",Library & Study Spaces
+"E-journal proxy access credentials not working from campus Wi-Fi network for research scholars.",Library & Study Spaces
+"Study hall chairs torn and ergonomically unsafe in reading wing B causing back strain.",Library & Study Spaces
+"Insufficient electrical plug points for charging student laptops in discussion study rooms on fourth floor.",Library & Study Spaces
+"Food served in hostel dining mess was lukewarm and dal was visibly watery with poor hygiene.",Canteen & Dining
+"Canteen kitchen staff observed not wearing mandatory hairnets and gloves during lunch service.",Canteen & Dining
+"Drinking water dispenser in main campus cafeteria has an unpleasant smell and visible sediment.",Canteen & Dining
+"Mess menu rotation not adhering to published weekly schedule agreed upon by student food committee.",Canteen & Dining
+"Cold snacks and unhygienic tray cleaning noticed in student union cafeteria counters.",Canteen & Dining
+"Unclean dining tables and overflowing trash bins attracting flies and stray animals in lunch hall.",Canteen & Dining
+"Overpriced meal billing in evening snacks stall contrary to approved institutional campus tariff.",Canteen & Dining
+"Dinner food ran out half an hour before official dining closing time in boys hostel mess.",Canteen & Dining
+"Undercooked rice and stale chapatis served during dinner service on Thursday evening.",Canteen & Dining
+"Fly mesh screen broken in cafeteria kitchen window allowing insects directly into food preparation area.",Canteen & Dining
+"Campus shuttle bus route 2 arrived 45 minutes late during morning peak class schedule.",Transit & Campus Grounds
+"Deep potholes along main academic quad pathway causing waterlogging and mud splashes during rain.",Transit & Campus Grounds
+"Street lights malfunctioning on pedestrian pathway between main campus gate and hostel complex at night.",Transit & Campus Grounds
+"Bicycle parking racks damaged and overcrowded near the sports complex causing bicycle damage.",Transit & Campus Grounds
+"Campus transit bus speeding excessively through designated pedestrian crossings near central library.",Transit & Campus Grounds
+"Automatic sprinklers spraying water directly onto student walkway instead of lawn grass.",Transit & Campus Grounds
+"Complete lack of sheltered waiting area at campus bus stop during torrential monsoon rain.",Transit & Campus Grounds
+"Overgrown tree branches blocking student pathway and street light illumination near north gate.",Transit & Campus Grounds
+"Pack of aggressive stray dogs gathering near campus entrance gate causing safety concerns for students.",Transit & Campus Grounds
+"Campus perimeter road guard railing broken near parking lot B needing urgent structural repair.",Transit & Campus Grounds
