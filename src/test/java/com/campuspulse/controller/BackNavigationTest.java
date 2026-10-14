@@ -53,7 +53,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         ComplaintController.class,
         AdminComplaintController.class,
         AdminAnalyticsController.class,
-        AdminInsightsController.class
+        AdminInsightsController.class,
+        ModeratorComplaintController.class
 })
 @Import(SecurityConfig.class)
 @TestPropertySource(properties = {
@@ -276,5 +277,40 @@ class BackNavigationTest {
                 .andExpect(content().string(containsString("data-back-button=\"true\"")))
                 .andExpect(content().string(containsString("data-fallback=\"/admin/complaints\"")))
                 .andExpect(content().string(containsString("Back to Dashboard")));
+    }
+
+    @Test
+    @DisplayName("Moderator dashboard (/moderator/complaints) renders Back button with fallback to home")
+    void moderatorDashboardHasBackButton() throws Exception {
+        when(complaintService.searchComplaints(eq(""), eq(null), eq(null), eq(""), eq(0), anyInt()))
+                .thenReturn(new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0));
+        when(complaintService.getStatusCounts()).thenReturn(Collections.emptyMap());
+        when(complaintService.getSlaCounts()).thenReturn(Collections.emptyMap());
+        when(complaintService.getAllowedCategories()).thenReturn(Collections.emptyList());
+        when(complaintService.getAllowedDepartments()).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/moderator/complaints").with(user("moderator@campus.edu").roles("MODERATOR")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("btn-back")))
+                .andExpect(content().string(containsString("data-back-button=\"true\"")))
+                .andExpect(content().string(containsString("data-fallback=\"/\"")))
+                .andExpect(content().string(containsString("Back to Home")));
+    }
+
+    @Test
+    @DisplayName("Moderator detail (/moderator/complaints/{id}) renders Back button with fallback to /moderator/complaints")
+    void moderatorDetailHasBackButton() throws Exception {
+        Complaint c = new Complaint("CP-2026-MODBACK01", "Lab AC", "Desc", "Infrastructure & Labs", "Campus Facilities & Works");
+        c.setId(10L);
+        when(complaintService.getByReferenceId("CP-2026-MODBACK01")).thenReturn(Optional.of(c));
+        when(complaintService.getStatusHistory("CP-2026-MODBACK01")).thenReturn(Collections.emptyList());
+        when(slaEscalationService.getEscalationAudits("CP-2026-MODBACK01")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/moderator/complaints/CP-2026-MODBACK01").with(user("moderator@campus.edu").roles("MODERATOR")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("btn-back")))
+                .andExpect(content().string(containsString("data-back-button=\"true\"")))
+                .andExpect(content().string(containsString("data-fallback=\"/moderator/complaints\"")))
+                .andExpect(content().string(containsString("Back to Complaints Queue")));
     }
 }

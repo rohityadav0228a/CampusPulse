@@ -96,11 +96,23 @@ public class SecurityConfig {
             }
             if (studentRepository != null && username != null) {
                 return studentRepository.findByEmailIgnoreCase(username.trim())
-                        .map(student -> User.builder()
-                                .username(student.getEmail())
-                                .password(student.getPassword())
-                                .roles("STUDENT")
-                                .build())
+                        .map(student -> {
+                            String role = student.getRole();
+                            String roleName = "STUDENT";
+                            if (role != null) {
+                                String trimmed = role.trim();
+                                if (trimmed.startsWith("ROLE_")) {
+                                    roleName = trimmed.substring(5);
+                                } else if (!trimmed.isEmpty()) {
+                                    roleName = trimmed;
+                                }
+                            }
+                            return User.builder()
+                                    .username(student.getEmail())
+                                    .password(student.getPassword())
+                                    .roles(roleName)
+                                    .build();
+                        })
                         .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
             }
             throw new UsernameNotFoundException("User not found: " + username);
@@ -119,8 +131,10 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authorize -> authorize
-                        // Protect administrative endpoints with ADMIN role
+                        // Protect administrative endpoints with ADMIN role only
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        // Protect moderator operational endpoints with MODERATOR and ADMIN roles
+                        .requestMatchers("/moderator/**").hasAnyRole("MODERATOR", "ADMIN")
                         // Allow public access to landing page, static assets, and student workflows
                         .requestMatchers(
                                 "/",

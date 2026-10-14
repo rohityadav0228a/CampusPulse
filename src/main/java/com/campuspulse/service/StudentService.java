@@ -102,6 +102,62 @@ public class StudentService {
         return studentRepository.existsByEmailIgnoreCase(email.trim());
     }
 
+    /**
+     * Securely provisions or updates a moderator account with ROLE_MODERATOR.
+     * Encodes raw credentials using the configured BCrypt password encoder,
+     * enforces email and name requirements, and logs the administrative provisioning
+     * action without leaking raw credentials.
+     *
+     * @param fullName full name of the moderator
+     * @param email official email address for the moderator
+     * @param department campus department or operational unit
+     * @param rawPassword secure plaintext password (encoded immediately)
+     * @return persisted Student entity with ROLE_MODERATOR
+     * @throws IllegalArgumentException if required fields or password constraints are violated
+     */
+    @Transactional
+    public Student provisionModerator(String fullName, String email, String department, String rawPassword) {
+        if (fullName == null || fullName.isBlank()) {
+            throw new IllegalArgumentException("Full name is required to provision a moderator.");
+        }
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Email is required to provision a moderator.");
+        }
+        if (rawPassword == null || rawPassword.length() < 8) {
+            throw new IllegalArgumentException("Moderator password must be at least 8 characters long.");
+        }
+
+        String normalizedEmail = email.trim().toLowerCase();
+        String hashedPassword = passwordEncoder.encode(rawPassword);
+
+        Optional<Student> existingOpt = studentRepository.findByEmailIgnoreCase(normalizedEmail);
+        Student moderator;
+        if (existingOpt.isPresent()) {
+            moderator = existingOpt.get();
+            moderator.setFullName(fullName.trim());
+            moderator.setPassword(hashedPassword);
+            moderator.setRole("ROLE_MODERATOR");
+            if (department != null && !department.isBlank()) {
+                moderator.setDepartment(department.trim());
+            }
+            log.info("Existing account upgraded to ROLE_MODERATOR: id={}, email={}", moderator.getId(), maskEmail(normalizedEmail));
+        } else {
+            moderator = new Student(
+                    fullName.trim(),
+                    normalizedEmail,
+                    null,
+                    hashedPassword
+            );
+            moderator.setRole("ROLE_MODERATOR");
+            if (department != null && !department.isBlank()) {
+                moderator.setDepartment(department.trim());
+            }
+            log.info("New moderator account successfully provisioned: email={}", maskEmail(normalizedEmail));
+        }
+
+        return studentRepository.save(moderator);
+    }
+
     private String maskEmail(String email) {
         if (email == null || email.isBlank()) {
             return "[empty]";

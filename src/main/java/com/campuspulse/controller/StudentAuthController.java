@@ -56,7 +56,16 @@ public class StudentAuthController {
             boolean isAdmin = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .anyMatch(r -> "ROLE_ADMIN".equals(r) || "ADMIN".equals(r));
-            return isAdmin ? "redirect:/admin/complaints" : "redirect:/complaints/new";
+            boolean isModerator = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch(r -> "ROLE_MODERATOR".equals(r) || "MODERATOR".equals(r));
+            if (isAdmin) {
+                return "redirect:/admin/complaints";
+            }
+            if (isModerator) {
+                return "redirect:/moderator/complaints";
+            }
+            return "redirect:/complaints/new";
         }
 
         if (error != null) {
@@ -86,7 +95,16 @@ public class StudentAuthController {
             boolean isAdmin = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .anyMatch(r -> "ROLE_ADMIN".equals(r) || "ADMIN".equals(r));
-            return isAdmin ? "redirect:/admin/complaints" : "redirect:/complaints/new";
+            boolean isModerator = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch(r -> "ROLE_MODERATOR".equals(r) || "MODERATOR".equals(r));
+            if (isAdmin) {
+                return "redirect:/admin/complaints";
+            }
+            if (isModerator) {
+                return "redirect:/moderator/complaints";
+            }
+            return "redirect:/complaints/new";
         }
 
         if (!model.containsAttribute("registerForm")) {

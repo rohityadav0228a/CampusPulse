@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CampusPulse Moderator Complaint Detail Review">
+    <title th:text="'Review ' + ${complaint.referenceId} + ' | Moderator | CampusPulse'">Review Complaint | CampusPulse Moderator</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../../../static/css/style.css">
+</head>
+<body>
+
+    <!-- Header & Navigation -->
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar" aria-label="Moderator Navigation">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <a th:href="@{/}" href="/" class="brand-logo" id="nav-brand">
+                        <span class="brand-icon-wrap" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </span>
+                        <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                    </a>
+                    <span class="moderator-badge">Moderator Portal</span>
+                </div>
+
+                <ul class="nav-links">
+                    <li><a th:href="@{/moderator/complaints}" href="/moderator/complaints" class="nav-link" style="color: var(--violet-600); font-weight: 700;">Dashboard</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Public Registry</a></li>
+                    <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Student Tracker</a></li>
+                </ul>
+
+                <div class="nav-actions" style="display: flex; align-items: center; gap: 0.75rem;">
+                    <a th:href="@{/moderator/complaints}" href="/moderator/complaints" class="btn btn-outline btn-sm">
+                        &larr; Back to Queue
+                    </a>
+                    <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
+                        <button type="submit" class="btn btn-outline btn-sm" id="btn-moderator-logout" style="color: #ef4444; border-color: #fca5a5;">
+                            Log Out
+                        </button>
+                    </form>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="section">
+        <div class="container">
+
+            <!-- Top Navigation: Back Button & Breadcrumbs -->
+            <div class="top-nav-bar">
+                <div th:replace="~{fragments/navigation :: backButton(fallbackUrl=@{/moderator/complaints}, label='Back to Complaints Queue')}"></div>
+                <nav class="breadcrumb" aria-label="Breadcrumb">
+                    <a th:href="@{/}" href="/">Home</a>
+                    <span class="breadcrumb-sep">&gt;</span>
+                    <a th:href="@{/moderator/complaints}" href="/moderator/complaints">Moderator Dashboard</a>
+                    <span class="breadcrumb-sep">&gt;</span>
+                    <span aria-current="page" th:text="${complaint.referenceId}">CP-2026-XXXXXXXX</span>
+                </nav>
+            </div>
+
+            <div class="page-header-row">
+                <div>
+                    <h1 class="page-title">Complaint Review &amp; Operational Management</h1>
+                    <p class="page-subtitle">
+                        Inspect detailed student submission text and update departmental resolution progress.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Security & Authentication Session Banner -->
+            <div class="admin-notice-banner" role="status" style="border-left-color: var(--violet-600); background-color: var(--violet-50);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px; color: var(--violet-600);">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <div>
+                    <div class="admin-notice-title" style="color: var(--navy-900);">Authenticated Session &bull; Moderator Role Active</div>
+                    <p style="margin: 0; color: var(--navy-700);">
+                        You are signed in as an authorized moderator. Operational complaint workflows are guarded by Spring Security with BCrypt hashing and CSRF protection.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Success Alert Banner -->
+            <div class="alert-banner" style="background-color: var(--status-emerald-bg, #ecfdf5); border: 1px solid #a7f3d0; color: #065f46;" th:if="${successMessage}" role="alert">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px;">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span th:text="${successMessage}">Status updated successfully.</span>
+            </div>
+
+            <!-- Error Alert Banner -->
+            <div class="alert-banner alert-error" th:if="${errorMessage}" role="alert">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span th:text="${errorMessage}">Error updating complaint.</span>
+            </div>
+
+            <!-- Two-Column Review Layout -->
+            <div class="detail-layout-grid">
+
+                <!-- Left Column: Complaint Details & Full Description -->
+                <div class="detail-main-card">
+                    <div class="detail-header-block">
+                        <div>
+                            <span class="ref-code" id="complaint-ref-id" style="font-size: 1rem;" th:text="${complaint.referenceId}">CP-2026-XXXXXXXX</span>
+                            <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--navy-900); margin-top: 0.35rem;" th:text="${complaint.title}">
+                                Complaint Title
+                            </h2>
+                        </div>
+                        <div>
+                            <span class="status-pill"
+                                  th:classappend="${complaint.status.name()}"
+                                  th:text="${complaint.status.displayName}">
+                                SUBMITTED
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Metadata Grid -->
+                    <div class="details-grid" style="margin-bottom: 1.5rem;">
+                        <div class="details-item">
+                            <span class="details-label">Campus Category</span>
+                            <span class="details-value" th:text="${complaint.category}">Category</span>
+                        </div>
+                        <div class="details-item">
+                            <span class="details-label">Responsible Department</span>
+                            <span class="details-value" th:text="${complaint.department}">Department</span>
+                        </div>
+                        <div class="details-item">
+                            <span class="details-label">Priority Level</span>
+                            <span class="details-value">
+                                <span class="priority-pill"
+                                      th:classappend="${complaint.priority.name()}"
+                                      th:text="${complaint.priority.displayName}">
+                                    Medium
+                                </span>
+                            </span>
+                        </div>
+                        <div class="details-item">
+                            <span class="details-label">Submitted On</span>
+                            <span class="details-value" th:text="${#temporals.format(complaint.createdAt, 'dd MMMM yyyy, hh:mm a')}">Date</span>
+                        </div>
+                        <div class="details-item">
+                            <span class="details-label">Current Status</span>
+                            <span class="details-value" th:text="${complaint.status.displayName}">Status</span>
+                        </div>
+                        <div class="details-item">
+                            <span class="details-label">Notification Email</span>
+                            <span class="details-value" th:text="${complaint.studentEmail != null ? complaint.studentEmail : 'None (notifications safely skipped)'}">None</span>
+                        </div>
+                    </div>
+
+                    <!-- SLA Targets, Deadlines & Compliance Status -->
+                    <div class="sla-timeline-card">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--navy-900); display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--violet-600);">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                SLA Targets &amp; Service Deadlines
+                            </h3>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <span th:if="${complaint.resolved}" class="sla-badge MET">
+                                    <span class="sla-badge-dot"></span>SLA Met
+                                </span>
+                                <span th:if="${!complaint.resolved and complaint.responseOverdue}" class="sla-badge OVERDUE_RESPONSE">
+                                    <span class="sla-badge-dot"></span>Response Overdue
+                                </span>
+                                <span th:if="${!complaint.resolved and complaint.resolutionOverdue}" class="sla-badge OVERDUE_RESOLUTION">
+                                    <span class="sla-badge-dot"></span>Resolution Overdue
+                                </span>
+                                <span th:if="${!complaint.resolved and !complaint.responseOverdue and !complaint.resolutionOverdue and complaint.approachingDeadline}" class="sla-badge APPROACHING">
+                                    <span class="sla-badge-dot"></span>Approaching Deadline
+                                </span>
+                                <span th:if="${!complaint.resolved and !complaint.responseOverdue and !complaint.resolutionOverdue and !complaint.approachingDeadline}" class="sla-badge ON_TRACK">
+                                    <span class="sla-badge-dot"></span>On Track
+                                </span>
+                                <span th:if="${complaint.escalationStage != null and complaint.escalationStage.name() != 'NONE'}"
+                                      class="escalation-badge"
+                                      th:classappend="${complaint.escalationStage.name()}"
+                                      th:text="${complaint.escalationStage.displayName}">
+                                    Stage 1 Escalated
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="sla-timeline-grid">
+                            <!-- Response SLA Column -->
+                            <div class="sla-timeline-col">
+                                <div class="sla-timeline-col-header">
+                                    <span class="sla-timeline-col-title">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                        </svg>
+                                        Initial Response SLA
+                                    </span>
+                                    <span class="badge" style="font-size: 0.7rem; background: var(--blue-100, #dbeafe); color: var(--blue-700, #1d4ed8);">24h Target</span>
+                                </div>
+                                <div class="sla-timeline-row">
+                                    <span class="sla-timeline-label">Response Deadline:</span>
+                                    <span class="sla-timeline-value"
+                                          th:text="${complaint.responseDeadline != null ? #temporals.format(complaint.responseDeadline, 'dd MMM yyyy, hh:mm a') : 'Not Set'}">
+                                        Deadline
+                                    </span>
+                                </div>
+                                <div class="sla-timeline-row">
+                                    <span class="sla-timeline-label">Initial Acknowledgment:</span>
+                                    <span class="sla-timeline-value" th:if="${complaint.acknowledged}"
+                                          style="color: var(--status-emerald, #059669);"
+                                          th:text="${#temporals.format(complaint.acknowledgedAt, 'dd MMM yyyy, hh:mm a')}">
+                                        Acknowledged
+                                    </span>
+                                    <span class="sla-timeline-value" th:if="${!complaint.acknowledged}"
+                                          th:style="${complaint.responseOverdue ? 'color: var(--status-red, #dc2626); font-weight: 700;' : 'color: var(--navy-500);'}"
+                                          th:text="${complaint.responseOverdue ? 'Response Overdue (Unacknowledged)' : 'Pending Initial Review'}">
+                                        Pending
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Resolution SLA Column -->
+                            <div class="sla-timeline-col">
+                                <div class="sla-timeline-col-header">
+                                    <span class="sla-timeline-col-title">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        Case Resolution SLA
+                                    </span>
+                                    <span class="badge" style="font-size: 0.7rem; background: var(--purple-100, #f3e8ff); color: var(--purple-700, #7e22ce);">72h Target</span>
+                                </div>
+                                <div class="sla-timeline-row">
+                                    <span class="sla-timeline-label">Resolution Deadline:</span>
+                                    <span class="sla-timeline-value"
+                                          th:text="${complaint.resolutionDeadline != null ? #temporals.format(complaint.resolutionDeadline, 'dd MMM yyyy, hh:mm a') : 'Not Set'}">
+                                        Deadline
+                                    </span>
+                                </div>
+                                <div class="sla-timeline-row">
+                                    <span class="sla-timeline-label">Resolution Date:</span>
+                                    <span class="sla-timeline-value" th:if="${complaint.resolved}"
+                                          style="color: var(--status-emerald, #059669);"
+                                          th:text="${#temporals.format(complaint.resolvedAt, 'dd MMM yyyy, hh:mm a')}">
+                                        Resolved
+                                    </span>
+                                    <span class="sla-timeline-value" th:if="${!complaint.resolved}"
+                                          th:style="${complaint.resolutionOverdue ? 'color: var(--status-red, #dc2626); font-weight: 700;' : 'color: var(--navy-500);'}"
+                                          th:text="${complaint.resolutionOverdue ? 'Resolution Overdue (Unresolved)' : 'In Progress'}">
+                                        In Progress
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Full Student Description -->
+                    <div>
+                        <h3 style="font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--navy-500); margin-bottom: 0.75rem;">
+                            Full Complaint Description
+                        </h3>
+                        <div class="complaint-description-box" id="complaint-full-description" th:text="${complaint.description}">
+                            Full complaint description submitted by the student appears here.
+                        </div>
+                    </div>
+
+                    <!-- Official Resolution Note Display (When resolved) -->
+                    <div th:if="${complaint.status.name() == 'RESOLVED' and complaint.resolutionNote != null and !#strings.isEmpty(complaint.resolutionNote)}"
+                         style="margin-top: 1.5rem; background: var(--slate-50, #f8fafc); border: 1px solid var(--slate-200, #e2e8f0); border-left: 4px solid var(--status-emerald, #059669); border-radius: var(--radius-md); padding: 1.25rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--navy-900); display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--status-emerald, #059669);">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                Official Resolution Note
+                            </h3>
+                            <span th:if="${complaint.resolvedAt != null}" style="font-size: 0.8rem; color: var(--navy-500); font-weight: 600;"
+                                  th:text="${#temporals.format(complaint.resolvedAt, 'dd MMM yyyy, hh:mm a')}">
+                                Date
+                            </span>
+                        </div>
+                        <div style="font-size: 0.95rem; color: var(--navy-800); line-height: 1.6; white-space: pre-wrap;"
+                             id="moderator-detail-resolution-note"
+                             th:text="${complaint.resolutionNote}">
+                            Resolution description.
+                        </div>
+                    </div>
+
+                    <!-- Status Audit History Section -->
+                    <div style="margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--slate-200, #e2e8f0);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                            <div>
+                                <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--navy-900); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--violet-600);">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    Status Audit History
+                                </h3>
+                                <p style="font-size: 0.85rem; color: var(--navy-600); margin: 0;">
+                                    Chronological log of status transitions, authenticated actors, and resolution notes.
+                                </p>
+                            </div>
+                            <span th:if="${statusHistory != null}"
+                                  style="background-color: var(--slate-100, #f1f5f9); color: var(--navy-700); padding: 0.25rem 0.65rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700;"
+                                  th:text="${statusHistory.size()} + ' event(s)'">
+                                1 event(s)
+                            </span>
+                        </div>
+
+                        <!-- Fallback when history is empty -->
+                        <div th:if="${statusHistory == null or #lists.isEmpty(statusHistory)}" class="alert-banner alert-info" style="margin-bottom: 0;">
+                            <span>No audit history recorded for this complaint yet.</span>
+                        </div>
+
+                        <!-- Chronological Timeline List -->
+                        <div th:if="${statusHistory != null and !#lists.isEmpty(statusHistory)}" class="audit-history-timeline" id="status-audit-history">
+                            <div th:each="entry, iterStat : ${statusHistory}" class="audit-history-item">
+                                <div class="audit-history-header">
+                                    <div class="audit-transition">
+                                        <span th:if="${entry.previousStatus == null}" style="color: var(--navy-500); font-style: italic;">
+                                            Initial Submission
+                                        </span>
+                                        <span th:if="${entry.previousStatus != null and entry.previousStatus != entry.newStatus}"
+                                              th:class="'status-pill ' + ${entry.previousStatus.name()}"
+                                              th:text="${entry.previousStatus.displayName}">
+                                            Previous
+                                        </span>
+                                        <span th:if="${entry.previousStatus != null and entry.previousStatus != entry.newStatus}" class="audit-transition-arrow">&rarr;</span>
+                                        <span th:if="${entry.previousStatus != null and entry.previousStatus != entry.newStatus}"
+                                              th:class="'status-pill ' + ${entry.newStatus.name()}"
+                                              th:text="${entry.newStatus.displayName}">
+                                            New
+                                        </span>
+                                        <span th:if="${entry.previousStatus != null and entry.previousStatus == entry.newStatus}" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 600; color: var(--navy-700);">
+                                            <span th:class="'status-pill ' + ${entry.newStatus.name()}" th:text="${entry.newStatus.displayName}">Status</span>
+                                            <span style="color: var(--navy-500); font-size: 0.75rem;">(Administrative Update)</span>
+                                        </span>
+                                    </div>
+                                    <div class="audit-meta">
+                                        <span class="audit-actor-badge">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="12" cy="7" r="4"></circle>
+                                            </svg>
+                                            <span th:text="${entry.actorUsername}">actor</span>
+                                        </span>
+                                        <time th:datetime="${entry.createdAt}" th:text="${#temporals.format(entry.createdAt, 'dd MMM yyyy, hh:mm a')}">
+                                            11 Oct 2026, 04:30 PM
+                                        </time>
+                                    </div>
+                                </div>
+                                <div th:if="${entry.note != null and !#strings.isEmpty(entry.note)}" class="audit-note-box" th:text="${entry.note}">
+                                    Note explaining the change.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Escalation Audit Trail Section -->
+                    <div style="margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--slate-200, #e2e8f0);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                            <div>
+                                <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--navy-900); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #ef4444;">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                    </svg>
+                                    Automatic SLA Escalation Trail
+                                </h3>
+                                <p style="font-size: 0.85rem; color: var(--navy-600); margin: 0;">
+                                    Immutable audit record of automated SLA breach escalations.
+                                </p>
+                            </div>
+                            <span th:if="${escalationAudits != null}"
+                                  style="background-color: var(--slate-100, #f1f5f9); color: var(--navy-700); padding: 0.25rem 0.65rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700;"
+                                  th:text="${escalationAudits.size()} + ' escalation(s)'">
+                                0 escalation(s)
+                            </span>
+                        </div>
+
+                        <!-- Fallback when escalation trail is empty -->
+                        <div th:if="${escalationAudits == null or #lists.isEmpty(escalationAudits)}" class="alert-banner" style="background-color: #f8fafc; border: 1px solid var(--slate-200, #e2e8f0); color: var(--navy-600); margin-bottom: 0;">
+                            <span>No automated SLA escalations have been triggered for this complaint.</span>
+                        </div>
+
+                        <!-- Chronological Escalation List -->
+                        <div th:if="${escalationAudits != null and !#lists.isEmpty(escalationAudits)}" id="escalation-audit-history">
+                            <div th:each="audit : ${escalationAudits}" class="escalation-history-item">
+                                <div class="escalation-history-header">
+                                    <span class="escalation-badge"
+                                          th:classappend="${audit.escalationStage.name()}"
+                                          th:text="${audit.escalationStage.displayName}">
+                                        Stage 1 Response Overdue
+                                    </span>
+                                    <time th:datetime="${audit.triggeredAt}"
+                                          style="font-size: 0.8rem; color: var(--navy-500); font-weight: 600;"
+                                          th:text="${#temporals.format(audit.triggeredAt, 'dd MMM yyyy, hh:mm a')}">
+                                        Date
+                                    </time>
+                                </div>
+                                <div class="escalation-history-reason" th:text="${audit.reason}">
+                                    Escalation reason details.
+                                </div>
+                                <div class="escalation-history-recipient" th:if="${audit.recipientEmail != null}">
+                                    Administrative recipient notified: <span th:text="${audit.recipientEmail}">admin@campuspulse.internal</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Status Update Action Card -->
+                <div class="status-update-card">
+                    <h3 class="status-update-card-title">Update Status</h3>
+                    <p class="status-update-card-desc">
+                        Select a new lifecycle status and submit to update operational resolution progress.
+                    </p>
+
+                    <form th:action="@{'/moderator/complaints/' + ${complaint.referenceId} + '/status'}" method="post" id="status-update-form">
+                        <div class="form-group" style="margin-bottom: 1.25rem;">
+                            <label for="status-select" class="form-label">
+                                Target Status <span class="required" aria-hidden="true">*</span>
+                            </label>
+                            <select id="status-select" name="status" class="form-control" required>
+                                <option th:each="st : ${statuses}"
+                                        th:value="${st.name()}"
+                                        th:text="${st.displayName}"
+                                        th:selected="${st == complaint.status}">
+                                    Status
+                                </option>
+                            </select>
+                            <span class="form-hint">
+                                Modifying status records an authenticated moderator audit log entry and dispatches an automated notification email to the student when applicable.
+                            </span>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 1.5rem;">
+                            <label for="status-note" class="form-label">
+                                Resolution Note <span style="font-weight: normal; color: var(--navy-500); font-size: 0.8rem;">(Optional)</span>
+                            </label>
+                            <textarea id="status-note" name="note" class="form-control" rows="3" maxlength="1000" placeholder="Explain the rationale or progress updates for this status change..."></textarea>
+                            <span class="form-hint">
+                                This note will be recorded permanently in the audit history log.
+                            </span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="btn-update-status" style="width: 100%;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Confirm Status Update
+                        </button>
+                    </form>
+
+                    <!-- Resolution Note Correction Form (Available when complaint is in RESOLVED status) -->
+                    <div th:if="${complaint.status.name() == 'RESOLVED'}" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--slate-200, #e2e8f0);">
+                        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--navy-800); margin-bottom: 0.35rem;">
+                            Update Resolution Note
+                        </h4>
+                        <p style="font-size: 0.8rem; color: var(--navy-600); margin-bottom: 0.75rem; line-height: 1.4;">
+                            Authorized moderators can add or amend the official resolution note. Every update is recorded in the immutable audit trail.
+                        </p>
+                        <form th:action="@{'/moderator/complaints/' + ${complaint.referenceId} + '/resolution-note'}" method="post" id="resolution-note-correction-form">
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <textarea id="resolution-note-input"
+                                          name="resolutionNote"
+                                          class="form-control"
+                                          rows="3"
+                                          maxlength="1000"
+                                          required
+                                          placeholder="Enter updated official resolution note..."
+                                          th:text="${complaint.resolutionNote}"></textarea>
+                                <span class="form-hint">Maximum 1000 characters.</span>
+                            </div>
+                            <button type="submit" class="btn btn-outline btn-sm" id="btn-update-resolution-note" style="width: 100%;">
+                                Update Resolution Note
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Priority Update Action Card -->
+                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--slate-200, #e2e8f0);">
+                        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--navy-800); margin-bottom: 0.35rem;">
+                            Update Priority Level
+                        </h4>
+                        <p style="font-size: 0.8rem; color: var(--navy-600); margin-bottom: 0.75rem; line-height: 1.4;">
+                            Adjust grievance severity independently from status lifecycle and SLA timers.
+                        </p>
+                        <form th:action="@{'/moderator/complaints/' + ${complaint.referenceId} + '/priority'}" method="post" id="priority-update-form">
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <label for="priority-select" class="form-label">
+                                    Priority Level <span class="required" aria-hidden="true">*</span>
+                                </label>
+                                <select id="priority-select" name="priority" class="form-control" required>
+                                    <option th:each="pr : ${priorities}"
+                                            th:value="${pr.name()}"
+                                            th:text="${pr.displayName}"
+                                            th:selected="${pr == complaint.priority}">
+                                        Priority
+                                    </option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-outline btn-sm" id="btn-update-priority" style="width: 100%;">
+                                Update Priority
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Department Assignment & Category Correction Action Card -->
+                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--slate-200, #e2e8f0);">
+                        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--navy-800); margin-bottom: 0.35rem;">
+                            Assignment &amp; Category
+                        </h4>
+                        <p style="font-size: 0.8rem; color: var(--navy-600); margin-bottom: 0.75rem; line-height: 1.4;">
+                            Reassign to responsible department or correct category where operationally needed.
+                        </p>
+                        <form th:action="@{'/moderator/complaints/' + ${complaint.referenceId} + '/assignment'}" method="post" id="assignment-update-form">
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <label for="department-select" class="form-label">
+                                    Department <span class="required" aria-hidden="true">*</span>
+                                </label>
+                                <select id="department-select" name="department" class="form-control" required>
+                                    <option th:each="dept : ${departments}"
+                                            th:value="${dept}"
+                                            th:text="${dept}"
+                                            th:selected="${dept == complaint.department}">
+                                        Department
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <label for="category-select" class="form-label">
+                                    Category <span class="required" aria-hidden="true">*</span>
+                                </label>
+                                <select id="category-select" name="category" class="form-control" required>
+                                    <option th:each="cat : ${categories}"
+                                            th:value="${cat}"
+                                            th:text="${cat}"
+                                            th:selected="${cat == complaint.category}">
+                                        Category
+                                    </option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-outline btn-sm" id="btn-update-assignment" style="width: 100%;">
+                                Update Assignment
+                            </button>
+                        </form>
+                    </div>
+
+                    <hr style="border: none; border-top: 1px solid var(--slate-200, #e2e8f0); margin: 2rem 0;">
+
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <a th:href="@{/complaints/track(referenceId=${complaint.referenceId})}"
+                           class="btn btn-outline"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           style="width: 100%;">
+                            View in Student Tracker &nearr;
+                        </a>
+                        <a th:href="@{/moderator/complaints}" class="btn btn-outline" style="width: 100%;">
+                            &larr; Back to Moderator Dashboard
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; CampusPulse. Campus Grievance and Feedback Management System &bull; Moderator Portal.</p>
+                <p><a th:href="@{/}" href="/" style="color: var(--slate-300, #cbd5e1);">Return to Homepage</a></p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

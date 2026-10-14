@@ -37,6 +37,12 @@ public class AuthController {
             if (isAdmin) {
                 return "redirect:/admin/complaints";
             }
+            boolean isModerator = authentication.getAuthorities().stream()
+                    .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                    .anyMatch(r -> "ROLE_MODERATOR".equals(r) || "MODERATOR".equals(r));
+            if (isModerator) {
+                return "redirect:/moderator/complaints";
+            }
         }
 
         if (error != null) {

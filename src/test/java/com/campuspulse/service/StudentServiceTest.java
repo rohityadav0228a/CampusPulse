@@ -113,4 +113,67 @@ class StudentServiceTest {
         assertTrue(found.isPresent());
         assertEquals("aarav.sharma@campus.edu", found.get().getEmail());
     }
+
+    @Test
+    @DisplayName("Should provision new moderator account with ROLE_MODERATOR and hashed password")
+    void shouldProvisionNewModeratorSuccessfully() {
+        when(studentRepository.findByEmailIgnoreCase("moderator@campus.edu")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode("SecureModPass123!")).thenReturn("$2a$10$hashedModPass");
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Student moderator = studentService.provisionModerator(
+                "Priya Moderator",
+                "moderator@campus.edu",
+                "Grievance Cell",
+                "SecureModPass123!"
+        );
+
+        assertNotNull(moderator);
+        assertEquals("Priya Moderator", moderator.getFullName());
+        assertEquals("moderator@campus.edu", moderator.getEmail());
+        assertEquals("Grievance Cell", moderator.getDepartment());
+        assertEquals("$2a$10$hashedModPass", moderator.getPassword());
+        assertEquals("ROLE_MODERATOR", moderator.getRole());
+
+        verify(studentRepository).save(any(Student.class));
+    }
+
+    @Test
+    @DisplayName("Should upgrade existing account to ROLE_MODERATOR when provisioned")
+    void shouldUpgradeExistingAccountToModerator() {
+        Student existing = new Student("Aarav Sharma", "aarav@campus.edu", "STU1", "$2a$10$oldPass");
+        existing.setRole("ROLE_STUDENT");
+
+        when(studentRepository.findByEmailIgnoreCase("aarav@campus.edu")).thenReturn(Optional.of(existing));
+        when(passwordEncoder.encode("NewElevatedPass123!")).thenReturn("$2a$10$newHashedPass");
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Student upgraded = studentService.provisionModerator(
+                "Aarav Sharma",
+                "aarav@campus.edu",
+                "Campus Affairs",
+                "NewElevatedPass123!"
+        );
+
+        assertNotNull(upgraded);
+        assertEquals("ROLE_MODERATOR", upgraded.getRole());
+        assertEquals("$2a$10$newHashedPass", upgraded.getPassword());
+        assertEquals("Campus Affairs", upgraded.getDepartment());
+    }
+
+    @Test
+    @DisplayName("Should reject moderator provisioning if name, email, or password constraints are violated")
+    void shouldRejectInvalidModeratorProvisioning() {
+        assertThrows(IllegalArgumentException.class, () ->
+                studentService.provisionModerator("", "mod@campus.edu", "Dept", "Password123!")
+        );
+
+        assertThrows(IllegalArgumentException.class, () ->
+                studentService.provisionModerator("Name", "  ", "Dept", "Password123!")
+        );
+
+        assertThrows(IllegalArgumentException.class, () ->
+                studentService.provisionModerator("Name", "mod@campus.edu", "Dept", "short")
+        );
+    }
 }

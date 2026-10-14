@@ -15,6 +15,7 @@ import java.io.IOException;
 /**
  * Directs authenticated users to their designated portal:
  * Admins (ROLE_ADMIN) are redirected to /admin/complaints.
+ * Moderators (ROLE_MODERATOR) are redirected to /moderator/complaints.
  * Students (ROLE_STUDENT) are redirected to /complaints/new.
  */
 @Component
@@ -32,9 +33,16 @@ public class RoleBasedAuthenticationSuccessHandler implements AuthenticationSucc
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(role -> "ROLE_ADMIN".equals(role) || "ADMIN".equals(role));
 
+        boolean isModerator = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(role -> "ROLE_MODERATOR".equals(role) || "MODERATOR".equals(role));
+
         if (isAdmin) {
             log.info("Admin user '{}' authenticated successfully. Redirecting to admin dashboard.", authentication.getName());
             response.sendRedirect("/admin/complaints");
+        } else if (isModerator) {
+            log.info("Moderator user '{}' authenticated successfully. Redirecting to moderator dashboard.", authentication.getName());
+            response.sendRedirect("/moderator/complaints");
         } else {
             log.info("Student user '{}' authenticated successfully. Redirecting to complaint submission.", authentication.getName());
             response.sendRedirect("/complaints/new");
