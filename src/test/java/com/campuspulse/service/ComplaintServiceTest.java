@@ -58,6 +58,9 @@ class ComplaintServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private com.campuspulse.repository.ComplaintDeletionAuditRepository complaintDeletionAuditRepository;
+
     @InjectMocks
     private ComplaintService complaintService;
 
@@ -865,6 +868,87 @@ class ComplaintServiceTest {
 
         c.setPriority(null);
         assertEquals(ComplaintPriority.MEDIUM, c.getPriority(), "Null-safe getter must fallback to MEDIUM");
+    }
+
+    @Test
+    @DisplayName("deleteResolvedComplaint soft-deletes resolved complaint and creates surviving deletion audit")
+    void deleteResolvedComplaintSuccessfullySoftDeletesAndAudits() {
+        Complaint complaint = new Complaint("CP-2026-DEL01", "Fixed lights", "All bulbs replaced", "Infrastructure & Labs", "Campus Facilities & Works");
+        complaint.setStatus(ComplaintStatus.RESOLVED);
+        complaint.setStudentEmail("student@campuspulse.edu");
+        complaint.setId(99L);
+
+        when(complaintRepository.findByReferenceId("CP-2026-DEL01")).thenReturn(Optional.of(complaint));
+        when(complaintRepository.save(any(Complaint.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Complaint deleted = complaintService.deleteResolvedComplaint("CP-2026-DEL01", "admin_super", "Resolved archival");
+
+        assertTrue(deleted.isDeleted());
+        assertNotNull(deleted.getDeletedAt());
+        assertEquals("admin_super", deleted.getDeletedBy());
+        assertEquals("Resolved archival", deleted.getDeletionReason());
+
+        verify(complaintRepository).save(complaint);
+
+        ArgumentCaptor<com.campuspulse.model.ComplaintDeletionAudit> auditCaptor =
+                ArgumentCaptor.forClass(com.campuspulse.model.ComplaintDeletionAudit.class);
+        verify(complaintDeletionAuditRepository).save(auditCaptor.capture());
+
+        com.campuspulse.model.ComplaintDeletionAudit audit = auditCaptor.getValue();
+        assertEquals(99L, audit.getComplaintId());
+        assertEquals("CP-2026-DEL01", audit.getReferenceId());
+        assertEquals("admin_super", audit.getDeletedBy());
+        assertEquals("Resolved archival", audit.getDeletionReason());
+
+        verify(historyRepository).save(any(ComplaintStatusHistory.class));
+    }
+
+    @Test
+    @DisplayName("deleteResolvedComplaint rejects deletion when complaint status is not RESOLVED")
+    void deleteResolvedComplaintRejectsUnresolved() {
+        Complaint complaint = new Complaint("CP-2026-DEL02", "Pending issue", "Waiting", "Academic Affairs", "Academic Affairs Division");
+        complaint.setStatus(ComplaintStatus.IN_PROGRESS);
+
+        when(complaintRepository.findByReferenceId("CP-2026-DEL02")).thenReturn(Optional.of(complaint));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+                complaintService.deleteResolvedComplaint("CP-2026-DEL02", "admin", "reason")
+        );
+
+        assertTrue(ex.getMessage().contains("Only resolved complaints can be deleted"));
+        verify(complaintRepository, never()).save(any());
+        verify(complaintDeletionAuditRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("deleteResolvedComplaint rejects deletion when complaint is already deleted")
+    void deleteResolvedComplaintRejectsAlreadyDeleted() {
+        Complaint complaint = new Complaint("CP-2026-DEL03", "Old issue", "Done", "Academic Affairs", "Academic Affairs Division");
+        complaint.setStatus(ComplaintStatus.RESOLVED);
+        complaint.setDeleted(true);
+
+        when(complaintRepository.findByReferenceId("CP-2026-DEL03")).thenReturn(Optional.of(complaint));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+                complaintService.deleteResolvedComplaint("CP-2026-DEL03", "admin", "reason")
+        );
+
+        assertTrue(ex.getMessage().contains("already been deleted"));
+        verify(complaintRepository, never()).save(any());
+        verify(complaintDeletionAuditRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("deleteResolvedComplaint rejects non-existent complaint reference ID")
+    void deleteResolvedComplaintRejectsNonExistent() {
+        when(complaintRepository.findByReferenceId("CP-NON-EXISTENT")).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () ->
+                complaintService.deleteResolvedComplaint("CP-NON-EXISTENT", "admin", "reason")
+        );
+
+        verify(complaintRepository, never()).save(any());
+        verify(complaintDeletionAuditRepository, never()).save(any());
     }
 }
 

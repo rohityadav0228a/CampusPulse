@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.test.context.TestPropertySource;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -396,6 +397,43 @@ class ComplaintRepositoryTest {
 
         Complaint reloaded = complaintRepository.findById(saved.getId()).orElseThrow();
         assertThat(reloaded.getPriority()).isEqualTo(ComplaintPriority.MEDIUM);
+    }
+
+    @Test
+    @DisplayName("Soft-deleted complaints (deleted = true) are excluded from active searches, counts, and aggregations")
+    void shouldExcludeSoftDeletedComplaintsFromAllQueriesAndAggregations() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime threshold = now.plusHours(24);
+
+        Complaint active = new Complaint("CP-2026-ACTIVE01", "Active issue", "Details", "Infrastructure & Labs", "Campus Facilities & Works");
+        active.setStatus(ComplaintStatus.RESOLVED);
+        active.setDeleted(false);
+        complaintRepository.save(active);
+
+        Complaint deleted = new Complaint("CP-2026-DELETED01", "Deleted issue", "Details", "Infrastructure & Labs", "Campus Facilities & Works");
+        deleted.setStatus(ComplaintStatus.RESOLVED);
+        deleted.setDeleted(true);
+        deleted.setDeletedAt(now);
+        deleted.setDeletedBy("admin");
+        deleted.setDeletionReason("Test soft delete");
+        complaintRepository.save(deleted);
+
+        // countByDeletedFalse
+        assertThat(complaintRepository.countByDeletedFalse()).isEqualTo(1);
+
+        // findByReferenceIdAndDeletedFalse
+        assertThat(complaintRepository.findByReferenceIdAndDeletedFalse("CP-2026-ACTIVE01")).isPresent();
+        assertThat(complaintRepository.findByReferenceIdAndDeletedFalse("CP-2026-DELETED01")).isEmpty();
+
+        // countWithFilters
+        assertThat(complaintRepository.countWithFilters(ComplaintStatus.RESOLVED, null, null)).isEqualTo(1);
+
+        // searchWithFilters
+        Page<Complaint> searchPage = complaintRepository.searchWithFilters(
+                null, null, null, null, null, null, now, threshold, PageRequest.of(0, 10)
+        );
+        assertThat(searchPage.getContent()).hasSize(1);
+        assertThat(searchPage.getContent().get(0).getReferenceId()).isEqualTo("CP-2026-ACTIVE01");
     }
 }
 

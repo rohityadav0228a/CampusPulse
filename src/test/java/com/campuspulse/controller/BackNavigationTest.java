@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -54,7 +55,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AdminComplaintController.class,
         AdminAnalyticsController.class,
         AdminInsightsController.class,
-        ModeratorComplaintController.class
+        ModeratorComplaintController.class,
+        AdminUserController.class
 })
 @Import(SecurityConfig.class)
 @TestPropertySource(properties = {
@@ -86,6 +88,9 @@ class BackNavigationTest {
 
     @MockitoBean
     private SlaEscalationService slaEscalationService;
+
+    @MockitoBean
+    private com.campuspulse.service.UserManagementService userManagementService;
 
     @BeforeEach
     void setUp() {
@@ -312,5 +317,23 @@ class BackNavigationTest {
                 .andExpect(content().string(containsString("data-back-button=\"true\"")))
                 .andExpect(content().string(containsString("data-fallback=\"/moderator/complaints\"")))
                 .andExpect(content().string(containsString("Back to Complaints Queue")));
+    }
+
+    @Test
+    @DisplayName("Admin user governance (/admin/users) renders Back button with fallback to /admin/complaints")
+    void adminUserManagementHasBackButton() throws Exception {
+        when(userManagementService.searchUsers(any(), any(), anyInt(), anyInt()))
+                .thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(userManagementService.getRoleMetrics())
+                .thenReturn(Map.of("TOTAL", 0L, "STUDENTS", 0L, "MODERATORS", 0L, "ADMINS", 0L));
+        when(userManagementService.getRecentAuditHistory())
+                .thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/admin/users").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("btn-back")))
+                .andExpect(content().string(containsString("data-back-button=\"true\"")))
+                .andExpect(content().string(containsString("data-fallback=\"/admin/complaints\"")))
+                .andExpect(content().string(containsString("Back to Admin Dashboard")));
     }
 }

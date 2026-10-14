@@ -445,6 +445,49 @@ public class AdminComplaintController {
         return "redirect:/admin/complaints/" + referenceId;
     }
 
+    /**
+     * Safely deletes (soft-deletes) an existing resolved complaint.
+     * Accessible strictly by ROLE_ADMIN only.
+     * Rechecks authorization and resolved status on the server.
+     * Unresolved complaints or missing/already-deleted records are handled gracefully with appropriate flash messages.
+     *
+     * @param referenceId unique reference identifier
+     * @param reason administrative rationale for complaint deletion/archival
+     * @param principal authenticated admin principal
+     * @param request HTTP request
+     * @param redirectAttributes redirect attributes
+     * @return redirect to admin complaints dashboard with flash message
+     */
+    @PostMapping("/{referenceId}/delete")
+    public String deleteResolvedComplaint(
+            @PathVariable("referenceId") String referenceId,
+            @RequestParam(name = "reason", required = false) String reason,
+            java.security.Principal principal,
+            jakarta.servlet.http.HttpServletRequest request,
+            RedirectAttributes redirectAttributes) {
+
+        String actorUsername = resolveActorUsername(principal, request);
+
+        try {
+            complaintService.deleteResolvedComplaint(referenceId, actorUsername, reason);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Complaint " + referenceId + " was safely deleted and archived with a permanent audit record.");
+            return "redirect:/admin/complaints";
+        } catch (IllegalArgumentException ex) {
+            log.warn("Complaint deletion rejected for {}: {}", referenceId, ex.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+            return "redirect:/admin/complaints";
+        } catch (IllegalStateException ex) {
+            log.warn("Complaint deletion invalid state for {}: {}", referenceId, ex.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+            return "redirect:/admin/complaints/" + referenceId;
+        } catch (Exception ex) {
+            log.error("Unexpected error deleting complaint {}", referenceId, ex);
+            redirectAttributes.addFlashAttribute("errorMessage", "Failed to delete complaint: " + ex.getMessage());
+            return "redirect:/admin/complaints/" + referenceId;
+        }
+    }
+
     private String resolveActorUsername(java.security.Principal principal, jakarta.servlet.http.HttpServletRequest request) {
         if (principal != null && principal.getName() != null && !principal.getName().isBlank()) {
             return principal.getName();

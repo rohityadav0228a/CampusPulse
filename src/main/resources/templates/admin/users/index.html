@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CampusPulse Admin User Role Governance and Account Management">
+    <title>User Role Management | Admin | CampusPulse</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../../../static/css/style.css">
+    <style>
+        .role-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+        .role-pill.ROLE_STUDENT {
+            background-color: var(--info-bg);
+            color: var(--info);
+            border: 1px solid var(--info-border);
+        }
+        .role-pill.ROLE_MODERATOR {
+            background-color: var(--violet-50);
+            color: var(--violet-700);
+            border: 1px solid var(--violet-100);
+        }
+        .role-pill.ROLE_ADMIN {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+        .role-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        .role-stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .role-stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .user-action-cell {
+            min-width: 280px;
+        }
+        .user-role-form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .user-role-form-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header & Navigation -->
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar" aria-label="Admin Navigation">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <a th:href="@{/}" href="/" class="brand-logo" id="nav-brand">
+                        <span class="brand-icon-wrap" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </span>
+                        <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                    </a>
+                    <span class="admin-badge">Admin Portal</span>
+                </div>
+
+                <ul class="nav-links">
+                    <li><a th:href="@{/admin/complaints}" href="/admin/complaints" class="nav-link">Dashboard</a></li>
+                    <li><a th:href="@{/admin/users}" href="/admin/users" class="nav-link" style="color: var(--blue-600); font-weight: 700;">Users &amp; Roles</a></li>
+                    <li><a th:href="@{/admin/analytics}" href="/admin/analytics" class="nav-link">Analytics</a></li>
+                    <li><a th:href="@{/admin/insights}" href="/admin/insights" class="nav-link">AI Insights</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Public Registry</a></li>
+                    <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Student Tracker</a></li>
+                </ul>
+
+                <div class="nav-actions" style="display: flex; align-items: center; gap: 0.75rem;">
+                    <a th:href="@{/admin/complaints}" href="/admin/complaints" class="btn btn-outline btn-sm">
+                        &larr; Back to Dashboard
+                    </a>
+                    <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
+                        <button type="submit" class="btn btn-outline btn-sm" id="btn-admin-logout" style="color: #ef4444; border-color: #fca5a5;">
+                            Log Out
+                        </button>
+                    </form>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="section">
+        <div class="container">
+
+            <!-- Top Navigation: Back Button & Breadcrumbs -->
+            <div class="top-nav-bar">
+                <div th:replace="~{fragments/navigation :: backButton(fallbackUrl=@{/admin/complaints}, label='Back to Admin Dashboard')}"></div>
+                <nav class="breadcrumb" aria-label="Breadcrumb">
+                    <a th:href="@{/}" href="/">Home</a>
+                    <span class="breadcrumb-sep">&gt;</span>
+                    <a th:href="@{/admin/complaints}" href="/admin/complaints">Admin Dashboard</a>
+                    <span class="breadcrumb-sep">&gt;</span>
+                    <span aria-current="page">User Role Management</span>
+                </nav>
+            </div>
+
+            <div class="page-header-row">
+                <div>
+                    <h1 class="page-title">User Role Governance</h1>
+                    <p class="page-subtitle">
+                        Inspect registered accounts, change user roles with strict allowlists, and track permanent role change audits.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Security & Notice Banner -->
+            <div class="admin-notice-banner" role="status" style="border-left-color: var(--blue-600); background-color: var(--blue-50);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px; color: var(--blue-600);">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <div>
+                    <div class="admin-notice-title" style="color: var(--navy-900);">Admin Role Authority &bull; Session Invalidation Enforced</div>
+                    <p style="margin: 0; color: var(--navy-700);">
+                        All role transitions are strictly audited. Changing a user's role immediately expires their active authenticated sessions to guarantee that outdated authorization privileges cannot persist.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Flash Feedback Messages -->
+            <div class="alert-banner" style="background-color: var(--status-emerald-bg); border: 1px solid #a7f3d0; color: #065f46; margin-bottom: 1.5rem;" th:if="${successMessage}" role="alert">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px;">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span th:text="${successMessage}">Operation successful.</span>
+            </div>
+
+            <div class="alert-banner alert-danger" style="margin-bottom: 1.5rem;" th:if="${errorMessage}" role="alert">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span th:text="${errorMessage}">An error occurred.</span>
+            </div>
+
+            <!-- Role Summary Metrics -->
+            <div class="role-card-grid">
+                <div class="role-stat-card">
+                    <div class="role-stat-icon" style="background-color: var(--slate-100); color: var(--navy-800);">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; font-weight: 600; color: var(--navy-500); text-transform: uppercase;">Total Users</div>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: var(--navy-900);" th:text="${metrics['TOTAL']}">0</div>
+                    </div>
+                </div>
+
+                <div class="role-stat-card">
+                    <div class="role-stat-icon" style="background-color: var(--info-bg); color: var(--info);">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; font-weight: 600; color: var(--navy-500); text-transform: uppercase;">Students</div>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: var(--info);" th:text="${metrics['STUDENTS']}">0</div>
+                    </div>
+                </div>
+
+                <div class="role-stat-card">
+                    <div class="role-stat-icon" style="background-color: var(--violet-50); color: var(--violet-700);">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; font-weight: 600; color: var(--navy-500); text-transform: uppercase;">Moderators</div>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: var(--violet-700);" th:text="${metrics['MODERATORS']}">0</div>
+                    </div>
+                </div>
+
+                <div class="role-stat-card">
+                    <div class="role-stat-icon" style="background-color: #fee2e2; color: #b91c1c;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; font-weight: 600; color: var(--navy-500); text-transform: uppercase;">Administrators</div>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: #b91c1c;" th:text="${metrics['ADMINS']}">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search and Filter Bar -->
+            <div class="search-filter-card" style="margin-bottom: 1.5rem; background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.25rem; box-shadow: var(--shadow-sm);">
+                <form th:action="@{/admin/users}" method="get" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <label for="search-input" class="form-label" style="font-size: 0.85rem; font-weight: 600;">Search Users</label>
+                        <input type="text" id="search-input" name="q" class="form-control"
+                               placeholder="Search by name, email, student ID, department..."
+                               th:value="${searchQuery}">
+                    </div>
+
+                    <div style="min-width: 180px;">
+                        <label for="role-filter" class="form-label" style="font-size: 0.85rem; font-weight: 600;">Filter by Role</label>
+                        <select id="role-filter" name="role" class="form-control">
+                            <option value="ALL" th:selected="${roleFilter == 'ALL'}">All Roles</option>
+                            <option value="ROLE_STUDENT" th:selected="${roleFilter == 'ROLE_STUDENT'}">Students (ROLE_STUDENT)</option>
+                            <option value="ROLE_MODERATOR" th:selected="${roleFilter == 'ROLE_MODERATOR'}">Moderators (ROLE_MODERATOR)</option>
+                            <option value="ROLE_ADMIN" th:selected="${roleFilter == 'ROLE_ADMIN'}">Administrators (ROLE_ADMIN)</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="submit" class="btn btn-primary" id="btn-filter-users">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            Filter
+                        </button>
+                        <a th:href="@{/admin/users}" class="btn btn-outline" id="btn-reset-filters">
+                            Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Users Table Card -->
+            <div style="background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; margin-bottom: 2.5rem;">
+                <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="font-size: 1.125rem; font-weight: 700; color: var(--navy-900); margin: 0;">
+                        Registered User Accounts
+                    </h2>
+                    <span style="font-size: 0.85rem; color: var(--navy-500); font-weight: 600;" th:text="${totalElements} + ' total account(s)'">
+                        0 total account(s)
+                    </span>
+                </div>
+
+                <div class="table-container" style="overflow-x: auto;">
+                    <table class="table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background-color: var(--slate-50); border-bottom: 1px solid var(--border-color); text-align: left;">
+                                <th style="padding: 0.85rem 1rem; font-size: 0.8rem; font-weight: 700; color: var(--navy-600); text-transform: uppercase;">User Profile</th>
+                                <th style="padding: 0.85rem 1rem; font-size: 0.8rem; font-weight: 700; color: var(--navy-600); text-transform: uppercase;">Email Address</th>
+                                <th style="padding: 0.85rem 1rem; font-size: 0.8rem; font-weight: 700; color: var(--navy-600); text-transform: uppercase;">Department</th>
+                                <th style="padding: 0.85rem 1rem; font-size: 0.8rem; font-weight: 700; color: var(--navy-600); text-transform: uppercase;">Current Role</th>
+                                <th style="padding: 0.85rem 1rem; font-size: 0.8rem; font-weight: 700; color: var(--navy-600); text-transform: uppercase;">Registered</th>
+                                <th style="padding: 0.85rem 1rem; font-size: 0.8rem; font-weight: 700; color: var(--navy-600); text-transform: uppercase;">Manage Role</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${#lists.isEmpty(users)}">
+                                <td colspan="6" style="padding: 2.5rem; text-align: center; color: var(--navy-500);">
+                                    No user accounts matched the search criteria.
+                                </td>
+                            </tr>
+                            <tr th:each="user : ${users}" style="border-bottom: 1px solid var(--border-color);">
+                                <td style="padding: 1rem;">
+                                    <div style="font-weight: 700; color: var(--navy-900);" th:text="${user.fullName}">Student Name</div>
+                                    <div style="font-size: 0.8rem; color: var(--navy-500);" th:if="${user.studentId != null}" th:text="'ID: ' + ${user.studentId}">ID: CS-2024</div>
+                                </td>
+                                <td style="padding: 1rem; font-size: 0.9rem; color: var(--navy-800); font-family: var(--font-mono);" th:text="${user.email}">
+                                    user@campuspulse.edu
+                                </td>
+                                <td style="padding: 1rem; font-size: 0.85rem; color: var(--navy-600);" th:text="${user.department != null ? user.department : 'General Campus'}">
+                                    Computer Science
+                                </td>
+                                <td style="padding: 1rem;">
+                                    <span th:class="'role-pill ' + ${user.role}" th:text="${user.role}">
+                                        ROLE_STUDENT
+                                    </span>
+                                </td>
+                                <td style="padding: 1rem; font-size: 0.85rem; color: var(--navy-500);">
+                                    <span th:if="${user.createdAt != null}" th:text="${#temporals.format(user.createdAt, 'dd MMM yyyy')}">Date</span>
+                                    <span th:if="${user.createdAt == null}">System</span>
+                                </td>
+                                <td style="padding: 1rem;" class="user-action-cell">
+                                    <!-- Role Change Form with CSRF protection -->
+                                    <form th:action="@{'/admin/users/' + ${user.id} + '/role'}"
+                                          method="post"
+                                          class="user-role-form"
+                                          th:id="'role-form-' + ${user.id}"
+                                          onsubmit="return validateRoleForm(this);">
+                                        <div class="user-role-form-row">
+                                            <select name="role" class="form-control" style="font-size: 0.85rem; padding: 0.35rem 0.6rem; height: auto;" th:id="'role-select-' + ${user.id}" onchange="toggleAdminConfirm(this);">
+                                                <option value="ROLE_STUDENT" th:selected="${user.role == 'ROLE_STUDENT'}">Student (ROLE_STUDENT)</option>
+                                                <option value="ROLE_MODERATOR" th:selected="${user.role == 'ROLE_MODERATOR'}">Moderator (ROLE_MODERATOR)</option>
+                                                <option value="ROLE_ADMIN" th:selected="${user.role == 'ROLE_ADMIN' or user.role == 'ADMIN'}">Administrator (ROLE_ADMIN)</option>
+                                            </select>
+                                            <button type="submit" class="btn btn-primary btn-sm" th:id="'btn-update-role-' + ${user.id}">
+                                                Update
+                                            </button>
+                                        </div>
+
+                                        <input type="text"
+                                               name="reason"
+                                               class="form-control"
+                                               placeholder="Administrative reason (optional)..."
+                                               maxlength="200"
+                                               style="font-size: 0.75rem; padding: 0.25rem 0.5rem; height: auto;">
+
+                                        <!-- Admin Promotion Confirmation Checkbox (Visible when ROLE_ADMIN is selected) -->
+                                        <div class="admin-promotion-confirm"
+                                             th:id="'admin-confirm-wrap-' + ${user.id}"
+                                             style="display: none; background-color: #fff1f2; border: 1px solid #fecdd3; border-radius: var(--radius-sm); padding: 0.4rem 0.6rem; font-size: 0.75rem; color: #9f1239;">
+                                            <label style="display: flex; align-items: center; gap: 0.4rem; margin: 0; cursor: pointer; font-weight: 600;">
+                                                <input type="checkbox" name="confirmAdminPromotion" value="true" th:id="'admin-check-' + ${user.id}">
+                                                Confirm Admin Promotion (Explicit Validation)
+                                            </label>
+                                        </div>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div th:if="${totalPages > 1}" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.85rem; color: var(--navy-500);">
+                        Page <strong th:text="${currentPage + 1}">1</strong> of <strong th:text="${totalPages}">1</strong>
+                    </span>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <a th:if="${currentPage > 0}"
+                           th:href="@{/admin/users(q=${searchQuery}, role=${roleFilter}, page=${currentPage - 1})}"
+                           class="btn btn-outline btn-sm">
+                            &larr; Previous
+                        </a>
+                        <a th:if="${currentPage + 1 < totalPages}"
+                           th:href="@{/admin/users(q=${searchQuery}, role=${roleFilter}, page=${currentPage + 1})}"
+                           class="btn btn-outline btn-sm">
+                            Next &rarr;
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Role Change Audit History Card -->
+            <div style="background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;">
+                <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h2 style="font-size: 1.125rem; font-weight: 700; color: var(--navy-900); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--blue-600);">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            Role Change Audit History
+                        </h2>
+                        <p style="font-size: 0.85rem; color: var(--navy-600); margin: 0.25rem 0 0 0;">
+                            Permanent chronological log of all role adjustments, authenticated administrators, and recorded rationales.
+                        </p>
+                    </div>
+                    <span th:if="${recentAudits != null}"
+                          style="background-color: var(--slate-100); color: var(--navy-700); padding: 0.25rem 0.65rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700;"
+                          th:text="${recentAudits.size()} + ' recent record(s)'">
+                        0 record(s)
+                    </span>
+                </div>
+
+                <div class="table-container" style="overflow-x: auto;">
+                    <table class="table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background-color: var(--slate-50); border-bottom: 1px solid var(--border-color); text-align: left;">
+                                <th style="padding: 0.85rem 1rem; font-size: 0.8rem; font-weight: 700; color: var(--navy-600); text-transform: uppercase;">Target Account</th>
+                                <th style="padding: 0.85rem 1rem; font-size: 0.8rem; font-weight: 700; color: var(--navy-600); text-transform: uppercase;">Role Transition</th>
+                                <th style="padding: 0.85rem 1rem; font-size: 0.8rem; font-weight: 700; color: var(--navy-600); text-transform: uppercase;">Changed By</th>
+                                <th style="padding: 0.85rem 1rem; font-size: 0.8rem; font-weight: 700; color: var(--navy-600); text-transform: uppercase;">Timestamp</th>
+                                <th style="padding: 0.85rem 1rem; font-size: 0.8rem; font-weight: 700; color: var(--navy-600); text-transform: uppercase;">Administrative Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${#lists.isEmpty(recentAudits)}">
+                                <td colspan="5" style="padding: 2rem; text-align: center; color: var(--navy-500);">
+                                    No role change audits recorded yet.
+                                </td>
+                            </tr>
+                            <tr th:each="audit : ${recentAudits}" style="border-bottom: 1px solid var(--border-color);">
+                                <td style="padding: 0.85rem 1rem; font-family: var(--font-mono); font-size: 0.85rem; color: var(--navy-900);" th:text="${audit.targetEmail}">
+                                    user@campuspulse.edu
+                                </td>
+                                <td style="padding: 0.85rem 1rem;">
+                                    <span th:class="'role-pill ' + ${audit.oldRole}" th:text="${audit.oldRole}">OLD</span>
+                                    <span style="color: var(--navy-400); margin: 0 0.25rem;">&rarr;</span>
+                                    <span th:class="'role-pill ' + ${audit.newRole}" th:text="${audit.newRole}">NEW</span>
+                                </td>
+                                <td style="padding: 0.85rem 1rem; font-weight: 600; color: var(--navy-800);" th:text="${audit.changedBy}">
+                                    admin
+                                </td>
+                                <td style="padding: 0.85rem 1rem; font-size: 0.85rem; color: var(--navy-500);">
+                                    <time th:datetime="${audit.changedAt}" th:text="${#temporals.format(audit.changedAt, 'dd MMM yyyy, hh:mm a')}">
+                                        Date
+                                    </time>
+                                </td>
+                                <td style="padding: 0.85rem 1rem; font-size: 0.85rem; color: var(--navy-700);" th:text="${audit.reason}">
+                                    Reason
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; CampusPulse. Campus Grievance and Feedback Management System &bull; Admin Portal.</p>
+                <p><a th:href="@{/}" href="/" style="color: var(--slate-300);">Return to Homepage</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleAdminConfirm(selectElement) {
+            const form = selectElement.closest('form');
+            const confirmWrap = form.querySelector('.admin-promotion-confirm');
+            if (selectElement.value === 'ROLE_ADMIN') {
+                confirmWrap.style.display = 'block';
+            } else {
+                confirmWrap.style.display = 'none';
+                const checkbox = confirmWrap.querySelector('input[type="checkbox"]');
+                if (checkbox) checkbox.checked = false;
+            }
+        }
+
+        function validateRoleForm(form) {
+            const select = form.querySelector('select[name="role"]');
+            const targetRole = select.value;
+            if (targetRole === 'ROLE_ADMIN') {
+                const checkbox = form.querySelector('input[name="confirmAdminPromotion"]');
+                if (!checkbox || !checkbox.checked) {
+                    alert('Promoting an account to Administrator requires checking the confirmation box.');
+                    return false;
+                }
+            }
+            return confirm('Are you sure you want to change this user\'s role to ' + targetRole + '? Their active sessions will be terminated immediately.');
+        }
+    </script>
+</body>
+</html>

@@ -170,8 +170,27 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        .maximumSessions(-1)
+                        .sessionRegistry(sessionRegistry())
                 );
 
         return http.build();
+    }
+
+    /**
+     * Exposes a SessionRegistry bean for session tracking and explicit invalidation.
+     */
+    @Bean
+    public org.springframework.security.core.session.SessionRegistry sessionRegistry() {
+        return new org.springframework.security.core.session.SessionRegistryImpl();
+    }
+
+    /**
+     * Publishes HttpSession lifecycle events to Spring application context, ensuring
+     * SessionRegistry stays in sync when sessions expire or are destroyed.
+     */
+    @Bean
+    public org.springframework.boot.web.servlet.ServletListenerRegistrationBean<org.springframework.security.web.session.HttpSessionEventPublisher> httpSessionEventPublisher() {
+        return new org.springframework.boot.web.servlet.ServletListenerRegistrationBean<>(new org.springframework.security.web.session.HttpSessionEventPublisher());
     }
 }

@@ -25,7 +25,8 @@ import java.time.LocalDateTime;
         @Index(name = "idx_complaint_resolution_deadline", columnList = "resolution_deadline"),
         @Index(name = "idx_complaint_escalation_stage", columnList = "escalation_stage"),
         @Index(name = "idx_complaint_priority", columnList = "priority"),
-        @Index(name = "idx_complaint_department", columnList = "department")
+        @Index(name = "idx_complaint_department", columnList = "department"),
+        @Index(name = "idx_complaint_deleted", columnList = "deleted")
 })
 public class Complaint {
 
@@ -83,6 +84,18 @@ public class Complaint {
     @Enumerated(EnumType.STRING)
     @Column(name = "priority", nullable = false, length = 20, columnDefinition = "varchar(20) not null default 'MEDIUM'")
     private ComplaintPriority priority = ComplaintPriority.MEDIUM;
+
+    @Column(name = "deleted", nullable = false)
+    private boolean deleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "deleted_by", length = 100)
+    private String deletedBy;
+
+    @Column(name = "deletion_reason", length = 500)
+    private String deletionReason;
 
     public Complaint() {
         this.escalationStage = SlaEscalationStage.NONE;
@@ -385,6 +398,38 @@ public class Complaint {
             return "***" + (atIndex >= 0 ? trimmed.substring(atIndex) : "");
         }
         return trimmed.charAt(0) + "***" + trimmed.substring(atIndex);
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public String getDeletedBy() {
+        return deletedBy;
+    }
+
+    public void setDeletedBy(String deletedBy) {
+        this.deletedBy = deletedBy;
+    }
+
+    public String getDeletionReason() {
+        return deletionReason;
+    }
+
+    public void setDeletionReason(String deletionReason) {
+        this.deletionReason = deletionReason;
     }
 }
 

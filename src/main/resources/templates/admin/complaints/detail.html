@@ -32,6 +32,7 @@
 
                 <ul class="nav-links">
                     <li><a th:href="@{/admin/complaints}" href="/admin/complaints" class="nav-link" style="color: var(--blue-600); font-weight: 700;">Dashboard</a></li>
+                    <li><a th:href="@{/admin/users}" href="/admin/users" class="nav-link">Users &amp; Roles</a></li>
                     <li><a th:href="@{/admin/analytics}" href="/admin/analytics" class="nav-link">Analytics</a></li>
                     <li><a th:href="@{/admin/insights}" href="/admin/insights" class="nav-link">AI Insights</a></li>
                     <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Public Registry</a></li>
@@ -559,6 +560,51 @@
                             </div>
                             <button type="submit" class="btn btn-outline btn-sm" id="btn-update-assignment" style="width: 100%;">
                                 Update Assignment
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Safe Deletion / Archival Card (Available ONLY for RESOLVED complaints to ROLE_ADMIN) -->
+                    <div th:if="${complaint.status.name() == 'RESOLVED'}"
+                         style="margin-top: 1.5rem; padding: 1.25rem; border: 1px solid #fecaca; background-color: #fff5f5; border-radius: var(--radius-md);">
+                        <h4 style="font-size: 0.95rem; font-weight: 700; color: #b91c1c; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #dc2626;">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                            Delete / Archive Resolved Complaint
+                        </h4>
+                        <p style="font-size: 0.8rem; color: #7f1d1d; margin-bottom: 0.75rem; line-height: 1.4;">
+                            Safely archive and delete this resolved complaint. Soft-deletion removes it from operational views while preserving complete compliance history in a permanent deletion audit trail.
+                        </p>
+                        <form th:action="@{'/admin/complaints/' + ${complaint.referenceId} + '/delete'}"
+                              method="post"
+                              id="delete-complaint-form"
+                              th:data-reference-id="${complaint.referenceId}"
+                              onsubmit="return confirm('Are you sure you want to delete and archive resolved complaint ' + this.getAttribute('data-reference-id') + '? This action is permanent and creates an immutable deletion audit record.');">
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <label for="delete-reason-input" class="form-label" style="font-size: 0.8rem; color: #7f1d1d;">
+                                    Administrative Reason <span style="font-weight: normal;">(Optional)</span>
+                                </label>
+                                <input type="text"
+                                       id="delete-reason-input"
+                                       name="reason"
+                                       class="form-control"
+                                       placeholder="e.g., Routine archival, duplicate resolved record..."
+                                       maxlength="250"
+                                       style="font-size: 0.85rem; border-color: #fca5a5;">
+                            </div>
+                            <button type="submit"
+                                    class="btn btn-sm"
+                                    id="btn-delete-complaint"
+                                    style="width: 100%; background-color: #dc2626; color: #ffffff; border: 1px solid #b91c1c; font-weight: 600;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                                Confirm Safe Deletion
                             </button>
                         </form>
                     </div>

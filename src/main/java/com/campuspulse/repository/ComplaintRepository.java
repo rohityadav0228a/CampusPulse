@@ -21,11 +21,26 @@ import java.util.Optional;
 public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
 
     /**
+     * Finds all active (non-deleted) complaints ordered by creation timestamp in descending order (newest first).
+     *
+     * @return list of active complaints ordered newest first
+     */
+    List<Complaint> findAllByDeletedFalseOrderByCreatedAtDesc();
+
+    /**
      * Finds all complaints ordered by creation timestamp in descending order (newest first).
      *
      * @return list of complaints ordered newest first
      */
     List<Complaint> findAllByOrderByCreatedAtDesc();
+
+    /**
+     * Finds active complaints filtered by status, ordered newest first.
+     *
+     * @param status complaint status to filter
+     * @return list of matching complaints
+     */
+    List<Complaint> findAllByStatusAndDeletedFalseOrderByCreatedAtDesc(ComplaintStatus status);
 
     /**
      * Finds all complaints filtered by status, ordered newest first.
@@ -36,12 +51,29 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
     List<Complaint> findAllByStatusOrderByCreatedAtDesc(ComplaintStatus status);
 
     /**
+     * Finds active complaints filtered by category, ordered newest first.
+     *
+     * @param category category to filter
+     * @return list of matching complaints
+     */
+    List<Complaint> findAllByCategoryAndDeletedFalseOrderByCreatedAtDesc(String category);
+
+    /**
      * Finds all complaints filtered by category, ordered newest first.
      *
      * @param category category to filter
      * @return list of matching complaints
      */
     List<Complaint> findAllByCategoryOrderByCreatedAtDesc(String category);
+
+    /**
+     * Finds active complaints filtered by both status and category, ordered newest first.
+     *
+     * @param status complaint status to filter
+     * @param category category to filter
+     * @return list of matching complaints
+     */
+    List<Complaint> findAllByStatusAndCategoryAndDeletedFalseOrderByCreatedAtDesc(ComplaintStatus status, String category);
 
     /**
      * Finds all complaints filtered by both status and category, ordered newest first.
@@ -51,6 +83,21 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * @return list of matching complaints
      */
     List<Complaint> findAllByStatusAndCategoryOrderByCreatedAtDesc(ComplaintStatus status, String category);
+
+    /**
+     * Counts active (non-deleted) complaints.
+     *
+     * @return total count of active complaints
+     */
+    long countByDeletedFalse();
+
+    /**
+     * Counts active complaints by status.
+     *
+     * @param status status to count
+     * @return total count of complaints matching the status
+     */
+    long countByStatusAndDeletedFalse(ComplaintStatus status);
 
     /**
      * Counts complaints by status.
@@ -69,6 +116,14 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
     Optional<Complaint> findByReferenceId(String referenceId);
 
     /**
+     * Finds an active (non-deleted) complaint by reference identifier.
+     *
+     * @param referenceId unique reference ID
+     * @return Optional containing the active complaint if found
+     */
+    Optional<Complaint> findByReferenceIdAndDeletedFalse(String referenceId);
+
+    /**
      * Checks if a reference ID already exists in the repository.
      *
      * @param referenceId unique reference ID to verify
@@ -80,6 +135,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * Counts total complaints matching optional status, category, and date filters using database aggregation.
      */
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(c) FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "(:status IS NULL OR c.status = :status) AND " +
             "(:category IS NULL OR c.category = :category) AND " +
             "(:startDate IS NULL OR c.createdAt >= :startDate)")
@@ -93,6 +149,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * Returns rows of [ComplaintStatus, Long count].
      */
     @org.springframework.data.jpa.repository.Query("SELECT c.status, COUNT(c) FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "(:category IS NULL OR c.category = :category) AND " +
             "(:startDate IS NULL OR c.createdAt >= :startDate) " +
             "GROUP BY c.status")
@@ -105,6 +162,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * Returns rows of [String category, Long count].
      */
     @org.springframework.data.jpa.repository.Query("SELECT c.category, COUNT(c) FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "(:status IS NULL OR c.status = :status) AND " +
             "(:category IS NULL OR c.category = :category) AND " +
             "(:startDate IS NULL OR c.createdAt >= :startDate) " +
@@ -119,6 +177,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * Returns rows of [String department, Long count].
      */
     @org.springframework.data.jpa.repository.Query("SELECT c.department, COUNT(c) FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "(:status IS NULL OR c.status = :status) AND " +
             "(:category IS NULL OR c.category = :category) AND " +
             "(:startDate IS NULL OR c.createdAt >= :startDate) " +
@@ -133,6 +192,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * Returns rows of [LocalDate/Date, Long count].
      */
     @org.springframework.data.jpa.repository.Query("SELECT CAST(c.createdAt AS LocalDate), COUNT(c) FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "(:status IS NULL OR c.status = :status) AND " +
             "(:category IS NULL OR c.category = :category) AND " +
             "(:startDate IS NULL OR c.createdAt >= :startDate) " +
@@ -146,6 +206,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * Counts complaints created within a specific timestamp window [startDate, endDate).
      */
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(c) FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "c.createdAt >= :startDate AND c.createdAt < :endDate")
     long countBetween(
             @org.springframework.data.repository.query.Param("startDate") java.time.LocalDateTime startDate,
@@ -156,6 +217,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * Returns rows of [String department, Long count].
      */
     @org.springframework.data.jpa.repository.Query("SELECT c.department, COUNT(c) FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "c.status IN (:unresolvedStatuses) " +
             "GROUP BY c.department ORDER BY COUNT(c) DESC")
     List<Object[]> countUnresolvedGroupByDepartment(
@@ -166,6 +228,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * Returns rows of [String category, Long count].
      */
     @org.springframework.data.jpa.repository.Query("SELECT c.category, COUNT(c) FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "c.createdAt >= :startDate AND c.createdAt < :endDate " +
             "GROUP BY c.category ORDER BY COUNT(c) DESC")
     List<Object[]> countGroupByCategoryBetween(
@@ -176,6 +239,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * Counts active complaints that have breached their initial response SLA deadline.
      */
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(c) FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND " +
             "c.acknowledgedAt IS NULL AND c.responseDeadline < :now")
     long countResponseOverdue(@org.springframework.data.repository.query.Param("now") java.time.LocalDateTime now);
@@ -184,6 +248,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * Counts active complaints that have breached their final resolution SLA deadline.
      */
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(c) FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "c.status != com.campuspulse.model.ComplaintStatus.RESOLVED AND " +
             "c.resolutionDeadline < :now")
     long countResolutionOverdue(@org.springframework.data.repository.query.Param("now") java.time.LocalDateTime now);
@@ -192,6 +257,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * Counts active complaints approaching either response or resolution deadline within warning threshold.
      */
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(c) FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "c.status != com.campuspulse.model.ComplaintStatus.RESOLVED AND " +
             "((c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND c.acknowledgedAt IS NULL AND c.responseDeadline >= :now AND c.responseDeadline <= :threshold) OR " +
             "(c.resolutionDeadline >= :now AND c.resolutionDeadline <= :threshold))")
@@ -203,6 +269,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * Finds complaints eligible for Stage 1 Response Escalation.
      */
     @org.springframework.data.jpa.repository.Query("SELECT c FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND " +
             "c.acknowledgedAt IS NULL AND c.responseDeadline < :now AND " +
             "c.escalationStage = com.campuspulse.model.SlaEscalationStage.NONE")
@@ -212,6 +279,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * Finds complaints eligible for Stage 2 Resolution Escalation.
      */
     @org.springframework.data.jpa.repository.Query("SELECT c FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "c.status != com.campuspulse.model.ComplaintStatus.RESOLVED AND " +
             "c.resolutionDeadline < :now AND " +
             "c.escalationStage != com.campuspulse.model.SlaEscalationStage.STAGE_2_RESOLUTION_OVERDUE")
@@ -220,6 +288,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
     /**
      * Executes database-level paginated search combined with status, category, and SLA deadline filters.
      * Evaluates case-insensitive keyword search across referenceId, title, description, and studentEmail.
+     * Excludes soft-deleted complaints (c.deleted = false).
      * Uses parameterized query to prevent SQL injection and executes count query for total page calculation.
      *
      * @param searchTerm case-insensitive keyword matching referenceId, title, description, or studentEmail (null/empty for all)
@@ -232,6 +301,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
      * @return page of matching complaints
      */
     @Query(value = "SELECT c FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "(:searchTerm IS NULL OR :searchTerm = '' OR " +
             " LOWER(c.referenceId) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             " LOWER(c.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
@@ -249,6 +319,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
             " (:slaStatus = 'ON_TRACK' AND c.status != com.campuspulse.model.ComplaintStatus.RESOLVED AND NOT (c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND c.acknowledgedAt IS NULL AND c.responseDeadline < :now) AND NOT (c.resolutionDeadline < :now) AND NOT ((c.status = com.campuspulse.model.ComplaintStatus.SUBMITTED AND c.acknowledgedAt IS NULL AND c.responseDeadline >= :now AND c.responseDeadline <= :threshold) OR (c.resolutionDeadline >= :now AND c.resolutionDeadline <= :threshold))) OR " +
             " (:slaStatus = 'MET' AND c.status = com.campuspulse.model.ComplaintStatus.RESOLVED))",
             countQuery = "SELECT COUNT(c) FROM Complaint c WHERE " +
+            "c.deleted = false AND " +
             "(:searchTerm IS NULL OR :searchTerm = '' OR " +
             " LOWER(c.referenceId) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             " LOWER(c.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +

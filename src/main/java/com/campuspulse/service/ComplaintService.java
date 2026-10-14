@@ -2,9 +2,11 @@ package com.campuspulse.service;
 
 import com.campuspulse.dto.ComplaintForm;
 import com.campuspulse.model.Complaint;
+import com.campuspulse.model.ComplaintDeletionAudit;
 import com.campuspulse.model.ComplaintPriority;
 import com.campuspulse.model.ComplaintStatus;
 import com.campuspulse.model.ComplaintStatusHistory;
+import com.campuspulse.repository.ComplaintDeletionAuditRepository;
 import com.campuspulse.repository.ComplaintRepository;
 import com.campuspulse.repository.ComplaintStatusHistoryRepository;
 import org.slf4j.Logger;
@@ -64,18 +66,27 @@ public class ComplaintService {
     private final ComplaintStatusHistoryRepository complaintStatusHistoryRepository;
     private final NotificationService notificationService;
     private final com.campuspulse.config.SlaProperties slaProperties;
+    private final ComplaintDeletionAuditRepository complaintDeletionAuditRepository;
 
     public ComplaintService(
             ComplaintRepository complaintRepository,
             ComplaintStatusHistoryRepository complaintStatusHistoryRepository) {
-        this(complaintRepository, complaintStatusHistoryRepository, null, new com.campuspulse.config.SlaProperties());
+        this(complaintRepository, complaintStatusHistoryRepository, null, new com.campuspulse.config.SlaProperties(), null);
     }
 
     public ComplaintService(
             ComplaintRepository complaintRepository,
             ComplaintStatusHistoryRepository complaintStatusHistoryRepository,
             NotificationService notificationService) {
-        this(complaintRepository, complaintStatusHistoryRepository, notificationService, new com.campuspulse.config.SlaProperties());
+        this(complaintRepository, complaintStatusHistoryRepository, notificationService, new com.campuspulse.config.SlaProperties(), null);
+    }
+
+    public ComplaintService(
+            ComplaintRepository complaintRepository,
+            ComplaintStatusHistoryRepository complaintStatusHistoryRepository,
+            NotificationService notificationService,
+            com.campuspulse.config.SlaProperties slaProperties) {
+        this(complaintRepository, complaintStatusHistoryRepository, notificationService, slaProperties, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -83,11 +94,13 @@ public class ComplaintService {
             ComplaintRepository complaintRepository,
             ComplaintStatusHistoryRepository complaintStatusHistoryRepository,
             NotificationService notificationService,
-            com.campuspulse.config.SlaProperties slaProperties) {
+            com.campuspulse.config.SlaProperties slaProperties,
+            ComplaintDeletionAuditRepository complaintDeletionAuditRepository) {
         this.complaintRepository = complaintRepository;
         this.complaintStatusHistoryRepository = complaintStatusHistoryRepository;
         this.notificationService = notificationService;
         this.slaProperties = (slaProperties != null) ? slaProperties : new com.campuspulse.config.SlaProperties();
+        this.complaintDeletionAuditRepository = complaintDeletionAuditRepository;
     }
 
     public List<String> getAllowedCategories() {
@@ -224,7 +237,7 @@ public class ComplaintService {
      */
     @Transactional(readOnly = true)
     public List<Complaint> getAllComplaints() {
-        return complaintRepository.findAllByOrderByCreatedAtDesc();
+        return complaintRepository.findAllByDeletedFalseOrderByCreatedAtDesc();
     }
 
     /**
@@ -254,13 +267,13 @@ public class ComplaintService {
         boolean hasCategory = (category != null && !category.isBlank());
 
         if (hasStatus && hasCategory) {
-            complaints = complaintRepository.findAllByStatusAndCategoryOrderByCreatedAtDesc(status, category.trim());
+            complaints = complaintRepository.findAllByStatusAndCategoryAndDeletedFalseOrderByCreatedAtDesc(status, category.trim());
         } else if (hasStatus) {
-            complaints = complaintRepository.findAllByStatusOrderByCreatedAtDesc(status);
+            complaints = complaintRepository.findAllByStatusAndDeletedFalseOrderByCreatedAtDesc(status);
         } else if (hasCategory) {
-            complaints = complaintRepository.findAllByCategoryOrderByCreatedAtDesc(category.trim());
+            complaints = complaintRepository.findAllByCategoryAndDeletedFalseOrderByCreatedAtDesc(category.trim());
         } else {
-            complaints = complaintRepository.findAllByOrderByCreatedAtDesc();
+            complaints = complaintRepository.findAllByDeletedFalseOrderByCreatedAtDesc();
         }
 
         if (slaStatus == null || slaStatus.isBlank() || "ALL".equalsIgnoreCase(slaStatus.trim())) {
@@ -455,9 +468,9 @@ public class ComplaintService {
     @Transactional(readOnly = true)
     public Map<String, Long> getStatusCounts() {
         Map<String, Long> counts = new LinkedHashMap<>();
-        counts.put("TOTAL", complaintRepository.count());
+        counts.put("TOTAL", complaintRepository.countByDeletedFalse());
         for (ComplaintStatus status : ComplaintStatus.values()) {
-            counts.put(status.name(), complaintRepository.countByStatus(status));
+            counts.put(status.name(), complaintRepository.countByStatusAndDeletedFalse(status));
         }
         return counts;
     }
@@ -857,17 +870,106 @@ public class ComplaintService {
     }
 
     /**
-     * Retrieves a complaint by its unique reference ID.
+     * Retrieves an active (non-deleted) complaint by its unique reference ID.
      *
      * @param referenceId human-readable reference identifier
-     * @return Optional containing the complaint if found
+     * @return Optional containing the complaint if found and not deleted
      */
     @Transactional(readOnly = true)
     public Optional<Complaint> getByReferenceId(String referenceId) {
         if (referenceId == null || referenceId.isBlank()) {
             return Optional.empty();
         }
+        return complaintRepository.findByReferenceIdAndDeletedFalse(referenceId.trim());
+    }
+
+    /**
+     * Retrieves a complaint by reference ID regardless of deletion status.
+     *
+     * @param referenceId human-readable reference identifier
+     * @return Optional containing the complaint if found
+     */
+    @Transactional(readOnly = true)
+    public Optional<Complaint> getByReferenceIdIncludingDeleted(String referenceId) {
+        if (referenceId == null || referenceId.isBlank()) {
+            return Optional.empty();
+        }
         return complaintRepository.findByReferenceId(referenceId.trim());
+    }
+
+    /**
+     * Safely deletes (soft-deletes) a resolved complaint in an authorized atomic transaction.
+     * Enforces that the complaint must exist, must not be already deleted, and must have status RESOLVED.
+     * Records a permanent ComplaintDeletionAudit entry that survives the operation.
+     * Records an immutable status history audit entry.
+     *
+     * @param referenceId unique reference identifier
+     * @param actorUsername username of the administrator performing the deletion
+     * @param reason administrative reason for deletion
+     * @return the soft-deleted Complaint
+     */
+    @Transactional
+    public Complaint deleteResolvedComplaint(String referenceId, String actorUsername, String reason) {
+        if (referenceId == null || referenceId.isBlank()) {
+            throw new IllegalArgumentException("Complaint reference ID cannot be blank");
+        }
+        String trimmedRef = referenceId.trim();
+        Complaint complaint = complaintRepository.findByReferenceId(trimmedRef)
+                .orElseThrow(() -> new IllegalArgumentException("Complaint not found with reference ID: " + trimmedRef));
+
+        if (complaint.isDeleted()) {
+            throw new IllegalStateException("Complaint has already been deleted: " + trimmedRef);
+        }
+
+        if (complaint.getStatus() != ComplaintStatus.RESOLVED) {
+            log.warn("Unauthorized attempt to delete unresolved complaint {} in status {}", trimmedRef, complaint.getStatus());
+            throw new IllegalStateException("Only resolved complaints can be deleted. Current status: " + complaint.getStatus().getDisplayName());
+        }
+
+        String effectiveActor = (actorUsername != null && !actorUsername.isBlank())
+                ? actorUsername.trim()
+                : resolveCurrentActorUsername();
+
+        String effectiveReason = (reason != null && !reason.isBlank())
+                ? reason.trim()
+                : "Resolved complaint safely archived/deleted by administrator";
+
+        LocalDateTime now = LocalDateTime.now(slaProperties.getZoneId());
+        complaint.setDeleted(true);
+        complaint.setDeletedAt(now);
+        complaint.setDeletedBy(effectiveActor);
+        complaint.setDeletionReason(effectiveReason);
+
+        Complaint saved = complaintRepository.save(complaint);
+
+        // Record surviving deletion audit
+        ComplaintDeletionAudit deletionAudit = new ComplaintDeletionAudit(
+                saved.getId(),
+                saved.getReferenceId(),
+                saved.getTitle(),
+                saved.getCategory(),
+                saved.getDepartment(),
+                saved.getStudentEmail(),
+                effectiveActor,
+                effectiveReason,
+                now
+        );
+        if (complaintDeletionAuditRepository != null) {
+            complaintDeletionAuditRepository.save(deletionAudit);
+        }
+
+        // Record status history audit
+        ComplaintStatusHistory historyEntry = new ComplaintStatusHistory(
+                saved,
+                ComplaintStatus.RESOLVED,
+                ComplaintStatus.RESOLVED,
+                effectiveActor,
+                "Complaint safely archived/deleted: " + effectiveReason
+        );
+        complaintStatusHistoryRepository.save(historyEntry);
+
+        log.info("Administrator '{}' safely deleted resolved complaint {} (reason: {})", effectiveActor, trimmedRef, effectiveReason);
+        return saved;
     }
 
     /**
