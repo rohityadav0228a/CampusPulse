@@ -1,5 +1,6 @@
 package com.campuspulse.service;
 
+import com.campuspulse.dto.StudentProfileForm;
 import com.campuspulse.dto.StudentRegisterForm;
 import com.campuspulse.model.Student;
 import com.campuspulse.repository.StudentRepository;
@@ -12,10 +13,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -175,5 +178,113 @@ class StudentServiceTest {
         assertThrows(IllegalArgumentException.class, () ->
                 studentService.provisionModerator("Name", "mod@campus.edu", "Dept", "short")
         );
+    }
+
+    // =========================================================================
+    // Student Profile Management Tests
+    // =========================================================================
+
+    @Test
+    @DisplayName("Should update student profile full name and department successfully")
+    void shouldUpdateStudentProfileSuccessfully() {
+        Student student = new Student("Aarav Sharma", "aarav@campus.edu", "STU100", "$2a$10$hashedPass");
+        student.setId(10L);
+        student.setDepartment("Computer Science");
+        student.setRole("ROLE_STUDENT");
+        LocalDateTime created = LocalDateTime.of(2026, 1, 1, 12, 0);
+        student.setCreatedAt(created);
+
+        when(studentRepository.findByEmailIgnoreCase("aarav@campus.edu")).thenReturn(Optional.of(student));
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StudentProfileForm form = new StudentProfileForm("Aarav S. Sharma", "Data Science & AI");
+        Student updated = studentService.updateProfile("aarav@campus.edu", form);
+
+        assertNotNull(updated);
+        assertEquals("Aarav S. Sharma", updated.getFullName());
+        assertEquals("Data Science & AI", updated.getDepartment());
+        verify(studentRepository).save(student);
+    }
+
+    @Test
+    @DisplayName("Should clear department to null when empty or blank string provided")
+    void shouldClearDepartmentWhenBlank() {
+        Student student = new Student("Aarav Sharma", "aarav@campus.edu", "STU100", "$2a$10$hashedPass");
+        student.setDepartment("Computer Science");
+
+        when(studentRepository.findByEmailIgnoreCase("aarav@campus.edu")).thenReturn(Optional.of(student));
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StudentProfileForm form = new StudentProfileForm("Aarav Sharma", "   ");
+        Student updated = studentService.updateProfile("aarav@campus.edu", form);
+
+        assertNull(updated.getDepartment());
+    }
+
+    @Test
+    @DisplayName("Should throw exception when updating profile of non-existent student")
+    void shouldThrowExceptionWhenStudentNotFound() {
+        when(studentRepository.findByEmailIgnoreCase("unknown@campus.edu")).thenReturn(Optional.empty());
+
+        StudentProfileForm form = new StudentProfileForm("New Name", "New Dept");
+        assertThrows(IllegalArgumentException.class, () ->
+                studentService.updateProfile("unknown@campus.edu", form)
+        );
+
+        verify(studentRepository, never()).save(any(Student.class));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when full name is blank or invalid length on profile update")
+    void shouldThrowExceptionWhenFullNameInvalid() {
+        Student student = new Student("Aarav Sharma", "aarav@campus.edu", "STU100", "$2a$10$hashedPass");
+        when(studentRepository.findByEmailIgnoreCase("aarav@campus.edu")).thenReturn(Optional.of(student));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                studentService.updateProfile("aarav@campus.edu", new StudentProfileForm("", "Dept"))
+        );
+
+        assertThrows(IllegalArgumentException.class, () ->
+                studentService.updateProfile("aarav@campus.edu", new StudentProfileForm("   ", "Dept"))
+        );
+
+        assertThrows(IllegalArgumentException.class, () ->
+                studentService.updateProfile("aarav@campus.edu", new StudentProfileForm("A", "Dept"))
+        );
+
+        assertThrows(IllegalArgumentException.class, () ->
+                studentService.updateProfile("aarav@campus.edu", new StudentProfileForm("A".repeat(101), "Dept"))
+        );
+
+        verify(studentRepository, never()).save(any(Student.class));
+    }
+
+    @Test
+    @DisplayName("Should preserve all immutable protected fields during profile update")
+    void shouldPreserveProtectedFieldsOnProfileUpdate() {
+        LocalDateTime originalCreatedAt = LocalDateTime.of(2025, 8, 10, 9, 15);
+        Student student = new Student("Original Name", "student@campus.edu", "STU-SECURE-999", "$2a$10$OriginalHashedPassword");
+        student.setId(77L);
+        student.setRole("ROLE_STUDENT");
+        student.setCreatedAt(originalCreatedAt);
+        student.setDepartment("Original Dept");
+
+        when(studentRepository.findByEmailIgnoreCase("student@campus.edu")).thenReturn(Optional.of(student));
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StudentProfileForm form = new StudentProfileForm("Updated Legal Name", "Advanced Robotics");
+        Student result = studentService.updateProfile("student@campus.edu", form);
+
+        // Permitted fields updated
+        assertEquals("Updated Legal Name", result.getFullName());
+        assertEquals("Advanced Robotics", result.getDepartment());
+
+        // Strictly verify protected fields remain 100% unaltered
+        assertEquals(77L, result.getId());
+        assertEquals("student@campus.edu", result.getEmail());
+        assertEquals("STU-SECURE-999", result.getStudentId());
+        assertEquals("ROLE_STUDENT", result.getRole());
+        assertEquals("$2a$10$OriginalHashedPassword", result.getPassword());
+        assertEquals(originalCreatedAt, result.getCreatedAt());
     }
 }

@@ -11,6 +11,7 @@ import com.campuspulse.dto.insights.TrendDirection;
 import com.campuspulse.model.Complaint;
 import com.campuspulse.model.ComplaintPriority;
 import com.campuspulse.model.ComplaintStatus;
+import com.campuspulse.model.Student;
 import com.campuspulse.repository.StudentRepository;
 import com.campuspulse.service.AiClassifierService;
 import com.campuspulse.service.AnalyticsService;
@@ -58,7 +59,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AdminInsightsController.class,
         ModeratorComplaintController.class,
         AdminUserController.class,
-        PasswordResetController.class
+        PasswordResetController.class,
+        StudentProfileController.class
 })
 @Import(SecurityConfig.class)
 @TestPropertySource(properties = {
@@ -364,5 +366,22 @@ class BackNavigationTest {
                 .andExpect(content().string(containsString("data-back-button=\"true\"")))
                 .andExpect(content().string(containsString("data-fallback=\"/login\"")))
                 .andExpect(content().string(containsString("Back to Sign In")));
+    }
+
+    @Test
+    @DisplayName("Student profile page (/student/profile) renders Back button with fallback to /complaints/new")
+    void studentProfileHasBackButton() throws Exception {
+        Student student = new Student("Aarav Sharma", "aarav@campus.edu", "STU101", "hashed");
+        student.setRole("ROLE_STUDENT");
+        student.setDepartment("Computer Science");
+        when(studentService.findByEmail("aarav@campus.edu")).thenReturn(Optional.of(student));
+        when(complaintService.getAllowedDepartments()).thenReturn(List.of("Computer Science"));
+
+        mockMvc.perform(get("/student/profile").with(user("aarav@campus.edu").roles("STUDENT")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("btn-back")))
+                .andExpect(content().string(containsString("data-back-button=\"true\"")))
+                .andExpect(content().string(containsString("data-fallback=\"/complaints/new\"")))
+                .andExpect(content().string(containsString("Back to Dashboard")));
     }
 }

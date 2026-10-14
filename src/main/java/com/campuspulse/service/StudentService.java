@@ -1,5 +1,6 @@
 package com.campuspulse.service;
 
+import com.campuspulse.dto.StudentProfileForm;
 import com.campuspulse.dto.StudentRegisterForm;
 import com.campuspulse.model.Student;
 import com.campuspulse.repository.StudentRepository;
@@ -156,6 +157,51 @@ public class StudentService {
         }
 
         return studentRepository.save(moderator);
+    }
+
+    /**
+     * Updates permitted profile fields (fullName, department) for an authenticated student.
+     * All security-critical and ownership fields (email, studentId, role, password, createdAt)
+     * are strictly immutable and protected from alteration.
+     *
+     * @param email authenticated student email from security principal
+     * @param form validated profile update DTO
+     * @return persisted and updated Student entity
+     * @throws IllegalArgumentException if student is not found or validation constraints fail
+     */
+    @Transactional
+    public Student updateProfile(String email, StudentProfileForm form) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Authenticated student email is required.");
+        }
+        if (form == null) {
+            throw new IllegalArgumentException("Profile form cannot be null.");
+        }
+
+        String normalizedEmail = email.trim().toLowerCase();
+        Student student = studentRepository.findByEmailIgnoreCase(normalizedEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Student account not found."));
+
+        if (form.getFullName() == null || form.getFullName().trim().isBlank()) {
+            throw new IllegalArgumentException("Full name is required.");
+        }
+
+        String trimmedName = form.getFullName().trim();
+        if (trimmedName.length() < 2 || trimmedName.length() > 100) {
+            throw new IllegalArgumentException("Full name must be between 2 and 100 characters.");
+        }
+
+        student.setFullName(trimmedName);
+
+        if (form.getDepartment() != null && !form.getDepartment().isBlank()) {
+            student.setDepartment(form.getDepartment().trim());
+        } else {
+            student.setDepartment(null);
+        }
+
+        Student saved = studentRepository.save(student);
+        log.info("Student profile successfully updated for account id={}, email={}", saved.getId(), maskEmail(saved.getEmail()));
+        return saved;
     }
 
     private String maskEmail(String email) {

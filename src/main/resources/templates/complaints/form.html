@@ -34,9 +34,17 @@
                     <li><a th:href="@{/}" href="/" class="nav-link">Home</a></li>
                     <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Grievance Registry</a></li>
                     <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Track Status</a></li>
+                    <li><a th:href="@{/student/profile}" href="/student/profile" class="nav-link" id="nav-student-profile-link">My Profile</a></li>
                 </ul>
 
                 <div class="nav-actions">
+                    <a th:href="@{/student/profile}" href="/student/profile" class="btn btn-outline btn-sm" id="btn-student-profile-nav" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        Profile
+                    </a>
                     <a th:href="@{/}" href="/" class="btn btn-outline btn-sm">
                         &larr; Return to Home
                     </a>
