@@ -102,6 +102,15 @@ Traditional campus grievance processes suffer from critical structural weaknesse
 - **Error Taxonomy:** Distinguishes transient transport glitches (eligible for retry) from permanent errors (e.g., malformed recipient addresses or non-retryable 5xx failures).
 - **Automated SLA Escalation Worker:** Schedulers monitor pending response and resolution deadlines, triggering escalation records (`escalation_audit`) and dispatching admin alerts when service windows are breached.
 
+### Secure Password Recovery & Account Security
+- **Anti-Enumeration Architecture (`/forgot-password`):** Returns identical generic feedback whether an email exists or not, preventing attackers from probing for registered accounts.
+- **Cryptographic Single-Use Tokens:** Uses `SecureRandom` to generate 256 bits of entropy. Only the SHA-256 hash is persisted in the database; plaintext tokens are never stored and never logged.
+- **15-Minute Expiration & Atomic Consumption:** Strict 15-minute token lifecycle. Atomic database updates prevent race conditions and token reuse across concurrent requests.
+- **Sliding-Window Rate Limiting:** Enforces independent request thresholds by target email and requester IP address to eliminate email flooding and brute-force probing.
+- **Strong BCrypt Hashing & Role Preservation:** Passwords validated with minimum 8 characters and encoded with BCrypt. Account roles (`ROLE_STUDENT`, `ROLE_MODERATOR`, `ROLE_ADMIN`) and account details are strictly preserved during reset.
+- **Immediate Session Invalidation:** Active HTTP sessions for the account are expired immediately via `SessionRegistry` upon successful reset, ensuring stolen sessions cannot remain active.
+- **Environment Admin Governance:** Environment-configured administrative accounts maintain immutability and require configuration rotation, while database accounts enjoy secure self-service recovery.
+
 ---
 
 ## 4. Technology Stack

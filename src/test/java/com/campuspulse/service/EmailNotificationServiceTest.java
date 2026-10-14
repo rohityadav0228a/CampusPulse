@@ -273,4 +273,77 @@ class EmailNotificationServiceTest {
         assertThrows(IllegalArgumentException.class, () ->
                 emailNotificationService.sendSubmissionConfirmation("student@test.edu", "   "));
     }
+
+    @Test
+    @DisplayName("sendPasswordResetEmail constructs and dispatches valid MIME message with reset URL and subject")
+    void sendPasswordResetEmailDispatchesMimeMessage() throws Exception {
+        Session session = Session.getInstance(new Properties());
+        MimeMessage mimeMessage = new MimeMessage(session);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        String resetUrl = "https://campuspulse.edu/reset-password?token=0123456789abcdef0123456789abcdef";
+        emailNotificationService.sendPasswordResetEmail(
+                "user@campuspulse.edu",
+                resetUrl,
+                15
+        );
+
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender, times(1)).send(captor.capture());
+
+        MimeMessage sentMessage = captor.getValue();
+        assertNotNull(sentMessage);
+
+        Address[] recipients = sentMessage.getAllRecipients();
+        assertNotNull(recipients);
+        assertEquals(1, recipients.length);
+        assertEquals("user@campuspulse.edu", recipients[0].toString());
+
+        assertTrue(sentMessage.getSubject().contains("Password Reset Request"));
+    }
+
+    @Test
+    @DisplayName("buildHtmlPasswordResetEmail contains reset link, branding, CTA button, and 15-minute expiry")
+    void buildHtmlPasswordResetEmailContainsRequiredContent() {
+        String resetUrl = "https://campuspulse.edu/reset-password?token=abcdef1234567890";
+        String html = emailNotificationService.buildHtmlPasswordResetEmail(resetUrl, 15);
+
+        assertNotNull(html);
+        assertTrue(html.contains("Campus<span style=\"color: #38bdf8;\">Pulse</span>"));
+        assertTrue(html.contains("Password Reset Request"));
+        assertTrue(html.contains(resetUrl));
+        assertTrue(html.contains("Reset My Password"));
+        assertTrue(html.contains("15 minutes"));
+        assertTrue(html.contains("single-use"));
+    }
+
+    @Test
+    @DisplayName("buildPlainTextPasswordResetEmail contains plain text reset link and security notice")
+    void buildPlainTextPasswordResetEmailContainsRequiredContent() {
+        String resetUrl = "https://campuspulse.edu/reset-password?token=abcdef1234567890";
+        String text = emailNotificationService.buildPlainTextPasswordResetEmail(resetUrl, 15);
+
+        assertNotNull(text);
+        assertTrue(text.contains("Password Reset Request"));
+        assertTrue(text.contains(resetUrl));
+        assertTrue(text.contains("15 minutes"));
+        assertTrue(text.contains("single-use"));
+    }
+
+    @Test
+    @DisplayName("sendPasswordResetEmail propagates MailException when SMTP delivery fails")
+    void sendPasswordResetEmailPropagatesMailException() {
+        Session session = Session.getInstance(new Properties());
+        MimeMessage mimeMessage = new MimeMessage(session);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        doThrow(new MailSendException("SMTP server connection timeout")).when(mailSender).send(any(MimeMessage.class));
+
+        assertThrows(MailSendException.class, () ->
+                emailNotificationService.sendPasswordResetEmail(
+                        "user@campuspulse.edu",
+                        "https://campuspulse.edu/reset-password?token=test1234",
+                        15
+                )
+        );
+    }
 }

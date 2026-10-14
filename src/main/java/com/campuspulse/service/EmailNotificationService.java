@@ -497,6 +497,141 @@ public class EmailNotificationService {
     }
 
     /**
+     * Sends a secure password reset email containing a time-limited reset link.
+     * Never includes passwords or unmasked credentials in logs or messages.
+     *
+     * @param recipientEmail destination email address
+     * @param resetUrl fully qualified password reset URL containing the secure raw token
+     * @param expiryMinutes token lifespan in minutes
+     * @throws org.springframework.mail.MailException if SMTP dispatch fails
+     */
+    public void sendPasswordResetEmail(String recipientEmail, String resetUrl, int expiryMinutes) {
+        if (recipientEmail == null || recipientEmail.isBlank()) {
+            throw new IllegalArgumentException("Recipient email must not be blank");
+        }
+        if (resetUrl == null || resetUrl.isBlank()) {
+            throw new IllegalArgumentException("Reset URL must not be blank");
+        }
+
+        String subject = "[CampusPulse] Password Reset Request";
+        String htmlContent = buildHtmlPasswordResetEmail(resetUrl, expiryMinutes);
+        String plainTextContent = buildPlainTextPasswordResetEmail(resetUrl, expiryMinutes);
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+
+            helper.setFrom(mailFrom);
+            helper.setTo(recipientEmail.trim());
+            helper.setSubject(subject);
+            helper.setText(plainTextContent, htmlContent);
+
+            log.info("Dispatching password reset email to {}", maskEmail(recipientEmail));
+
+            mailSender.send(message);
+
+            log.info("Successfully delivered password reset email to {}", maskEmail(recipientEmail));
+        } catch (MessagingException ex) {
+            log.error("Failed to construct MIME email message for password reset to {}: {}",
+                    maskEmail(recipientEmail), ex.getMessage());
+            throw new org.springframework.mail.MailSendException("Failed to construct password reset email message", ex);
+        }
+    }
+
+    /**
+     * Builds responsive HTML password reset email using inline styles and CampusPulse navy/indigo styling.
+     */
+    String buildHtmlPasswordResetEmail(String resetUrl, int expiryMinutes) {
+        return "<!DOCTYPE html>\n"
+                + "<html lang=\"en\">\n"
+                + "<head>\n"
+                + "  <meta charset=\"UTF-8\">\n"
+                + "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+                + "  <title>CampusPulse Password Reset Request</title>\n"
+                + "</head>\n"
+                + "<body style=\"margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.5;\">\n"
+                + "  <table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"background-color: #f8fafc; padding: 32px 16px;\">\n"
+                + "    <tr>\n"
+                + "      <td align=\"center\">\n"
+                + "        <table role=\"presentation\" width=\"100%\" style=\"max-width: 580px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0;\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\">\n"
+                + "          <!-- Header Banner -->\n"
+                + "          <tr>\n"
+                + "            <td style=\"background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 28px 32px; text-align: left;\">\n"
+                + "              <div style=\"color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.02em;\">\n"
+                + "                Campus<span style=\"color: #38bdf8;\">Pulse</span>\n"
+                + "              </div>\n"
+                + "              <div style=\"color: #94a3b8; font-size: 13px; margin-top: 4px; font-weight: 500;\">\n"
+                + "                Campus Grievance &amp; Feedback Management System\n"
+                + "              </div>\n"
+                + "            </td>\n"
+                + "          </tr>\n"
+                + "          <!-- Card Content -->\n"
+                + "          <tr>\n"
+                + "            <td style=\"padding: 32px;\">\n"
+                + "              <h2 style=\"font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px;\">\n"
+                + "                Password Reset Request\n"
+                + "              </h2>\n"
+                + "              <p style=\"font-size: 14px; color: #475569; margin: 0 0 20px 0;\">\n"
+                + "                We received a request to reset the password for your CampusPulse account. Click the button below to choose a new password:\n"
+                + "              </p>\n"
+                + "              <!-- CTA Button -->\n"
+                + "              <div style=\"text-align: center; margin: 28px 0 24px 0;\">\n"
+                + "                <a href=\"" + resetUrl + "\" target=\"_blank\" style=\"display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);\">\n"
+                + "                  Reset My Password &rarr;\n"
+                + "                </a>\n"
+                + "              </div>\n"
+                + "              <!-- Fallback Link -->\n"
+                + "              <p style=\"font-size: 12px; color: #64748b; line-height: 1.5; margin: 0 0 20px 0;\">\n"
+                + "                If the button above does not work, copy and paste this link into your browser:<br>\n"
+                + "                <a href=\"" + resetUrl + "\" style=\"color: #2563eb; word-break: break-all;\">" + resetUrl + "</a>\n"
+                + "              </p>\n"
+                + "              <!-- Expiry & Security Notice -->\n"
+                + "              <div style=\"background-color: #f8fafc; border-radius: 8px; border-left: 4px solid #6366f1; padding: 14px 18px; margin-bottom: 20px;\">\n"
+                + "                <div style=\"font-size: 12px; font-weight: 700; color: #1e3a8a; margin-bottom: 4px;\">Important Security Information:</div>\n"
+                + "                <ul style=\"font-size: 12px; color: #475569; margin: 0; padding-left: 18px; line-height: 1.6;\">\n"
+                + "                  <li>This single-use password reset link will expire in <strong>" + expiryMinutes + " minutes</strong> and can only be used once.</li>\n"
+                + "                  <li>If you did not request this reset, you can safely ignore this email; your current password remains unchanged.</li>\n"
+                + "                  <li>Never forward or share this email or link with anyone.</li>\n"
+                + "                </ul>\n"
+                + "              </div>\n"
+                + "            </td>\n"
+                + "          </tr>\n"
+                + "          <!-- Footer -->\n"
+                + "          <tr>\n"
+                + "            <td style=\"background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 32px; text-align: center; font-size: 11px; color: #94a3b8;\">\n"
+                + "              &copy; CampusPulse &bull; Campus Grievance and Feedback Management System<br>\n"
+                + "              This is an automated security notification. Please do not reply directly to this email.\n"
+                + "            </td>\n"
+                + "          </tr>\n"
+                + "        </table>\n"
+                + "      </td>\n"
+                + "    </tr>\n"
+                + "  </table>\n"
+                + "</body>\n"
+                + "</html>";
+    }
+
+    /**
+     * Builds clean, legible plain-text password reset email fallback.
+     */
+    String buildPlainTextPasswordResetEmail(String resetUrl, int expiryMinutes) {
+        return "CampusPulse Grievance & Feedback System\n"
+                + "==================================================\n\n"
+                + "Password Reset Request\n\n"
+                + "We received a request to reset the password for your CampusPulse account.\n"
+                + "Visit the link below to choose a new password:\n\n"
+                + resetUrl + "\n\n"
+                + "Security Information:\n"
+                + "- This reset link is single-use and will expire in " + expiryMinutes + " minutes.\n"
+                + "- If you did not request a password reset, you can safely ignore this email.\n"
+                + "- Your existing password will not change until you create a new one.\n"
+                + "- Never share this link with anyone.\n\n"
+                + "--------------------------------------------------\n"
+                + "CampusPulse - Campus Grievance Management System\n"
+                + "This is an automated message. Please do not reply directly to this email.\n";
+    }
+
+    /**
      * Masks email address for safe logging without exposing personal data.
      */
     private String maskEmail(String email) {

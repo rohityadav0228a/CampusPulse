@@ -32,6 +32,18 @@ class CampuspulseApplicationTests {
     @Autowired
     private ComplaintService complaintService;
 
+    @Autowired
+    private com.campuspulse.service.PasswordResetService passwordResetService;
+
+    @Autowired
+    private com.campuspulse.service.StudentService studentService;
+
+    @Autowired
+    private com.campuspulse.repository.PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
     @Test
     void contextLoads() {
         assertThat(complaintService).isNotNull();
@@ -110,5 +122,72 @@ class CampuspulseApplicationTests {
         assertThat(fullHistory.get(4).getNote()).contains("Priority updated");
         assertThat(fullHistory.get(5).getNewStatus()).isEqualTo(ComplaintStatus.RESOLVED);
         assertThat(fullHistory.get(6).getNote()).contains("Resolution note corrected");
+    }
+
+    @Test
+    @DisplayName("End-to-End Password Recovery Lifecycle: Request, Hash Storage, Atomic Consumption, BCrypt Update, Single-Use Invalidation")
+    void verifyPasswordRecoveryEndToEndWorkflow() {
+        // 1. Provision a student account
+        com.campuspulse.dto.StudentRegisterForm registerForm = new com.campuspulse.dto.StudentRegisterForm(
+                "Jane Doe",
+                "jane.recovery@campuspulse.edu",
+                "STU-REC-01",
+                "InitialPass123!",
+                "InitialPass123!"
+        );
+        com.campuspulse.model.Student registeredStudent = studentService.registerStudent(registerForm);
+        assertThat(registeredStudent).isNotNull();
+        assertThat(passwordEncoder.matches("InitialPass123!", registeredStudent.getPassword())).isTrue();
+
+        // 2. Request password reset
+        passwordResetService.requestPasswordReset("jane.recovery@campuspulse.edu", "127.0.0.1");
+
+        // 3. Inspect token in database
+        java.util.List<com.campuspulse.model.PasswordResetToken> activeTokens =
+                passwordResetTokenRepository.findByEmailIgnoreCaseAndUsedFalse("jane.recovery@campuspulse.edu");
+        assertThat(activeTokens).hasSize(1);
+        com.campuspulse.model.PasswordResetToken tokenRecord = activeTokens.get(0);
+        assertThat(tokenRecord.getTokenHash()).hasSize(64);
+        assertThat(tokenRecord.isUsed()).isFalse();
+        assertThat(tokenRecord.isValid()).isTrue();
+
+        // 4. Validate bad token rejects
+        assertThat(passwordResetService.isTokenValid("non-existent-raw-token")).isFalse();
+
+        // 5. Simulate reset execution using the saved token record hash
+        // (For testing reset execution directly via atomic consumption, we pass the raw token if known,
+        // or execute resetPassword with the corresponding raw token generated)
+        byte[] dummyBytes = new byte[32];
+        new java.security.SecureRandom().nextBytes(dummyBytes);
+        String testRawToken = java.util.HexFormat.of().formatHex(dummyBytes);
+        String testHash = passwordResetService.hashToken(testRawToken);
+
+        com.campuspulse.model.PasswordResetToken directToken = new com.campuspulse.model.PasswordResetToken(
+                testHash,
+                "jane.recovery@campuspulse.edu",
+                registeredStudent.getId(),
+                LocalDateTime.now().plusMinutes(15),
+                "127.0.0.1"
+        );
+        passwordResetTokenRepository.save(directToken);
+
+        assertThat(passwordResetService.isTokenValid(testRawToken)).isTrue();
+
+        // 6. Reset password with new password
+        com.campuspulse.model.Student updatedStudent = passwordResetService.resetPassword(testRawToken, "BrandNewSecurePass789!");
+        assertThat(updatedStudent).isNotNull();
+        assertThat(passwordEncoder.matches("BrandNewSecurePass789!", updatedStudent.getPassword())).isTrue();
+        assertThat(passwordEncoder.matches("InitialPass123!", updatedStudent.getPassword())).isFalse();
+        assertThat(updatedStudent.getRole()).isEqualTo("ROLE_STUDENT");
+
+        // 7. Verify token was atomically consumed
+        com.campuspulse.model.PasswordResetToken consumedToken = passwordResetTokenRepository.findByTokenHash(testHash).orElseThrow();
+        assertThat(consumedToken.isUsed()).isTrue();
+        assertThat(consumedToken.getUsedAt()).isNotNull();
+        assertThat(passwordResetService.isTokenValid(testRawToken)).isFalse();
+
+        // 8. Verify token reuse is strictly rejected
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () ->
+                passwordResetService.resetPassword(testRawToken, "AnotherPassword123!"));
     }
 }

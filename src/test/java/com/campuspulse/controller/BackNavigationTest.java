@@ -16,6 +16,7 @@ import com.campuspulse.service.AiClassifierService;
 import com.campuspulse.service.AnalyticsService;
 import com.campuspulse.service.ComplaintService;
 import com.campuspulse.service.InsightsService;
+import com.campuspulse.service.PasswordResetService;
 import com.campuspulse.service.SlaEscalationService;
 import com.campuspulse.service.StudentService;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +57,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AdminAnalyticsController.class,
         AdminInsightsController.class,
         ModeratorComplaintController.class,
-        AdminUserController.class
+        AdminUserController.class,
+        PasswordResetController.class
 })
 @Import(SecurityConfig.class)
 @TestPropertySource(properties = {
@@ -91,6 +93,9 @@ class BackNavigationTest {
 
     @MockitoBean
     private com.campuspulse.service.UserManagementService userManagementService;
+
+    @MockitoBean
+    private PasswordResetService passwordResetService;
 
     @BeforeEach
     void setUp() {
@@ -335,5 +340,29 @@ class BackNavigationTest {
                 .andExpect(content().string(containsString("data-back-button=\"true\"")))
                 .andExpect(content().string(containsString("data-fallback=\"/admin/complaints\"")))
                 .andExpect(content().string(containsString("Back to Admin Dashboard")));
+    }
+
+    @Test
+    @DisplayName("Forgot password page (/forgot-password) renders Back button with fallback to /login")
+    void forgotPasswordHasBackButton() throws Exception {
+        mockMvc.perform(get("/forgot-password"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("btn-back")))
+                .andExpect(content().string(containsString("data-back-button=\"true\"")))
+                .andExpect(content().string(containsString("data-fallback=\"/login\"")))
+                .andExpect(content().string(containsString("Back to Sign In")));
+    }
+
+    @Test
+    @DisplayName("Reset password page (/reset-password) renders Back button with fallback to /login")
+    void resetPasswordHasBackButton() throws Exception {
+        when(passwordResetService.isTokenValid("nav-test-token")).thenReturn(true);
+
+        mockMvc.perform(get("/reset-password").param("token", "nav-test-token"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("btn-back")))
+                .andExpect(content().string(containsString("data-back-button=\"true\"")))
+                .andExpect(content().string(containsString("data-fallback=\"/login\"")))
+                .andExpect(content().string(containsString("Back to Sign In")));
     }
 }

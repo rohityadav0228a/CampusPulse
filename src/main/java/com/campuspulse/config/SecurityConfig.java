@@ -149,7 +149,9 @@ public class SecurityConfig {
                                 "/complaints/success/**",
                                 "/login",
                                 "/student/login",
-                                "/student/register"
+                                "/student/register",
+                                "/forgot-password",
+                                "/reset-password"
                         ).permitAll()
                         // Any remaining request requires authentication
                         .anyRequest().authenticated()

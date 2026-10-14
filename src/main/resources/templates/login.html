@@ -97,6 +97,20 @@
                     </div>
                 </div>
 
+                <!-- Password Reset Success Banner -->
+                <div th:if="${param.reset != null or successMessage != null}" class="alert-banner alert-success" role="status" id="login-reset-alert">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px;">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <div>
+                        <strong style="display: block; font-weight: 700; margin-bottom: 0.15rem;">Password Updated</strong>
+                        <span th:text="${successMessage != null ? successMessage : 'Your password has been successfully reset. Please sign in below.'}">
+                            Your password has been successfully reset. Please sign in below.
+                        </span>
+                    </div>
+                </div>
+
                 <!-- Login Form -->
                 <form th:action="@{/login}" method="post" id="admin-login-form">
                     <div class="form-group">
@@ -116,9 +130,14 @@
                     </div>
 
                     <div class="form-group" style="margin-bottom: 1.75rem;">
-                        <label for="password" class="form-label">
-                            Password <span class="required" aria-hidden="true">*</span>
-                        </label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                            <label for="password" class="form-label" style="margin-bottom: 0;">
+                                Password <span class="required" aria-hidden="true">*</span>
+                            </label>
+                            <a th:href="@{/forgot-password}" href="/forgot-password" style="font-size: 0.8125rem; color: var(--indigo-500); font-weight: 500; text-decoration: none;" id="link-admin-forgot-password">
+                                Forgot password?
+                            </a>
+                        </div>
                         <input
                             type="password"
                             id="password"
