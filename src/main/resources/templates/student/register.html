@@ -46,6 +46,11 @@
     <main class="section section-alt" style="flex: 1; display: flex; align-items: center; padding: 3.5rem 0;">
         <div class="container" style="max-width: 500px;">
 
+            <!-- Back Navigation -->
+            <div style="margin-bottom: 1.25rem;">
+                <div th:replace="~{fragments/navigation :: backButton(fallbackUrl=@{/student/login}, label='Back to Sign In')}"></div>
+            </div>
+
             <!-- Registration Card -->
             <div class="form-card" style="padding: 2.5rem 2.25rem;">
 

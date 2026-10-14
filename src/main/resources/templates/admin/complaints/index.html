@@ -56,12 +56,15 @@
     <main class="section">
         <div class="container">
 
-            <!-- Breadcrumbs -->
-            <nav class="breadcrumb" aria-label="Breadcrumb">
-                <a th:href="@{/}" href="/">Home</a>
-                <span class="breadcrumb-sep">&gt;</span>
-                <span aria-current="page">Admin Complaints Dashboard</span>
-            </nav>
+            <!-- Top Navigation: Back Button & Breadcrumbs -->
+            <div class="top-nav-bar">
+                <div th:replace="~{fragments/navigation :: backButton(fallbackUrl=@{/}, label='Back to Home')}"></div>
+                <nav class="breadcrumb" aria-label="Breadcrumb">
+                    <a th:href="@{/}" href="/">Home</a>
+                    <span class="breadcrumb-sep">&gt;</span>
+                    <span aria-current="page">Admin Complaints Dashboard</span>
+                </nav>
+            </div>
 
             <div class="page-header-row">
                 <div>

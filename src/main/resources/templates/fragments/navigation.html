@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Navigation Fragments</title>
+</head>
+<body>
+
+    <!--
+        ========================================================================
+        Reusable Global Back Navigation Button
+        ========================================================================
+        Provides a consistent, accessible Back navigation button.
+        - When safe same-origin browser history exists, navigates back in history,
+          preserving query parameters, search filters, and pagination state.
+        - When history is unavailable, external, or loop-prone, falls back to
+          the specified safe, role-appropriate fallbackUrl.
+        - Completely accessible with SVG icon, text label, visible keyboard focus,
+          and touch-friendly touch target.
+        - Type is a link (or button type="button") to never trigger form submissions.
+
+        Parameters:
+            - fallbackUrl: Safe URL destination if history cannot be safely used (defaults to '/')
+            - label: Text displayed on the button (defaults to 'Back')
+    -->
+    <div th:fragment="backButton(fallbackUrl, label)" class="back-nav-item">
+        <a th:href="${fallbackUrl != null ? fallbackUrl : '/'}"
+           class="btn btn-back"
+           data-back-button="true"
+           th:attr="data-fallback=${fallbackUrl != null ? fallbackUrl : '/'}, data-force-fallback='false'"
+           th:aria-label="${label != null ? 'Go back: ' + label : 'Go back to previous page'}"
+           role="button">
+            <svg class="btn-back-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span class="btn-back-text" th:text="${label != null ? label : 'Back'}">Back</span>
+        </a>
+        <script th:src="@{/js/back-navigation.js}" src="/js/back-navigation.js"></script>
+    </div>
+
+    <!--
+        Direct Back Button (Bypasses history and navigates directly to fallbackUrl)
+        Used for success confirmation pages, authentication forms, or terminal states.
+    -->
+    <div th:fragment="backButtonDirect(fallbackUrl, label)" class="back-nav-item">
+        <a th:href="${fallbackUrl != null ? fallbackUrl : '/'}"
+           class="btn btn-back"
+           data-back-button="true"
+           th:attr="data-fallback=${fallbackUrl != null ? fallbackUrl : '/'}, data-force-fallback='true'"
+           th:aria-label="${label != null ? 'Go back: ' + label : 'Go back to previous page'}"
+           role="button">
+            <svg class="btn-back-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span class="btn-back-text" th:text="${label != null ? label : 'Back'}">Back</span>
+        </a>
+        <script th:src="@{/js/back-navigation.js}" src="/js/back-navigation.js"></script>
+    </div>
+
+</body>
+</html>
