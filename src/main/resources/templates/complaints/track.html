@@ -252,6 +252,165 @@
                     </div>
                 </div>
 
+                <!-- Feedback Success Alert Banner -->
+                <div class="alert-banner alert-success" th:if="${feedbackSuccessMessage != null}" role="alert" id="feedback-success-banner" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: #16a34a;">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <span th:text="${feedbackSuccessMessage}">
+                        Thank you! Your resolution feedback has been recorded successfully.
+                    </span>
+                </div>
+
+                <!-- Feedback Error Alert Banner -->
+                <div class="alert-banner alert-error" th:if="${feedbackErrorMessage}" role="alert" id="feedback-error-banner" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span th:text="${feedbackErrorMessage}">Feedback submission error.</span>
+                </div>
+
+                <!-- Submitted Student Resolution Feedback Display (Visible Only to Verified Student Owner) -->
+                <div class="student-feedback-card" id="submitted-feedback-card" th:if="${isOwner and feedbackSubmitted and feedback != null}">
+                    <div class="feedback-header">
+                        <div class="feedback-header-left">
+                            <span class="feedback-icon-wrap" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="#fbbf24" stroke="#d97706" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                            </span>
+                            <div>
+                                <h3 class="feedback-title">Your Resolution Feedback</h3>
+                                <p class="feedback-subtitle" th:if="${feedback.createdAt != null}">
+                                    Submitted on <strong th:text="${#temporals.format(feedback.createdAt, 'dd MMMM yyyy, hh:mm a')}">Date</strong>
+                                </p>
+                            </div>
+                        </div>
+                        <span class="trend-badge" style="background: #ecfdf5; color: #065f46; font-size: 0.775rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: var(--radius-full); border: 1px solid #a7f3d0;">
+                            Feedback Recorded
+                        </span>
+                    </div>
+
+                    <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="font-size: 1.15rem; font-weight: 700; color: var(--navy-900);">Your Rating:</span>
+                        <span style="font-size: 1.35rem; color: #fbbf24; letter-spacing: 2px;" aria-hidden="true">
+                            <span th:each="star : ${#numbers.sequence(1, feedback.rating)}">★</span>
+                        </span>
+                        <span style="font-weight: 600; color: var(--navy-700);" id="submitted-rating-text" th:text="${feedback.rating} + ' out of 5 stars'">5 out of 5 stars</span>
+                    </div>
+
+                    <div th:if="${feedback.comment != null and !#strings.isEmpty(feedback.comment)}" style="margin-top: 0.75rem;">
+                        <span style="font-size: 0.825rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--navy-500); display: block;">Your Written Comments:</span>
+                        <p class="feedback-submitted-quote" id="submitted-feedback-comment" th:text="${feedback.comment}">
+                            Student resolution feedback comment text.
+                        </p>
+                    </div>
+
+                    <div class="feedback-privacy-note">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <span>Confidential student review — Your comments remain private and are excluded from the public grievance registry.</span>
+                    </div>
+                </div>
+
+                <!-- Resolution Feedback Submission Form (Visible Only to Verified Student Owner for Resolved Grievances) -->
+                <div class="student-feedback-card" id="feedback-form-card" th:if="${isOwner and canSubmitFeedback}">
+                    <div class="feedback-header">
+                        <div class="feedback-header-left">
+                            <span class="feedback-icon-wrap" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="#fbbf24" stroke="#d97706" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                            </span>
+                            <div>
+                                <h3 class="feedback-title">Rate the Resolution Quality</h3>
+                                <p class="feedback-subtitle">
+                                    How satisfied are you with the outcome and timeliness of this grievance resolution?
+                                </p>
+                            </div>
+                        </div>
+                        <span class="trend-badge" style="background: #fef3c7; color: #92400e; font-size: 0.775rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: var(--radius-full); border: 1px solid #fde68a;">
+                            Verified Submitter
+                        </span>
+                    </div>
+
+                    <form th:action="@{/complaints/{ref}/feedback(ref=${complaint.referenceId})}"
+                          method="post"
+                          th:object="${feedbackForm}"
+                          id="resolution-feedback-form">
+
+                        <!-- Rating Selection (1 to 5 Stars) -->
+                        <div class="form-group" style="margin-bottom: 1.25rem;">
+                            <label class="form-label" style="font-weight: 600; color: var(--navy-800);">
+                                Star Rating <span class="required-indicator" aria-hidden="true" style="color: #dc2626;">*</span>
+                            </label>
+                            <div class="star-rating-group" role="radiogroup" aria-label="Satisfaction Star Rating">
+                                <label th:each="r : ${#numbers.sequence(1, 5)}" class="star-option" th:for="${'rating-' + r}">
+                                    <input type="radio"
+                                           th:id="${'rating-' + r}"
+                                           name="rating"
+                                           th:value="${r}"
+                                           th:field="*{rating}"
+                                           required>
+                                    <span style="color: #fbbf24; font-size: 1.1rem;" aria-hidden="true">★</span>
+                                    <span th:text="${r == 1 ? '1 Star - Very Poor' : (r == 2 ? '2 Stars - Poor' : (r == 3 ? '3 Stars - Average' : (r == 4 ? '4 Stars - Good' : '5 Stars - Excellent')))}">5 Stars</span>
+                                </label>
+                            </div>
+                            <span th:if="${#fields.hasErrors('rating')}" th:errors="*{rating}" class="field-error" style="color: #dc2626; font-size: 0.8rem; display: block; margin-top: 0.25rem;">
+                                Please select a rating between 1 and 5 stars.
+                            </span>
+                        </div>
+
+                        <!-- Optional Written Feedback Comment -->
+                        <div class="form-group" style="margin-bottom: 1.25rem;">
+                            <label for="feedback-comment" class="form-label" style="font-weight: 600; color: var(--navy-800);">
+                                Written Feedback <span style="font-weight: 400; color: var(--navy-500); font-size: 0.85rem;">(Optional, maximum 1,000 characters)</span>
+                            </label>
+                            <textarea id="feedback-comment"
+                                      th:field="*{comment}"
+                                      class="feedback-comment-box"
+                                      rows="3"
+                                      maxlength="1000"
+                                      placeholder="Share your thoughts on how this issue was resolved, the communication, or any remaining concerns..."></textarea>
+                            <span th:if="${#fields.hasErrors('comment')}" th:errors="*{comment}" class="field-error" style="color: #dc2626; font-size: 0.8rem; display: block; margin-top: 0.25rem;">
+                                Feedback comment cannot exceed 1,000 characters.
+                            </span>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                            <div class="feedback-privacy-note" style="margin: 0;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                                <span>Ratings are aggregated for campus analytics. Your written comments remain strictly private.</span>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="btn-submit-feedback">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Submit Resolution Feedback
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Subtle Sign-in Prompt for Submitter when Not Logged In -->
+                <div class="alert-banner" th:if="${!isOwner and complaint.status.name() == 'RESOLVED' and (isAuthenticated == null or !isAuthenticated)}"
+                     style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-top: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#fbbf24" stroke="#d97706" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    <span style="font-size: 0.9rem; color: var(--navy-700);">
+                        Did you submit this grievance? <a th:href="@{/student/login}" style="color: var(--blue-600); font-weight: 700; text-decoration: underline;">Sign in to your student account</a> to rate the resolution quality.
+                    </span>
+                </div>
+
                 <!-- Recorded Status History Timeline -->
                 <div class="student-timeline-section" id="student-timeline-section">
                     <div class="student-timeline-header">

@@ -64,6 +64,7 @@ public class AdminAnalyticsController {
 
         model.addAttribute("analytics", data);
         model.addAttribute("summary", data.summary());
+        model.addAttribute("feedbackMetrics", data.feedbackMetrics());
         model.addAttribute("categories", complaintService.getAllowedCategories());
         model.addAttribute("statuses", ComplaintStatus.values());
         model.addAttribute("selectedStatus", selectedStatus != null ? selectedStatus.name() : "");

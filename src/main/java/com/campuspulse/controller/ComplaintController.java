@@ -29,6 +29,17 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import com.campuspulse.dto.ComplaintFeedbackForm;
+import com.campuspulse.model.ComplaintFeedback;
+import com.campuspulse.model.ComplaintStatus;
+import com.campuspulse.service.ComplaintFeedbackService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.Optional;
+
 /**
  * Controller handling student grievance submission, viewing, tracking, and AI category suggestions.
  */
@@ -41,10 +52,19 @@ public class ComplaintController {
 
     private final ComplaintService complaintService;
     private final AiClassifierService aiClassifierService;
+    private final ComplaintFeedbackService feedbackService;
 
     public ComplaintController(ComplaintService complaintService, AiClassifierService aiClassifierService) {
+        this(complaintService, aiClassifierService, null);
+    }
+
+    @Autowired
+    public ComplaintController(ComplaintService complaintService,
+                               AiClassifierService aiClassifierService,
+                               @Autowired(required = false) ComplaintFeedbackService feedbackService) {
         this.complaintService = complaintService;
         this.aiClassifierService = aiClassifierService;
+        this.feedbackService = feedbackService;
     }
 
     /**
@@ -204,7 +224,16 @@ public class ComplaintController {
     @GetMapping("/track")
     public String trackComplaint(
             @RequestParam(name = "referenceId", required = false) String referenceId,
-            Model model) {
+            @RequestParam(name = "feedbackSuccess", required = false) Boolean feedbackSuccess,
+            Model model,
+            Authentication authentication) {
+
+        boolean isAuthed = (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName()));
+        model.addAttribute("isAuthenticated", isAuthed);
+
+        if (Boolean.TRUE.equals(feedbackSuccess) && !model.containsAttribute("feedbackSuccessMessage")) {
+            model.addAttribute("feedbackSuccessMessage", "Thank you! Your resolution feedback has been recorded successfully.");
+        }
 
         if (referenceId == null) {
             return "complaints/track";
@@ -232,10 +261,121 @@ public class ComplaintController {
                         complaint -> {
                             model.addAttribute("complaint", complaint);
                             model.addAttribute("statusHistory", complaintService.getStatusHistory(normalizedRef));
+
+                            // Feature 6: Check student ownership and resolution feedback status
+                            boolean isStudentOwner = false;
+                            if (isAuthed) {
+                                String userEmail = authentication.getName();
+                                boolean hasStudentRole = authentication.getAuthorities().stream()
+                                        .anyMatch(a -> "ROLE_STUDENT".equals(a.getAuthority()));
+                                if (hasStudentRole && userEmail != null && complaint.getStudentEmail() != null
+                                        && userEmail.trim().equalsIgnoreCase(complaint.getStudentEmail().trim())) {
+                                    isStudentOwner = true;
+                                }
+                            }
+                            model.addAttribute("isOwner", isStudentOwner);
+
+                            if (isStudentOwner && feedbackService != null) {
+                                boolean isResolvedAndActive = (complaint.getStatus() == ComplaintStatus.RESOLVED && !complaint.isDeleted());
+                                Optional<ComplaintFeedback> existingFeedback = feedbackService.getFeedbackForComplaint(complaint.getId());
+
+                                if (existingFeedback.isPresent()) {
+                                    model.addAttribute("feedbackSubmitted", true);
+                                    model.addAttribute("feedback", existingFeedback.get());
+                                    model.addAttribute("canSubmitFeedback", false);
+                                } else if (isResolvedAndActive) {
+                                    model.addAttribute("feedbackSubmitted", false);
+                                    model.addAttribute("canSubmitFeedback", true);
+                                    if (!model.containsAttribute("feedbackForm")) {
+                                        model.addAttribute("feedbackForm", new ComplaintFeedbackForm());
+                                    }
+                                } else {
+                                    model.addAttribute("feedbackSubmitted", false);
+                                    model.addAttribute("canSubmitFeedback", false);
+                                }
+                            } else {
+                                model.addAttribute("feedbackSubmitted", false);
+                                model.addAttribute("canSubmitFeedback", false);
+                            }
                         },
                         () -> model.addAttribute("notFound", true)
                 );
 
         return "complaints/track";
+    }
+
+    /**
+     * Handles student resolution feedback submission for a resolved complaint.
+     * Enforces authentication, student role, ownership verification, resolved status,
+     * non-deleted condition, and single submission constraint.
+     */
+    @PostMapping("/{referenceId}/feedback")
+    public String submitFeedback(
+            @PathVariable("referenceId") String referenceId,
+            @Valid @ModelAttribute("feedbackForm") ComplaintFeedbackForm feedbackForm,
+            BindingResult bindingResult,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+        return processFeedbackSubmission(referenceId, feedbackForm, bindingResult, authentication, redirectAttributes);
+    }
+
+    @PostMapping("/feedback")
+    public String submitFeedbackParam(
+            @RequestParam("referenceId") String referenceId,
+            @Valid @ModelAttribute("feedbackForm") ComplaintFeedbackForm feedbackForm,
+            BindingResult bindingResult,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+        return processFeedbackSubmission(referenceId, feedbackForm, bindingResult, authentication, redirectAttributes);
+    }
+
+    private String processFeedbackSubmission(
+            String referenceId,
+            ComplaintFeedbackForm feedbackForm,
+            BindingResult bindingResult,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/student/login";
+        }
+
+        boolean hasStudentRole = authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_STUDENT".equals(a.getAuthority()));
+        if (!hasStudentRole) {
+            throw new AccessDeniedException("Only authenticated students can submit resolution feedback.");
+        }
+
+        String principalEmail = authentication.getName();
+
+        if (bindingResult.hasErrors()) {
+            String errorMsg = bindingResult.getAllErrors().getFirst().getDefaultMessage();
+            redirectAttributes.addFlashAttribute("feedbackErrorMessage", errorMsg);
+            redirectAttributes.addFlashAttribute("feedbackForm", feedbackForm);
+            redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.feedbackForm", bindingResult);
+            return "redirect:/complaints/track?referenceId=" + referenceId;
+        }
+
+        try {
+            if (feedbackService != null) {
+                feedbackService.submitFeedback(referenceId, principalEmail, feedbackForm);
+            }
+            redirectAttributes.addFlashAttribute("feedbackSuccessMessage",
+                    "Thank you! Your resolution feedback has been recorded successfully.");
+            return "redirect:/complaints/track?referenceId=" + referenceId + "&feedbackSuccess=true";
+        } catch (AccessDeniedException ex) {
+            log.warn("Access denied submitting feedback for complaint {}: {}", referenceId, ex.getMessage());
+            throw ex;
+        } catch (IllegalStateException | IllegalArgumentException ex) {
+            log.warn("Feedback submission rejected for complaint {}: {}", referenceId, ex.getMessage());
+            redirectAttributes.addFlashAttribute("feedbackErrorMessage", ex.getMessage());
+            redirectAttributes.addFlashAttribute("feedbackForm", feedbackForm);
+            return "redirect:/complaints/track?referenceId=" + referenceId;
+        } catch (Exception ex) {
+            log.error("Unexpected error submitting feedback for complaint {}", referenceId, ex);
+            redirectAttributes.addFlashAttribute("feedbackErrorMessage",
+                    "An unexpected error occurred while saving your feedback. Please try again.");
+            return "redirect:/complaints/track?referenceId=" + referenceId;
+        }
     }
 }

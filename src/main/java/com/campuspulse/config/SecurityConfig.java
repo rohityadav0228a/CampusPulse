@@ -137,6 +137,8 @@ public class SecurityConfig {
                         .requestMatchers("/moderator/**").hasAnyRole("MODERATOR", "ADMIN")
                         // Protect authenticated student profile endpoints with STUDENT role only
                         .requestMatchers("/student/profile", "/student/profile/**").hasRole("STUDENT")
+                        // Protect complaint resolution feedback submission with STUDENT role only
+                        .requestMatchers("/complaints/*/feedback", "/complaints/feedback").hasRole("STUDENT")
                         // Allow public access to landing page, static assets, and student workflows
                         .requestMatchers(
                                 "/",

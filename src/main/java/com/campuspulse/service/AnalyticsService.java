@@ -5,6 +5,7 @@ import com.campuspulse.dto.analytics.AnalyticsSummary;
 import com.campuspulse.dto.analytics.CategoryBreakdown;
 import com.campuspulse.dto.analytics.DailyTrendPoint;
 import com.campuspulse.dto.analytics.DepartmentBreakdown;
+import com.campuspulse.dto.analytics.FeedbackMetrics;
 import com.campuspulse.model.ComplaintStatus;
 import com.campuspulse.repository.ComplaintRepository;
 import org.slf4j.Logger;
@@ -35,10 +36,19 @@ public class AnalyticsService {
 
     private final ComplaintRepository complaintRepository;
     private final ComplaintService complaintService;
+    private final ComplaintFeedbackService feedbackService;
 
     public AnalyticsService(ComplaintRepository complaintRepository, ComplaintService complaintService) {
+        this(complaintRepository, complaintService, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AnalyticsService(ComplaintRepository complaintRepository,
+                            ComplaintService complaintService,
+                            @org.springframework.beans.factory.annotation.Autowired(required = false) ComplaintFeedbackService feedbackService) {
         this.complaintRepository = complaintRepository;
         this.complaintService = complaintService;
+        this.feedbackService = feedbackService;
     }
 
     /**
@@ -68,6 +78,11 @@ public class AnalyticsService {
         // 4. Calculate Complaint Trend Points
         List<DailyTrendPoint> trendPoints = computeTrendPoints(status, effectiveCategory, startDate, effectiveDays);
 
+        // 5. Calculate Student Resolution Feedback Metrics
+        FeedbackMetrics feedbackMetrics = (feedbackService != null)
+                ? feedbackService.getFeedbackMetrics()
+                : FeedbackMetrics.empty();
+
         return new AnalyticsDashboardData(
                 summary,
                 categoryBreakdowns,
@@ -75,7 +90,8 @@ public class AnalyticsService {
                 trendPoints,
                 status != null ? status.name() : "",
                 effectiveCategory != null ? effectiveCategory : "",
-                effectiveDays != null ? effectiveDays : 0
+                effectiveDays != null ? effectiveDays : 0,
+                feedbackMetrics
         );
     }
 

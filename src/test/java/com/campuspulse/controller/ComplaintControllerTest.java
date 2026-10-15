@@ -53,6 +53,9 @@ class ComplaintControllerTest {
     @MockitoBean
     private AiClassifierService aiClassifierService;
 
+    @MockitoBean
+    private com.campuspulse.service.ComplaintFeedbackService feedbackService;
+
     private static final List<String> MOCK_CATEGORIES = List.of(
             "Academic Affairs",
             "Hostel & Residence",
