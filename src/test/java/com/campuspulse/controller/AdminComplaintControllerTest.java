@@ -24,6 +24,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -138,6 +139,9 @@ class AdminComplaintControllerTest {
                 "Hostel Administration"
         );
         complaint.setId(3L);
+        complaint.setHostelName("Hostel Block C");
+        complaint.setRoomNumber("301");
+        complaint.setFloorNumber("3rd Floor");
 
         ComplaintStatusHistory h1 = new ComplaintStatusHistory(
                 complaint,
@@ -167,6 +171,10 @@ class AdminComplaintControllerTest {
                 .andExpect(content().string(containsString("CP-2026-ADM00003")))
                 .andExpect(content().string(containsString("Water Cooler Contaminated")))
                 .andExpect(content().string(containsString("dispensing brownish water with odor.")))
+                .andExpect(content().string(containsString("Residential Location")))
+                .andExpect(content().string(containsString("Hostel Block C")))
+                .andExpect(content().string(containsString("301")))
+                .andExpect(content().string(containsString("3rd Floor")))
                 .andExpect(content().string(containsString("Status Audit History")))
                 .andExpect(content().string(containsString("STUDENT")))
                 .andExpect(content().string(containsString("warden_admin")))
@@ -175,6 +183,30 @@ class AdminComplaintControllerTest {
 
         verify(complaintService, times(1)).getByReferenceId("CP-2026-ADM00003");
         verify(complaintService, times(1)).getStatusHistory("CP-2026-ADM00003");
+    }
+
+    @Test
+    @DisplayName("GET /admin/complaints/{refId} does not display residential location section when hostel details are null")
+    void shouldNotDisplayHostelDetailsWhenNotPresent() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-ADM00003B",
+                "Library Book Damaged",
+                "Missing pages in library textbook.",
+                "Library & Study Spaces",
+                "Central Library Committee"
+        );
+        complaint.setId(30L);
+
+        when(complaintService.getByReferenceId("CP-2026-ADM00003B")).thenReturn(Optional.of(complaint));
+        when(complaintService.getStatusHistory("CP-2026-ADM00003B")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/admin/complaints/CP-2026-ADM00003B"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/complaints/detail"))
+                .andExpect(content().string(containsString("Library Book Damaged")))
+                .andExpect(content().string(not(containsString("Residential Location"))));
+
+        verify(complaintService, times(1)).getByReferenceId("CP-2026-ADM00003B");
     }
 
     @Test

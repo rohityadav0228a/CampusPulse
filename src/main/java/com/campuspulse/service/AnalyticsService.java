@@ -6,6 +6,7 @@ import com.campuspulse.dto.analytics.CategoryBreakdown;
 import com.campuspulse.dto.analytics.DailyTrendPoint;
 import com.campuspulse.dto.analytics.DepartmentBreakdown;
 import com.campuspulse.dto.analytics.FeedbackMetrics;
+import com.campuspulse.dto.analytics.StatusBreakdown;
 import com.campuspulse.model.ComplaintStatus;
 import com.campuspulse.repository.ComplaintRepository;
 import org.slf4j.Logger;
@@ -69,16 +70,19 @@ public class AnalyticsService {
         // 1. Calculate Summary Metrics
         AnalyticsSummary summary = computeSummary(status, effectiveCategory, startDate);
 
-        // 2. Calculate Category Breakdown
+        // 2. Calculate Status Breakdown
+        List<StatusBreakdown> statusBreakdowns = computeStatusBreakdown(summary);
+
+        // 3. Calculate Category Breakdown
         List<CategoryBreakdown> categoryBreakdowns = computeCategoryBreakdown(status, effectiveCategory, startDate, summary.getTotal());
 
-        // 3. Calculate Department Breakdown
+        // 4. Calculate Department Breakdown
         List<DepartmentBreakdown> departmentBreakdowns = computeDepartmentBreakdown(status, effectiveCategory, startDate, summary.getTotal());
 
-        // 4. Calculate Complaint Trend Points
+        // 5. Calculate Complaint Trend Points
         List<DailyTrendPoint> trendPoints = computeTrendPoints(status, effectiveCategory, startDate, effectiveDays);
 
-        // 5. Calculate Student Resolution Feedback Metrics
+        // 6. Calculate Student Resolution Feedback Metrics
         FeedbackMetrics feedbackMetrics = (feedbackService != null)
                 ? feedbackService.getFeedbackMetrics()
                 : FeedbackMetrics.empty();
@@ -91,8 +95,19 @@ public class AnalyticsService {
                 status != null ? status.name() : "",
                 effectiveCategory != null ? effectiveCategory : "",
                 effectiveDays != null ? effectiveDays : 0,
-                feedbackMetrics
+                feedbackMetrics,
+                statusBreakdowns
         );
+    }
+
+    private List<StatusBreakdown> computeStatusBreakdown(AnalyticsSummary summary) {
+        long total = summary.getTotal();
+        List<StatusBreakdown> list = new ArrayList<>();
+        list.add(StatusBreakdown.of(ComplaintStatus.SUBMITTED, summary.getPending(), total));
+        list.add(StatusBreakdown.of(ComplaintStatus.UNDER_REVIEW, summary.getUnderReview(), total));
+        list.add(StatusBreakdown.of(ComplaintStatus.IN_PROGRESS, summary.getInProgress(), total));
+        list.add(StatusBreakdown.of(ComplaintStatus.RESOLVED, summary.getResolved(), total));
+        return list;
     }
 
     private AnalyticsSummary computeSummary(ComplaintStatus statusFilter, String categoryFilter, LocalDateTime startDate) {
@@ -137,6 +152,8 @@ public class AnalyticsService {
             for (String cat : complaintService.getAllowedCategories()) {
                 countMap.put(cat, 0L);
             }
+        } else {
+            countMap.put(categoryFilter, 0L);
         }
 
         for (Object[] row : rows) {

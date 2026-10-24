@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CampusPulse - An unexpected error occurred.">
+    <title>Application Error | CampusPulse</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../../static/css/style.css">
+</head>
+<body class="auth-page-wrapper">
+
+    <!-- Header & Navigation -->
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar" aria-label="Main Navigation">
+                <a th:href="@{/}" href="/" class="brand-logo" id="nav-brand">
+                    <span class="brand-icon-wrap" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </span>
+                    <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
+                </a>
+
+                <div class="nav-actions">
+                    <a th:href="@{/}" href="/" class="btn btn-outline btn-sm">
+                        &larr; Return to Home
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="auth-main">
+        <div class="auth-container" style="max-width: 520px;">
+
+            <div class="auth-card" style="text-align: center; padding: var(--space-8) var(--space-6);">
+
+                <div class="auth-icon-wrap" aria-hidden="true" style="background-color: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); width: 64px; height: 64px; margin-bottom: var(--space-6);">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </div>
+
+                <div style="margin-bottom: var(--space-2);">
+                    <span class="role-pill" style="background-color: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); font-size: 0.8rem; padding: 0.3rem 0.8rem;">
+                        System Notice &bull; Unexpected Condition
+                    </span>
+                </div>
+
+                <h1 class="auth-title" style="font-size: 1.75rem; margin-top: var(--space-3); margin-bottom: var(--space-2);">Something Went Wrong</h1>
+
+                <p class="auth-subtitle" style="font-size: 0.95rem; margin-bottom: var(--space-6);">
+                    We encountered an unexpected condition while processing your request. Our campus systems have logged the event securely.
+                </p>
+
+                <div style="background-color: var(--surface-muted); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-6); text-align: left; font-size: 0.85rem; color: var(--navy-700);">
+                    <strong style="display: block; margin-bottom: 0.25rem; color: var(--navy-900);">Recommended Actions:</strong>
+                    Try refreshing the page or navigating back to your dashboard. If the problem persists when submitting a complaint, verify that all mandatory fields are completed accurately.
+                </div>
+
+                <div style="display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap;">
+                    <a th:href="@{/}" href="/" class="btn btn-primary" id="btn-error-home">
+                        Return to CampusPulse Home
+                    </a>
+                    <a th:href="@{/complaints}" href="/complaints" class="btn btn-outline" id="btn-error-registry">
+                        View Grievance Registry
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer" style="padding: var(--space-6) 0; background-color: var(--navy-900); border-top: 1px solid var(--navy-850);">
+        <div class="container" style="text-align: center;">
+            <p style="font-size: 0.8125rem; color: #94A3B8;">
+                &copy; 2026 CampusPulse &bull; Campus Grievance and Feedback Management System.
+            </p>
+        </div>
+    </footer>
+
+</body>
+</html>

@@ -100,6 +100,15 @@
         attachBackNavHandlers();
     }
 
+    // BFCache (Back-Forward Cache) mitigation:
+    // If the browser restores a page from the in-memory history cache,
+    // force a fresh server request so that server-side authorization is authoritatively enforced.
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
+
     // Expose utility function on window for programmatic testing if needed
     window.CampusPulseBackNav = {
         isSafeInternalReferrer: isSafeInternalReferrer,

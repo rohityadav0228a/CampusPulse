@@ -3,11 +3,13 @@ package com.campuspulse.controller;
 import com.campuspulse.dto.ForgotPasswordForm;
 import com.campuspulse.dto.ResetPasswordForm;
 import com.campuspulse.model.Student;
+import com.campuspulse.repository.StudentRepository;
 import com.campuspulse.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -20,6 +22,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.Optional;
+import java.util.regex.Pattern;
+
 /**
  * Controller handling password recovery workflows:
  * - Requesting a password reset link (GET and POST /forgot-password)
@@ -30,17 +35,34 @@ public class PasswordResetController {
 
     private static final Logger log = LoggerFactory.getLogger(PasswordResetController.class);
 
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+            "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+    );
+
     public static final String GENERIC_RESET_SENT_MESSAGE =
             "If an account exists for that email address, a password reset link has been sent. Please check your inbox and spam folder.";
 
     private final PasswordResetService passwordResetService;
+    private final StudentRepository studentRepository;
 
     public PasswordResetController(PasswordResetService passwordResetService) {
+        this(passwordResetService, null);
+    }
+
+    @Autowired
+    public PasswordResetController(
+            PasswordResetService passwordResetService,
+            @Autowired(required = false) StudentRepository studentRepository
+    ) {
         this.passwordResetService = passwordResetService;
+        this.studentRepository = studentRepository;
     }
 
     /**
      * Renders the forgot password request view.
+     * Accessible by both unauthenticated visitors and authenticated users (students, moderators, admins).
+     * For authenticated accounts, pre-fills the registered email address when verifiable against
+     * the account repository.
      *
      * @param sent optional query flag indicating email has been dispatched
      * @param authentication active authentication
@@ -53,13 +75,13 @@ public class PasswordResetController {
             Authentication authentication,
             Model model
     ) {
-        if (authentication != null && authentication.isAuthenticated()
-                && !(authentication instanceof AnonymousAuthenticationToken)) {
-            return redirectAuthenticatedUser(authentication);
-        }
-
         if (!model.containsAttribute("forgotPasswordForm")) {
-            model.addAttribute("forgotPasswordForm", new ForgotPasswordForm());
+            ForgotPasswordForm form = new ForgotPasswordForm();
+            String prefilledEmail = resolveAuthenticatedEmail(authentication);
+            if (prefilledEmail != null && !prefilledEmail.isBlank()) {
+                form.setEmail(prefilledEmail);
+            }
+            model.addAttribute("forgotPasswordForm", form);
         }
 
         if (sent != null && !model.containsAttribute("successMessage")) {
@@ -203,6 +225,40 @@ public class PasswordResetController {
             return "redirect:/moderator/complaints";
         }
         return "redirect:/complaints/new";
+    }
+
+    /**
+     * Reliably resolves the registered email address for an authenticated principal.
+     * Prevents blindly treating authentication.getName() as an email (e.g. system admin usernames like 'admin').
+     *
+     * @param authentication active Spring Security authentication
+     * @return verified registered email address or null if unauthenticated or non-email principal
+     */
+    private String resolveAuthenticatedEmail(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+            return null;
+        }
+
+        String principalName = authentication.getName();
+        if (principalName == null || principalName.isBlank()) {
+            return null;
+        }
+
+        String trimmed = principalName.trim();
+
+        if (studentRepository != null) {
+            return studentRepository.findByEmailIgnoreCase(trimmed)
+                    .map(Student::getEmail)
+                    .orElse(null);
+        }
+
+        // Fallback when repository is not injected: only accept valid email structure
+        if (EMAIL_PATTERN.matcher(trimmed).matches()) {
+            return trimmed;
+        }
+
+        return null;
     }
 
     private String getClientIp(HttpServletRequest request) {

@@ -8,7 +8,7 @@
     <!-- Google Fonts for Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" th:href="@{/css/style.css}" href="../../static/css/style.css">
 </head>
@@ -29,7 +29,6 @@
 
                 <ul class="nav-links">
                     <li><a th:href="@{/}" href="/" class="nav-link">Home</a></li>
-                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Grievance Registry</a></li>
                     <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Track Status</a></li>
                     <li><a th:href="@{/student/profile}" href="/student/profile" class="nav-link" id="nav-student-profile-link">My Profile</a></li>
                 </ul>
@@ -78,7 +77,16 @@
                     <!-- Reference ID Box -->
                     <div class="ref-box" aria-label="Complaint Reference ID">
                         <div class="ref-box-label">Your Official Reference Identifier</div>
-                        <div class="ref-box-code" id="complaint-reference-id" th:text="${complaint.referenceId}">CP-2026-XXXXXXXX</div>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+                            <div class="ref-box-code" id="complaint-reference-id" th:text="${complaint.referenceId}">CP-2026-XXXXXXXX</div>
+                            <button type="button" class="btn btn-outline btn-sm" id="btn-copy-ref" style="height: 32px; font-size: 0.78rem;" title="Copy reference code to clipboard">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                <span id="copy-btn-text">Copy ID</span>
+                            </button>
+                        </div>
                         <div class="ref-box-note">Please save this reference ID for official institutional correspondence.</div>
                     </div>
 
@@ -110,6 +118,10 @@
                             <span class="details-label">Submission Timestamp</span>
                             <span class="details-value" th:text="${#temporals.format(complaint.createdAt, 'dd MMM yyyy, hh:mm a')}">Timestamp</span>
                         </div>
+                        <div class="details-item" th:if="${complaint.hostelName}">
+                            <span class="details-label">Residential Location</span>
+                            <span class="details-value" th:text="${complaint.hostelName + ' • ' + complaint.floorNumber + ' • Room ' + complaint.roomNumber}">Nilgiri Hostel • 2nd Floor • Room B-204</span>
+                        </div>
                         <div class="details-item details-full">
                             <span class="details-label">Description</span>
                             <p class="details-value" style="font-weight: 400; font-size: 0.85rem; line-height: 1.5;" th:text="${complaint.description}">
@@ -126,9 +138,6 @@
                                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
                             Track This Complaint
-                        </a>
-                        <a th:href="@{/complaints}" href="/complaints" class="btn btn-outline" id="btn-view-registry">
-                            View Grievance Registry
                         </a>
                         <a th:href="@{/complaints/new}" href="/complaints/new" class="btn btn-outline" id="btn-submit-another">
                             Submit Another Complaint
@@ -154,5 +163,23 @@
         </div>
     </footer>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const copyBtn = document.getElementById('btn-copy-ref');
+            const refEl = document.getElementById('complaint-reference-id');
+            const copyText = document.getElementById('copy-btn-text');
+            if (copyBtn && refEl && copyText) {
+                copyBtn.addEventListener('click', function () {
+                    const text = refEl.innerText.trim();
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(text).then(function () {
+                            copyText.textContent = 'Copied!';
+                            setTimeout(function () { copyText.textContent = 'Copy ID'; }, 2000);
+                        }).catch(function () {});
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

@@ -528,13 +528,38 @@ class AdminSecurityTest {
     }
 
     @Test
-    @DisplayName("Public visitor can view complaint registry (GET /complaints)")
-    void publicCanAccessRegistry() throws Exception {
+    @DisplayName("Unauthenticated visitor is redirected to /login when accessing GET /complaints")
+    void unauthenticatedCannotAccessRegistry() throws Exception {
+        mockMvc.perform(get("/complaints"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    @DisplayName("Authenticated ADMIN can view complaint registry (GET /complaints)")
+    void adminCanAccessRegistry() throws Exception {
         when(complaintService.getAllComplaints()).thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/complaints"))
+        mockMvc.perform(get("/complaints").with(user("admin").roles("ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("complaints/list"));
+    }
+
+    @Test
+    @DisplayName("Authenticated MODERATOR can view complaint registry (GET /complaints)")
+    void moderatorCanAccessRegistry() throws Exception {
+        when(complaintService.getAllComplaints()).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/complaints").with(user("moderator").roles("MODERATOR")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/list"));
+    }
+
+    @Test
+    @DisplayName("Authenticated STUDENT is forbidden (HTTP 403) from viewing complaint registry (GET /complaints)")
+    void studentForbiddenFromRegistry() throws Exception {
+        mockMvc.perform(get("/complaints").with(user("student").roles("STUDENT")))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -589,6 +614,15 @@ class AdminSecurityTest {
     @Test
     @DisplayName("Valid credentials successfully authenticate and redirect to /admin/complaints")
     void loginSucceedsWithValidCredentials() throws Exception {
+        mockMvc.perform(post("/login")
+                        .with(csrf())
+                        .param("username", "testadmin")
+                        .param("password", "SecureAdminPass123!"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/complaints"))
+                .andExpect(authenticated().withUsername("testadmin").withRoles("ADMIN"));
+
+        // Second login attempt within same application context
         mockMvc.perform(post("/login")
                         .with(csrf())
                         .param("username", "testadmin")
@@ -652,13 +686,13 @@ class AdminSecurityTest {
     }
 
     @Test
-    @DisplayName("POST /logout invalidates session and redirects to /login?logout=true")
+    @DisplayName("POST /logout invalidates session and redirects to /")
     void logoutTerminatesSessionAndRedirects() throws Exception {
         mockMvc.perform(post("/logout")
                         .with(user("testadmin").roles("ADMIN"))
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login?logout=true"))
+                .andExpect(redirectedUrl("/"))
                 .andExpect(unauthenticated());
     }
 

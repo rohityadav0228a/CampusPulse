@@ -8,7 +8,7 @@
     <!-- Google Fonts for Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" th:href="@{/css/style.css}" href="../../../static/css/style.css">
 </head>
@@ -158,6 +158,34 @@
                         <div class="details-item">
                             <span class="details-label">Notification Email</span>
                             <span class="details-value" th:text="${complaint.studentEmail != null ? complaint.studentEmail : 'None (notifications safely skipped)'}">None</span>
+                        </div>
+                    </div>
+
+                    <!-- Hostel Location Section (Displayed only when hostel details exist) -->
+                    <div class="hostel-location-card"
+                         th:if="${complaint.hostelName != null and !#strings.isEmpty(complaint.hostelName)}"
+                         id="hostel-location-details"
+                         style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--violet-600, #7c3aed);">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                            </svg>
+                            <h3 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--navy-900);">Residential Location</h3>
+                        </div>
+                        <div class="details-grid">
+                            <div class="details-item">
+                                <span class="details-label">Hostel Name</span>
+                                <span class="details-value" id="detail-hostel-name" th:text="${complaint.hostelName}">Hostel Block B</span>
+                            </div>
+                            <div class="details-item">
+                                <span class="details-label">Floor Number</span>
+                                <span class="details-value" id="detail-floor-number" th:text="${complaint.floorNumber}">2nd Floor</span>
+                            </div>
+                            <div class="details-item">
+                                <span class="details-label">Room Number</span>
+                                <span class="details-value" id="detail-room-number" th:text="${complaint.roomNumber}">B-204</span>
+                            </div>
                         </div>
                     </div>
 

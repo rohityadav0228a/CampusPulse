@@ -346,4 +346,31 @@ class EmailNotificationServiceTest {
                 )
         );
     }
+
+    @Test
+    @DisplayName("Email templates never include hostel name, room number, or floor number")
+    void emailTemplatesNeverExposeHostelDetails() {
+        String hostel = "Nilgiri Hostel";
+        String room = "B-204";
+        String floor = "2nd Floor";
+        String trackingUrl = "https://campuspulse.edu/complaints/track?referenceId=CP-2026-HOSTEL01";
+
+        String statusHtml = emailNotificationService.buildHtmlEmail("CP-2026-HOSTEL01", ComplaintStatus.UNDER_REVIEW, trackingUrl);
+        String statusText = emailNotificationService.buildPlainTextEmail("CP-2026-HOSTEL01", ComplaintStatus.UNDER_REVIEW, trackingUrl);
+        String subHtml = emailNotificationService.buildHtmlSubmissionConfirmationEmail("CP-2026-HOSTEL01", trackingUrl);
+        String subText = emailNotificationService.buildPlainTextSubmissionConfirmationEmail("CP-2026-HOSTEL01", trackingUrl);
+
+        assertFalse(statusHtml.contains(hostel));
+        assertFalse(statusHtml.contains(room));
+        assertFalse(statusHtml.contains(floor));
+        assertFalse(statusText.contains(hostel));
+        assertFalse(statusText.contains(room));
+        assertFalse(statusText.contains(floor));
+        assertFalse(subHtml.contains(hostel));
+        assertFalse(subHtml.contains(room));
+        assertFalse(subHtml.contains(floor));
+        assertFalse(subText.contains(hostel));
+        assertFalse(subText.contains(room));
+        assertFalse(subText.contains(floor));
+    }
 }

@@ -64,6 +64,8 @@ public class AdminAnalyticsController {
 
         model.addAttribute("analytics", data);
         model.addAttribute("summary", data.summary());
+        model.addAttribute("categoryBreakdown", data.categoryBreakdown());
+        model.addAttribute("statusBreakdown", data.statusBreakdown());
         model.addAttribute("feedbackMetrics", data.feedbackMetrics());
         model.addAttribute("categories", complaintService.getAllowedCategories());
         model.addAttribute("statuses", ComplaintStatus.values());

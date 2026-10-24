@@ -3,111 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="View and manage your student profile and contact details in CampusPulse.">
+    <meta name="description" content="CampusPulse Student Profile and Account Settings. View and update verified student identity and academic department.">
     <title>Student Profile | CampusPulse</title>
-    <!-- Google Fonts for Modern Typography -->
+    <!-- Google Fonts for Modern SaaS Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" th:href="@{/css/style.css}" href="../../static/css/style.css">
-    <style>
-        .profile-container {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
-
-        .profile-grid {
-            display: grid;
-            grid-template-columns: 1fr 1.25fr;
-            gap: 2rem;
-            align-items: start;
-        }
-
-        @media (max-width: 900px) {
-            .profile-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .profile-card {
-            background-color: var(--surface);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 2rem;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .profile-header-banner {
-            display: flex;
-            align-items: center;
-            gap: 1.25rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 1.5rem;
-        }
-
-        .profile-avatar-circle {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--navy-900) 0%, var(--indigo-600) 100%);
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            font-weight: 800;
-            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
-            flex-shrink: 0;
-        }
-
-        .role-pill {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25rem 0.65rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.03em;
-        }
-
-        .role-pill.ROLE_STUDENT {
-            background-color: #e0e7ff;
-            color: #3730a3;
-            border: 1px solid #c7d2fe;
-        }
-
-        .field-lock-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: var(--navy-500);
-            background: var(--surface-muted);
-            padding: 0.15rem 0.45rem;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border-color);
-        }
-
-        .password-hint-box {
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: var(--radius-md);
-            padding: 1.15rem;
-            margin-top: 1.5rem;
-            font-size: 0.85rem;
-            color: var(--navy-700);
-            line-height: 1.5;
-        }
-
-        .security-lock-icon {
-            display: inline-block;
-            vertical-align: middle;
-            color: var(--navy-500);
-        }
-    </style>
 </head>
 <body>
 
@@ -127,7 +30,6 @@
                 <ul class="nav-links">
                     <li><a th:href="@{/}" href="/" class="nav-link">Home</a></li>
                     <li><a th:href="@{/complaints/new}" href="/complaints/new" class="nav-link">New Grievance</a></li>
-                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Grievance Registry</a></li>
                     <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Track Status</a></li>
                     <li><a th:href="@{/student/profile}" href="/student/profile" class="nav-link" style="color: var(--indigo-600); font-weight: 700;" id="nav-student-profile-link">My Profile</a></li>
                 </ul>
@@ -160,7 +62,7 @@
             </div>
 
             <!-- Page Header -->
-            <div class="page-header-row" style="margin-bottom: 1.5rem;">
+            <div class="page-header-row" style="margin-bottom: var(--space-6);">
                 <div>
                     <h1 class="page-title" id="profile-title">Student Profile &amp; Account Settings</h1>
                     <p class="page-subtitle">
@@ -170,7 +72,7 @@
             </div>
 
             <!-- Success Alert Banner -->
-            <div th:if="${successMessage}" class="alert-banner alert-success" role="status" id="profile-success-alert" style="margin-bottom: 1.5rem;">
+            <div th:if="${successMessage}" class="alert-banner alert-success" role="status" id="profile-success-alert" style="margin-bottom: var(--space-6);">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                     <polyline points="22 4 12 14.01 9 11.01"></polyline>
@@ -179,7 +81,7 @@
             </div>
 
             <!-- Error Alert Banner -->
-            <div th:if="${errorMessage}" class="alert-banner alert-error" role="alert" id="profile-error-alert" style="margin-bottom: 1.5rem;">
+            <div th:if="${errorMessage}" class="alert-banner alert-error" role="alert" id="profile-error-alert" style="margin-bottom: var(--space-6);">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -289,12 +191,19 @@
                                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                             </svg>
-                            <div>
+                            <div style="flex: 1;">
                                 <strong style="color: var(--navy-900); display: block; margin-bottom: 0.25rem;">Password &amp; Security</strong>
-                                Password modifications are safely separated from standard profile updates. To update or reset your password, visit the
-                                <a th:href="@{/forgot-password}" href="/forgot-password" style="font-weight: 600; color: var(--indigo-600); text-decoration: underline;" id="link-profile-to-forgot-password">
-                                    Secure Password Recovery Portal
-                                </a>.
+                                <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; color: var(--navy-700); line-height: 1.45;">
+                                    Password modifications are safely separated from standard profile updates. Request a secure reset link via email to update your credentials.
+                                </p>
+                                <a th:href="@{/forgot-password}" href="/forgot-password" class="btn btn-outline btn-sm" id="btn-profile-reset-password" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <circle cx="7.5" cy="15.5" r="5.5"></circle>
+                                        <path d="m21 2-9.6 9.6"></path>
+                                        <path d="m15.5 7.5 3 3L22 7l-3-3"></path>
+                                    </svg>
+                                    Reset Password via Email &rarr;
+                                </a>
                             </div>
                         </div>
                     </div>

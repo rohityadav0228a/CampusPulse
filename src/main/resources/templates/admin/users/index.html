@@ -8,75 +8,9 @@
     <!-- Google Fonts for Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" th:href="@{/css/style.css}" href="../../../static/css/style.css">
-    <style>
-        .role-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.25rem 0.65rem;
-            border-radius: var(--radius-full);
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            text-transform: uppercase;
-        }
-        .role-pill.ROLE_STUDENT {
-            background-color: var(--info-bg);
-            color: var(--info);
-            border: 1px solid var(--info-border);
-        }
-        .role-pill.ROLE_MODERATOR {
-            background-color: var(--violet-50);
-            color: var(--violet-700);
-            border: 1px solid var(--violet-100);
-        }
-        .role-pill.ROLE_ADMIN {
-            background-color: #fee2e2;
-            color: #b91c1c;
-            border: 1px solid #fecaca;
-        }
-        .role-card-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.25rem;
-            margin-bottom: 2rem;
-        }
-        .role-stat-card {
-            background: var(--surface);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 1.25rem;
-            box-shadow: var(--shadow-sm);
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        .role-stat-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: var(--radius-md);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .user-action-cell {
-            min-width: 280px;
-        }
-        .user-role-form {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .user-role-form-row {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-    </style>
 </head>
 <body>
 

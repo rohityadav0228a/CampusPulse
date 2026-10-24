@@ -8,7 +8,7 @@
     <!-- Google Fonts for Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" th:href="@{/css/style.css}" href="../../../static/css/style.css">
 </head>
@@ -188,6 +188,145 @@
                              th:style="'width: ' + ${summary.resolutionRate} + '%;'"></div>
                     </div>
                 </div>
+            </section>
+
+            <!-- Interactive Analytics Pie & Doughnut Charts Grid -->
+            <section class="chart-grid" aria-label="Interactive Complaint Distribution Visualizations" id="analytics-charts-section">
+
+                <!-- Chart 1: Complaint Category Distribution -->
+                <div class="chart-card" id="card-category-distribution">
+                    <div class="chart-card-header">
+                        <div>
+                            <h2 class="chart-card-title" id="title-category-distribution">Complaint Category Distribution</h2>
+                            <p style="font-size: 0.8rem; color: var(--navy-500); margin: 0.2rem 0 0 0;">
+                                Volume share across institutional domains
+                            </p>
+                        </div>
+                        <span class="badge" id="category-total-badge" style="background: var(--blue-50); color: var(--blue-700); font-size: 0.775rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: var(--radius-full); border: 1px solid var(--blue-100);"
+                              th:text="'Total: ' + ${summary.total}">
+                            Total: 0
+                        </span>
+                    </div>
+
+                    <!-- Empty State for Category Chart -->
+                    <div th:if="${summary.total == 0}" class="empty-state" id="category-chart-empty" style="padding: 3rem 1rem; text-align: center;">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin: 0 auto 0.75rem auto; color: var(--navy-400, #94a3b8);">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <h3 style="font-size: 1rem; color: var(--navy-800); margin-bottom: 0.25rem;">No Category Data Available</h3>
+                        <p style="font-size: 0.85rem; color: var(--navy-500); margin: 0;">
+                            No complaints match the selected filter criteria.
+                        </p>
+                    </div>
+
+                    <!-- Chart Canvas & Accessible Details when data exists -->
+                    <div th:if="${summary.total > 0}" id="category-chart-content">
+                        <div class="chart-container" style="position: relative; width: 100%; height: 260px;">
+                            <canvas id="categoryChart" role="img" aria-label="Interactive pie chart showing distribution of complaints by campus category"></canvas>
+                        </div>
+
+                        <!-- Interactive Category Selection Info Banner -->
+                        <div id="category-selected-info" class="selected-segment-banner" style="margin-top: 1rem; padding: 0.65rem 0.9rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); font-size: 0.825rem; display: flex; align-items: center; justify-content: space-between; min-height: 40px;">
+                            <span style="color: var(--navy-500); font-style: italic;">Click a segment or table row to inspect details</span>
+                        </div>
+
+                        <!-- Compact Textual / Accessible Data Summary Table -->
+                        <div class="accessible-data-table-wrap" style="margin-top: 1rem; max-height: 180px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: var(--radius-sm);">
+                            <table class="table" style="width: 100%; font-size: 0.785rem; margin-bottom: 0;" aria-label="Category distribution data list">
+                                <thead style="background: #f1f5f9; position: sticky; top: 0; z-index: 1;">
+                                    <tr>
+                                        <th style="padding: 0.4rem 0.75rem; text-align: left; font-weight: 600; color: var(--navy-700);">Category</th>
+                                        <th style="padding: 0.4rem 0.75rem; text-align: right; font-weight: 600; color: var(--navy-700);">Count</th>
+                                        <th style="padding: 0.4rem 0.75rem; text-align: right; font-weight: 600; color: var(--navy-700);">Share</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="cat, iterStat : ${categoryBreakdown}"
+                                        class="category-data-row"
+                                        th:attr="data-index=${iterStat.index}, data-category=${cat.category}, data-count=${cat.count}, data-pct=${cat.percentageFormatted}, data-color=${cat.color}"
+                                        style="cursor: pointer; transition: background-color 0.15s ease; border-bottom: 1px solid #f1f5f9;">
+                                        <td style="padding: 0.45rem 0.75rem; display: flex; align-items: center; gap: 0.45rem;">
+                                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%;" th:style="'background-color: ' + ${cat.color} + ';'"></span>
+                                            <span style="font-weight: 600; color: var(--navy-800);" th:text="${cat.category}">Category</span>
+                                        </td>
+                                        <td style="padding: 0.45rem 0.75rem; text-align: right; font-weight: 700; color: var(--navy-900);" th:text="${cat.count}">0</td>
+                                        <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--navy-500);" th:text="${cat.percentageFormatted}">0.0%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Complaint Status Distribution -->
+                <div class="chart-card" id="card-status-distribution">
+                    <div class="chart-card-header">
+                        <div>
+                            <h2 class="chart-card-title" id="title-status-distribution">Complaint Status Distribution</h2>
+                            <p style="font-size: 0.8rem; color: var(--navy-500); margin: 0.2rem 0 0 0;">
+                                Current lifecycle breakdown of grievances
+                            </p>
+                        </div>
+                        <span class="badge" id="status-total-badge" style="background: var(--blue-50); color: var(--blue-700); font-size: 0.775rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: var(--radius-full); border: 1px solid var(--blue-100);"
+                              th:text="'Total: ' + ${summary.total}">
+                            Total: 0
+                        </span>
+                    </div>
+
+                    <!-- Empty State for Status Chart -->
+                    <div th:if="${summary.total == 0}" class="empty-state" id="status-chart-empty" style="padding: 3rem 1rem; text-align: center;">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin: 0 auto 0.75rem auto; color: var(--navy-400, #94a3b8);">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <h3 style="font-size: 1rem; color: var(--navy-800); margin-bottom: 0.25rem;">No Status Data Available</h3>
+                        <p style="font-size: 0.85rem; color: var(--navy-500); margin: 0;">
+                            No complaints match the selected filter criteria.
+                        </p>
+                    </div>
+
+                    <!-- Chart Canvas & Accessible Details when data exists -->
+                    <div th:if="${summary.total > 0}" id="status-chart-content">
+                        <div class="chart-container" style="position: relative; width: 100%; height: 260px;">
+                            <canvas id="statusChart" role="img" aria-label="Interactive pie chart showing distribution of complaints by lifecycle status"></canvas>
+                        </div>
+
+                        <!-- Interactive Status Selection Info Banner -->
+                        <div id="status-selected-info" class="selected-segment-banner" style="margin-top: 1rem; padding: 0.65rem 0.9rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); font-size: 0.825rem; display: flex; align-items: center; justify-content: space-between; min-height: 40px;">
+                            <span style="color: var(--navy-500); font-style: italic;">Click a segment or table row to inspect details</span>
+                        </div>
+
+                        <!-- Compact Textual / Accessible Data Summary Table -->
+                        <div class="accessible-data-table-wrap" style="margin-top: 1rem; max-height: 180px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: var(--radius-sm);">
+                            <table class="table" style="width: 100%; font-size: 0.785rem; margin-bottom: 0;" aria-label="Status distribution data list">
+                                <thead style="background: #f1f5f9; position: sticky; top: 0; z-index: 1;">
+                                    <tr>
+                                        <th style="padding: 0.4rem 0.75rem; text-align: left; font-weight: 600; color: var(--navy-700);">Status</th>
+                                        <th style="padding: 0.4rem 0.75rem; text-align: right; font-weight: 600; color: var(--navy-700);">Count</th>
+                                        <th style="padding: 0.4rem 0.75rem; text-align: right; font-weight: 600; color: var(--navy-700);">Share</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="st, iterStat : ${statusBreakdown}"
+                                        class="status-data-row"
+                                        th:attr="data-index=${iterStat.index}, data-status=${st.displayName}, data-count=${st.count}, data-pct=${st.percentageFormatted}, data-color=${st.color}"
+                                        style="cursor: pointer; transition: background-color 0.15s ease; border-bottom: 1px solid #f1f5f9;">
+                                        <td style="padding: 0.45rem 0.75rem; display: flex; align-items: center; gap: 0.45rem;">
+                                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%;" th:style="'background-color: ' + ${st.color} + ';'"></span>
+                                            <span style="font-weight: 600; color: var(--navy-800);" th:text="${st.displayName}">Status</span>
+                                        </td>
+                                        <td style="padding: 0.45rem 0.75rem; text-align: right; font-weight: 700; color: var(--navy-900);" th:text="${st.count}">0</td>
+                                        <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--navy-500);" th:text="${st.percentageFormatted}">0.0%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </section>
 
             <!-- Trend Visualization Card -->
@@ -535,6 +674,311 @@
                 }
             });
         });
+    </script>
+
+    <!-- Chart.js Asset Bundle -->
+    <script th:src="@{/js/chart.min.js}" src="../../../static/js/chart.min.js"></script>
+
+    <!-- Interactive Category & Status Pie/Doughnut Charts Script -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const categoryChartData = /*[[${categoryBreakdown}]]*/ [];
+        const statusChartData = /*[[${statusBreakdown}]]*/ [];
+        const totalComplaintsCount = /*[[${summary.total}]]*/ 0;
+        /*]]>*/
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof Chart === 'undefined') {
+                console.warn('Chart.js library is not available.');
+                return;
+            }
+
+            // Set global font defaults to match CampusPulse Inter typography
+            if (Chart.defaults) {
+                Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+            }
+
+            // 1. Initialize Category Distribution Pie / Doughnut Chart
+            initCategoryChart();
+
+            // 2. Initialize Status Distribution Pie / Doughnut Chart
+            initStatusChart();
+        });
+
+        function escapeChartHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ==================== Category Chart ====================
+        function initCategoryChart() {
+            const canvas = document.getElementById('categoryChart');
+            if (!canvas || !categoryChartData || categoryChartData.length === 0 || totalComplaintsCount === 0) return;
+
+            if (window.categoryChartInstance) {
+                window.categoryChartInstance.destroy();
+            }
+
+            const labels = categoryChartData.map(c => c.category);
+            const counts = categoryChartData.map(c => c.count);
+            const colors = categoryChartData.map(c => c.color);
+
+            const ctx = canvas.getContext('2d');
+            window.categoryChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: colors,
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '62%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 11, weight: 500 },
+                                color: '#334155',
+                                padding: 12,
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                boxHeight: 8
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleFont: { size: 12, weight: 'bold' },
+                            bodyFont: { size: 11 },
+                            padding: 10,
+                            cornerRadius: 6,
+                            displayColors: true,
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.label || '';
+                                    const val = context.parsed || 0;
+                                    const pct = totalComplaintsCount > 0 ? ((val / totalComplaintsCount) * 100).toFixed(1) : '0.0';
+                                    return ` ${label}: ${val} complaints (${pct}%)`;
+                                }
+                            }
+                        }
+                    },
+                    onClick: function (event, elements) {
+                        if (elements && elements.length > 0) {
+                            const idx = elements[0].index;
+                            selectCategory(idx);
+                        } else {
+                            resetCategorySelection();
+                        }
+                    }
+                }
+            });
+
+            // Wire accessible table row clicks
+            const rows = document.querySelectorAll('.category-data-row');
+            rows.forEach(row => {
+                row.addEventListener('click', function () {
+                    const idx = parseInt(this.getAttribute('data-index'), 10);
+                    if (!isNaN(idx)) {
+                        selectCategory(idx);
+                    }
+                });
+            });
+        }
+
+        function selectCategory(index) {
+            if (index < 0 || index >= categoryChartData.length) return;
+            const item = categoryChartData[index];
+            const pct = totalComplaintsCount > 0 ? ((item.count / totalComplaintsCount) * 100).toFixed(1) : '0.0';
+            const infoBanner = document.getElementById('category-selected-info');
+            if (infoBanner) {
+                infoBanner.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${item.color};"></span>
+                        <strong style="color: var(--navy-900); font-size: 0.85rem;">${escapeChartHtml(item.category)}:</strong>
+                        <span style="font-weight: 700; color: #4F46E5;">${item.count} complaint${item.count === 1 ? '' : 's'}</span>
+                        <span style="color: var(--navy-500);">(${pct}%)</span>
+                    </div>
+                    <button type="button" id="btn-reset-category-selection" class="btn btn-outline btn-sm" style="padding: 0.15rem 0.5rem; font-size: 0.725rem;">
+                        Clear
+                    </button>
+                `;
+                document.getElementById('btn-reset-category-selection')?.addEventListener('click', function () {
+                    resetCategorySelection();
+                });
+            }
+
+            // Highlight chart segment
+            if (window.categoryChartInstance) {
+                window.categoryChartInstance.setActiveElements([{ datasetIndex: 0, index: index }]);
+                window.categoryChartInstance.update();
+            }
+
+            // Highlight table row
+            document.querySelectorAll('.category-data-row').forEach((r, i) => {
+                if (i === index) {
+                    r.style.backgroundColor = '#e0e7ff';
+                } else {
+                    r.style.backgroundColor = '';
+                }
+            });
+        }
+
+        function resetCategorySelection() {
+            const infoBanner = document.getElementById('category-selected-info');
+            if (infoBanner) {
+                infoBanner.innerHTML = '<span style="color: var(--navy-500); font-style: italic;">Click a segment or table row to inspect details</span>';
+            }
+            if (window.categoryChartInstance) {
+                window.categoryChartInstance.setActiveElements([]);
+                window.categoryChartInstance.update();
+            }
+            document.querySelectorAll('.category-data-row').forEach(r => {
+                r.style.backgroundColor = '';
+            });
+        }
+
+        // ==================== Status Chart ====================
+        function initStatusChart() {
+            const canvas = document.getElementById('statusChart');
+            if (!canvas || !statusChartData || statusChartData.length === 0 || totalComplaintsCount === 0) return;
+
+            if (window.statusChartInstance) {
+                window.statusChartInstance.destroy();
+            }
+
+            const labels = statusChartData.map(s => s.displayName);
+            const counts = statusChartData.map(s => s.count);
+            const colors = statusChartData.map(s => s.color);
+
+            const ctx = canvas.getContext('2d');
+            window.statusChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: colors,
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '62%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 11, weight: 500 },
+                                color: '#334155',
+                                padding: 12,
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                boxHeight: 8
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleFont: { size: 12, weight: 'bold' },
+                            bodyFont: { size: 11 },
+                            padding: 10,
+                            cornerRadius: 6,
+                            displayColors: true,
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.label || '';
+                                    const val = context.parsed || 0;
+                                    const pct = totalComplaintsCount > 0 ? ((val / totalComplaintsCount) * 100).toFixed(1) : '0.0';
+                                    return ` ${label}: ${val} complaints (${pct}%)`;
+                                }
+                            }
+                        }
+                    },
+                    onClick: function (event, elements) {
+                        if (elements && elements.length > 0) {
+                            const idx = elements[0].index;
+                            selectStatus(idx);
+                        } else {
+                            resetStatusSelection();
+                        }
+                    }
+                }
+            });
+
+            // Wire accessible table row clicks
+            const rows = document.querySelectorAll('.status-data-row');
+            rows.forEach(row => {
+                row.addEventListener('click', function () {
+                    const idx = parseInt(this.getAttribute('data-index'), 10);
+                    if (!isNaN(idx)) {
+                        selectStatus(idx);
+                    }
+                });
+            });
+        }
+
+        function selectStatus(index) {
+            if (index < 0 || index >= statusChartData.length) return;
+            const item = statusChartData[index];
+            const pct = totalComplaintsCount > 0 ? ((item.count / totalComplaintsCount) * 100).toFixed(1) : '0.0';
+            const infoBanner = document.getElementById('status-selected-info');
+            if (infoBanner) {
+                infoBanner.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${item.color};"></span>
+                        <strong style="color: var(--navy-900); font-size: 0.85rem;">${escapeChartHtml(item.displayName)}:</strong>
+                        <span style="font-weight: 700; color: #4F46E5;">${item.count} complaint${item.count === 1 ? '' : 's'}</span>
+                        <span style="color: var(--navy-500);">(${pct}%)</span>
+                    </div>
+                    <button type="button" id="btn-reset-status-selection" class="btn btn-outline btn-sm" style="padding: 0.15rem 0.5rem; font-size: 0.725rem;">
+                        Clear
+                    </button>
+                `;
+                document.getElementById('btn-reset-status-selection')?.addEventListener('click', function () {
+                    resetStatusSelection();
+                });
+            }
+
+            // Highlight chart segment
+            if (window.statusChartInstance) {
+                window.statusChartInstance.setActiveElements([{ datasetIndex: 0, index: index }]);
+                window.statusChartInstance.update();
+            }
+
+            // Highlight table row
+            document.querySelectorAll('.status-data-row').forEach((r, i) => {
+                if (i === index) {
+                    r.style.backgroundColor = '#e0e7ff';
+                } else {
+                    r.style.backgroundColor = '';
+                }
+            });
+        }
+
+        function resetStatusSelection() {
+            const infoBanner = document.getElementById('status-selected-info');
+            if (infoBanner) {
+                infoBanner.innerHTML = '<span style="color: var(--navy-500); font-style: italic;">Click a segment or table row to inspect details</span>';
+            }
+            if (window.statusChartInstance) {
+                window.statusChartInstance.setActiveElements([]);
+                window.statusChartInstance.update();
+            }
+            document.querySelectorAll('.status-data-row').forEach(r => {
+                r.style.backgroundColor = '';
+            });
+        }
     </script>
 </body>
 </html>

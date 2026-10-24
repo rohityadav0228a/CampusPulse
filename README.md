@@ -28,10 +28,13 @@
   - [Step 1: Python AI Microservice Setup & Model Generation](#step-1-python-ai-microservice-setup--model-generation)
   - [Step 2: Spring Boot Application Execution](#step-2-spring-boot-application-execution)
 - [11. Authentication & Account Management](#11-authentication--account-management)
+  - [Authentication-First Entry Flow & Landing Page (`/`)](#authentication-first-entry-flow--landing-page-)
   - [Administrator Account Setup](#administrator-account-setup)
+  - [Moderator Account Setup](#moderator-account-setup)
   - [Student Registration & Sign-In](#student-registration--sign-in)
+  - [Independent Multi-Role Testing (Student, Admin, Moderator)](#independent-multi-role-testing-student-admin-moderator)
 - [12. Running Test Suites](#12-running-test-suites)
-  - [Java Test Suite (262 Tests)](#java-test-suite-262-tests)
+  - [Java Test Suite (529 Tests)](#java-test-suite-529-tests)
   - [Python Test Suite (16 Tests)](#python-test-suite-16-tests)
 - [13. API Endpoints Reference](#13-api-endpoints-reference)
   - [Spring Boot Web & REST Routes](#spring-boot-web--rest-routes)
@@ -243,68 +246,101 @@ CampusPulse/
     │   │   │   ├── AdminAnalyticsController.java
     │   │   │   ├── AdminComplaintController.java
     │   │   │   ├── AdminInsightsController.java
+    │   │   │   ├── AdminUserController.java
     │   │   │   ├── AuthController.java
     │   │   │   ├── ComplaintController.java
     │   │   │   ├── HomeController.java
-    │   │   │   └── StudentAuthController.java
+    │   │   │   ├── ModeratorComplaintController.java
+    │   │   │   ├── PasswordResetController.java
+    │   │   │   ├── StudentAuthController.java
+    │   │   │   └── StudentProfileController.java
     │   │   ├── dto/                           # Data Transfer Objects and form bindings
     │   │   │   ├── AiClassificationResult.java
     │   │   │   ├── AiSuggestRequest.java
     │   │   │   ├── AiSuggestResponse.java
+    │   │   │   ├── ComplaintFeedbackForm.java
     │   │   │   ├── ComplaintForm.java
     │   │   │   ├── StudentRegisterForm.java
     │   │   │   ├── analytics/                 # KPI and chart aggregation DTOs
     │   │   │   └── insights/                  # Heuristic recommendation DTOs
     │   │   ├── model/                         # JPA database entities and enums
     │   │   │   ├── Complaint.java
+    │   │   │   ├── ComplaintDeletionAudit.java
     │   │   │   ├── ComplaintEscalationAudit.java
+    │   │   │   ├── ComplaintFeedback.java
     │   │   │   ├── ComplaintPriority.java
     │   │   │   ├── ComplaintStatus.java
     │   │   │   ├── ComplaintStatusHistory.java
     │   │   │   ├── NotificationOutbox.java
     │   │   │   ├── NotificationStatus.java
     │   │   │   ├── NotificationType.java
+    │   │   │   ├── PasswordResetToken.java
     │   │   │   ├── SlaEscalationStage.java
-    │   │   │   └── Student.java
+    │   │   │   ├── Student.java
+    │   │   │   ├── UserRole.java
+    │   │   │   └── UserRoleAudit.java
     │   │   ├── repository/                    # Spring Data JPA repositories
+    │   │   │   ├── ComplaintDeletionAuditRepository.java
     │   │   │   ├── ComplaintEscalationAuditRepository.java
+    │   │   │   ├── ComplaintFeedbackRepository.java
     │   │   │   ├── ComplaintRepository.java
     │   │   │   ├── ComplaintStatusHistoryRepository.java
     │   │   │   ├── NotificationOutboxRepository.java
-    │   │   │   └── StudentRepository.java
+    │   │   │   ├── PasswordResetTokenRepository.java
+    │   │   │   ├── StudentRepository.java
+    │   │   │   └── UserRoleAuditRepository.java
     │   │   ├── scheduler/                     # Background scheduled workers
     │   │   │   ├── NotificationRetryScheduler.java
     │   │   │   └── SlaEscalationScheduler.java
     │   │   └── service/                       # Business logic services
     │   │       ├── AiClassifierService.java
     │   │       ├── AnalyticsService.java
+    │   │       ├── ComplaintFeedbackService.java
     │   │       ├── ComplaintService.java
     │   │       ├── EmailNotificationService.java
     │   │       ├── InsightsService.java
     │   │       ├── NotificationService.java
+    │   │       ├── PasswordResetService.java
     │   │       ├── SlaEscalationService.java
-    │   │       └── StudentService.java
+    │   │       ├── StudentService.java
+    │   │       └── UserManagementService.java
     │   └── resources/
     │       ├── application.properties         # Application configuration with environment variable fallbacks
-    │       ├── static/css/
-    │       │   └── style.css                  # Custom SaaS design system CSS
+    │       ├── static/
+    │       │   ├── css/style.css              # Custom responsive SaaS design system CSS
+    │       │   └── js/
+    │       │       ├── back-navigation.js     # Cache-Control and bfcache history protection
+    │       │       └── chart.min.js           # Offline Chart.js library for analytics dashboard
     │       └── templates/                     # Thymeleaf HTML5 templates
-    │           ├── index.html                 # Platform landing page
+    │           ├── index.html                 # Authentication-first public landing page
     │           ├── login.html                 # Administrator login portal
     │           ├── admin/
-    │           │   ├── analytics/index.html   # Operations analytics dashboard
-    │           │   ├── complaints/detail.html # Case detail, status transition, and audit trail
+    │           │   ├── analytics/index.html   # Operations analytics dashboard with charts
+    │           │   ├── complaints/detail.html # Case detail, status transition, priority mutation, and audit trail
     │           │   ├── complaints/index.html  # Admin complaint queue with filters and pagination
-    │           │   └── insights/index.html    # AI insights and bottleneck recommendations
+    │           │   ├── insights/index.html    # AI insights and bottleneck recommendations
+    │           │   └── users/index.html       # Role governance and user management
+    │           ├── auth/
+    │           │   ├── forgot-password.html   # Self-service password reset request
+    │           │   └── reset-password.html    # Secure token-verified password reset form
     │           ├── complaints/
-    │           │   ├── form.html              # Complaint submission form with AI suggestion
-    │           │   ├── list.html              # Public complaint registry
-    │           │   ├── success.html           # Submission confirmation receipt
-    │           │   └── track.html             # Self-service status tracking portal
+    │           │   ├── form.html              # Complaint submission form with AI suggestion & hostel fields
+    │           │   ├── list.html              # Public complaint registry with search & filters
+    │           │   ├── success.html           # Submission confirmation receipt with reference ID
+    │           │   └── track.html             # Self-service status tracking portal & feedback
+    │           ├── error/
+    │           │   ├── 403.html               # Access denied template
+    │           │   ├── 404.html               # Not found error template
+    │           │   └── error.html             # Generic error fallback
+    │           ├── moderator/
+    │           │   └── complaints/
+    │           │       ├── detail.html        # Department-specific case review
+    │           │       └── index.html         # Moderator grievance queue
     │           └── student/
     │               ├── login.html             # Dedicated student login view
+    │               ├── profile.html           # Student profile and complaint history
     │               └── register.html          # Student self-registration portal
-    └── test/java/com/campuspulse/             # Automated Java unit & integration tests (262 tests)
+    └── test/java/com/campuspulse/             # Automated Java unit & integration tests (529 tests)
 ```
 
 ---
@@ -479,7 +515,20 @@ All variables listed below are bound in [`application.properties`](file:///Users
 
 ## 11. Authentication & Account Management
 
-CampusPulse implements dual-role Spring Security authentication with custom failure and success handlers (`RoleBasedAuthenticationSuccessHandler`):
+CampusPulse implements role-based Spring Security authentication with custom failure and success handlers (`RoleBasedAuthenticationSuccessHandler`):
+
+### Authentication-First Entry Flow & Landing Page (`/`)
+- **Public Welcome Portal:** Accessing the root URL (`http://localhost:8080/`) as an anonymous visitor renders a public landing page. Privileged management links, internal statistics, and administrative controls are completely suppressed.
+- **Entry Action Grid:** Four prominent direct-access cards guide users immediately to their respective entry portals:
+  1. **Student Login** (`/student/login`): Access complaint filing, tracking, and profile history.
+  2. **Student Registration** (`/student/register`): Self-service registration with password complexity validation.
+  3. **Admin Sign In** (`/login`): Administrative oversight, user governance, SLA settings, and analytics.
+  4. **Moderator Portal** (`/login`): Department-specific grievance resolution and status triage.
+- **Server-Side Role-Based Redirects:** When an authenticated user visits `/`, `HomeController` inspects their granted authorities and performs automatic, server-side redirection:
+  - `ROLE_STUDENT` &rarr; `/complaints/new`
+  - `ROLE_MODERATOR` &rarr; `/moderator/complaints`
+  - `ROLE_ADMIN` &rarr; `/admin/complaints`
+  - Unknown / Unauthorized role &rarr; `/login?error=unauthorized`
 
 ### Administrator Account Setup
 - **Configuration:** Admin credentials are configured via environment variables:
@@ -490,6 +539,18 @@ CampusPulse implements dual-role Spring Security authentication with custom fail
 - **Login Portal:** Access [http://localhost:8080/login](http://localhost:8080/login).
 - **Post-Login Routing:** Authenticated administrators (`ROLE_ADMIN`) are automatically directed to the management queue at `/admin/complaints`.
 - **Default Fallback:** If `ADMIN_PASSWORD` is left unset, Spring Boot generates a cryptographically secure random UUID password at startup and logs an alert.
+
+### Moderator Account Setup
+- **Configuration:** Moderator credentials can be provisioned at startup via environment variables:
+  ```bash
+  export MODERATOR_EMAIL="moderator@campuspulse.edu"
+  export MODERATOR_PASSWORD="ModStrongPassword123!"
+  export MODERATOR_NAME="Campus Moderator"
+  export MODERATOR_DEPARTMENT="Grievance Redressal Cell"
+  ```
+- **Startup Provisioning:** Initialized automatically by `ModeratorProvisioningRunner` on application boot.
+- **Login Portal:** Access [http://localhost:8080/login](http://localhost:8080/login).
+- **Post-Login Routing:** Authenticated moderators (`ROLE_MODERATOR`) are routed directly to the triage queue at `/moderator/complaints`.
 
 ### Student Registration & Sign-In
 - **Registration Portal:** Access [http://localhost:8080/student/register](http://localhost:8080/student/register).
@@ -503,11 +564,57 @@ CampusPulse implements dual-role Spring Security authentication with custom fail
 - **Persistence:** Passwords are salted and hashed using `BCryptPasswordEncoder` and persisted in the MySQL `students` table.
 - **Student Login:** Students log in at [http://localhost:8080/student/login](http://localhost:8080/student/login). Upon successful authentication (`ROLE_STUDENT`), they are routed directly to the complaint submission form at `/complaints/new`.
 
+### Independent Multi-Role Testing (Student, Admin, Moderator)
+
+> [!IMPORTANT]
+> **Understanding Browser Cookie Sharing:**
+> Standard web browsers (Chrome, Firefox, Safari, Edge) maintain a **single unified cookie store per browser profile** (RFC 6265). When you log in on one tab, the servlet container issues a `JSESSIONID` cookie that is shared by every ordinary tab in that browser profile.
+>
+> If you log in as **Student** in Tab A, and then log in as **Admin** in Tab B within the same profile, the new Admin session cookie overwrites the Student session cookie in the browser. Similarly, logging out of any tab terminates the shared session on the server and invalidates all tabs in that profile.
+>
+> To test multiple roles concurrently without session collisions, use **isolated browser profiles or containers**.
+
+#### Option A: Recommended Multi-Role Testing Workflows
+
+##### Method 1: Google Chrome / Microsoft Edge / Brave Profiles (Recommended)
+1. In your browser, click your profile avatar in the upper-right corner and select **Add** (or "Set up new profile").
+2. Create three dedicated profiles:
+   - **Profile 1 ("Admin"):** Open [http://localhost:8080/login](http://localhost:8080/login) and log in with your administrative credentials.
+   - **Profile 2 ("Student"):** Open [http://localhost:8080/student/login](http://localhost:8080/student/login) and log in with a student account.
+   - **Profile 3 ("Moderator"):** Open [http://localhost:8080/login](http://localhost:8080/login) and log in with a moderator account.
+   *(Alternatively, use a standard window for Student and an Incognito / InPrivate window for Admin).*
+
+##### Method 2: Mozilla Firefox Multi-Account Containers (Fastest Tab-Based Testing)
+1. Install the official **Firefox Multi-Account Containers** add-on.
+2. Long-press the **+** (New Tab) button and assign distinct containers:
+   - **"Personal" Container Tab:** Student portal ([http://localhost:8080/student/login](http://localhost:8080/student/login)).
+   - **"Work" Container Tab:** Admin portal ([http://localhost:8080/login](http://localhost:8080/login)).
+   - **"Banking" Container Tab:** Moderator portal ([http://localhost:8080/login](http://localhost:8080/login)).
+3. Each container maintains a fully sandboxed cookie jar within the same browser window.
+
+##### Method 3: Separate Browser Applications
+Open CampusPulse simultaneously across different browser engines (e.g., **Chrome** for Admin, **Firefox** for Moderator, and **Safari** or **Edge** for Student).
+
+#### Role Independence Verification Procedure
+To verify that role authorization and session lifecycles remain completely independent across isolated contexts:
+1. **Concurrent Active Sessions:**
+   - Verify the Student window is at `/complaints/new` or `/student/profile`.
+   - Verify the Admin window is at `/admin/complaints` and can view executive `/admin/analytics`.
+   - Verify the Moderator window is at `/moderator/complaints`.
+2. **Access Boundary Enforcement:**
+   - In the Student profile, attempt to open [http://localhost:8080/admin/complaints](http://localhost:8080/admin/complaints) &rarr; verify **HTTP 403 Forbidden**.
+   - In the Moderator profile, attempt to open [http://localhost:8080/admin/users](http://localhost:8080/admin/users) &rarr; verify **HTTP 403 Forbidden**.
+   - In the Admin profile, open both `/admin/complaints` and `/moderator/complaints` &rarr; verify **HTTP 200 OK**.
+3. **Logout Isolation:**
+   - In the Student window, click **Sign Out** &rarr; verified redirected to `/login?logout=true`.
+   - Switch to the Admin window and reload `/admin/complaints` &rarr; **Admin session remains fully authenticated and unaffected**.
+   - Switch to the Moderator window and reload `/moderator/complaints` &rarr; **Moderator session remains fully authenticated and unaffected**.
+
 ---
 
 ## 12. Running Test Suites
 
-### Java Test Suite (262 Tests)
+### Java Test Suite (529 Tests)
 
 The Spring Boot test suite utilizes an embedded in-memory H2 database with mock mail and REST clients. **It does not require MySQL or the Python microservice to be running.**
 
@@ -516,10 +623,10 @@ The Spring Boot test suite utilizes an embedded in-memory H2 database with mock 
 ```
 
 **Verification Results:**
-- **Tests run:** 262
+- **Tests run:** 529
 - **Failures:** 0
 - **Errors:** 0
-- **Skipped:** 0
+- **Skipped:** 2
 - **Build Status:** `BUILD SUCCESS`
 
 #### Key Test Coverage Breakdown:
@@ -528,6 +635,11 @@ The Spring Boot test suite utilizes an embedded in-memory H2 database with mock 
 - `StudentAuthControllerTest` & `StudentServiceTest`: Registration validation, password complexity verification, duplicate email rejections, and BCrypt hashing.
 - `StudentSecurityIntegrationTest`: Dual-role login flows, role-based post-login redirection, and session isolation.
 - `AdminComplaintControllerTest` & `AdminSecurityTest`: Strict role enforcement on `/admin/**`, CSRF token validation, and status updates.
+- `ModeratorComplaintControllerTest` & `ModeratorSecurityTest`: Moderator department queues, status transitions, and role isolation.
+- `HomeControllerTest` & `RoleBasedAuthenticationSuccessHandlerTest`: Authentication-first entry routing, public landing page anonymity, and role-based redirect dispatching.
+- `UserManagementServiceTest` & `AdminUserManagementControllerTest`: Administrator role delegation, promotion/demotion between student, moderator, and admin roles, and active session revocation.
+- `BackNavigationTest`: Cache-Control, Pragma, and Expires non-cacheable security headers, page show bfcache re-authentication handling, and server-side authorization enforcement.
+- `PasswordResetControllerTest` & `PasswordResetServiceTest`: Token generation, SHA-256 token hashing, expiration checks, and single-use invalidation.
 - `AiClassifierServiceTest`: Microservice communication, connect/read timeouts, fallback behavior when AI is offline, and category whitelisting.
 - `AnalyticsServiceTest` & `InsightsServiceTest`: Daily volume trends, period-over-period comparisons, department backlogs, and recommendation heuristics.
 - `NotificationServiceTest` & `NotificationRetrySchedulerTest`: Outbox transactional staging, exponential backoff timing, in-flight claim locking, duplicate prevention, and retry recovery.
@@ -636,17 +748,16 @@ curl -X POST http://127.0.0.1:8000/predict \
 
 Complaints follow an audited state machine:
 
-```
-[ SUBMITTED ] 
-      │
-      ▼
-[ UNDER_REVIEW ] ──► [ REJECTED ] (Terminal - Requires admin remark)
-      │
-      ▼
-[ IN_PROGRESS ]
-      │
-      ▼
-[ RESOLVED ] (Terminal - Requires resolution summary)
+```mermaid
+stateDiagram-v2
+    [*] --> SUBMITTED: Student submits complaint (SLA Response Clock Starts)
+    SUBMITTED --> UNDER_REVIEW: Case acknowledged & assigned to department (Response SLA Satisfied)
+    UNDER_REVIEW --> IN_PROGRESS: Active investigation or physical inspection
+    UNDER_REVIEW --> REJECTED: Rejected with mandatory remarks (Terminal)
+    IN_PROGRESS --> RESOLVED: Issue resolved with resolution remarks (Resolution SLA Satisfied)
+    IN_PROGRESS --> REJECTED: Deemed out of scope / duplicate with remarks
+    RESOLVED --> [*]
+    REJECTED --> [*]
 ```
 
 1. **`SUBMITTED`**: Initial state upon student creation. SLA response clock starts.
@@ -824,6 +935,11 @@ The table below outlines the recommended screenshots to capture during demonstra
     set -a && source .env && set +a
     ./mvnw spring-boot:run
     ```
+
+### 5. Multi-Tab Session Overwrites or Logout Cascades
+- **Symptom:** Logging in as Admin in Tab B causes Tab A (Student) to become Admin, or logging out of one tab logs out all other open tabs.
+- **Cause:** In standard web browsers, all ordinary tabs within the same browser profile share a single cookie jar (RFC 6265). When a tab logs in or out, the server modifies the `JSESSIONID` cookie shared by every tab in that profile.
+- **Fix:** Do not test multiple roles using ordinary tabs in the same browser profile. Use **isolated browser profiles** (e.g. separate Chrome/Edge profiles), an **Incognito / InPrivate window**, or **Firefox Multi-Account Containers** as described in [Independent Multi-Role Testing](#independent-multi-role-testing-student-admin-moderator).
 
 ---
 

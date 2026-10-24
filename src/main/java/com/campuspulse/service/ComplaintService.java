@@ -143,6 +143,21 @@ public class ComplaintService {
                 if (form.getStudentEmail() != null && !form.getStudentEmail().trim().isEmpty()) {
                     complaint.setStudentEmail(form.getStudentEmail().trim());
                 }
+                if ("Hostel & Residence".equals(form.getCategory().trim())) {
+                    if (form.getHostelName() != null && !form.getHostelName().trim().isEmpty()) {
+                        complaint.setHostelName(form.getHostelName().trim());
+                    }
+                    if (form.getRoomNumber() != null && !form.getRoomNumber().trim().isEmpty()) {
+                        complaint.setRoomNumber(form.getRoomNumber().trim());
+                    }
+                    if (form.getFloorNumber() != null && !form.getFloorNumber().trim().isEmpty()) {
+                        complaint.setFloorNumber(form.getFloorNumber().trim());
+                    }
+                } else {
+                    complaint.setHostelName(null);
+                    complaint.setRoomNumber(null);
+                    complaint.setFloorNumber(null);
+                }
                 complaint.setStatus(ComplaintStatus.SUBMITTED);
                 complaint.setCreatedAt(now);
                 complaint.setResponseDeadline(now.plusHours(slaProperties.getDefaultResponseHours()));

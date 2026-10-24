@@ -97,6 +97,15 @@ public class Complaint {
     @Column(name = "deletion_reason", length = 500)
     private String deletionReason;
 
+    @Column(name = "hostel_name", length = 100)
+    private String hostelName;
+
+    @Column(name = "room_number", length = 30)
+    private String roomNumber;
+
+    @Column(name = "floor_number", length = 30)
+    private String floorNumber;
+
     public Complaint() {
         this.escalationStage = SlaEscalationStage.NONE;
         this.priority = ComplaintPriority.MEDIUM;
@@ -107,12 +116,20 @@ public class Complaint {
     }
 
     public Complaint(String referenceId, String title, String description, String category, String department, String studentEmail) {
+        this(referenceId, title, description, category, department, studentEmail, null, null, null);
+    }
+
+    public Complaint(String referenceId, String title, String description, String category, String department,
+                     String studentEmail, String hostelName, String roomNumber, String floorNumber) {
         this.referenceId = referenceId;
         this.title = title;
         this.description = description;
         this.category = category;
         this.department = department;
         this.studentEmail = studentEmail;
+        this.hostelName = hostelName;
+        this.roomNumber = roomNumber;
+        this.floorNumber = floorNumber;
         this.status = ComplaintStatus.SUBMITTED;
         this.createdAt = LocalDateTime.now();
         this.responseDeadline = this.createdAt.plusHours(24);
@@ -430,6 +447,73 @@ public class Complaint {
 
     public void setDeletionReason(String deletionReason) {
         this.deletionReason = deletionReason;
+    }
+
+    public String getHostelName() {
+        return hostelName;
+    }
+
+    public void setHostelName(String hostelName) {
+        this.hostelName = hostelName;
+    }
+
+    public String getRoomNumber() {
+        return roomNumber;
+    }
+
+    public void setRoomNumber(String roomNumber) {
+        this.roomNumber = roomNumber;
+    }
+
+    public String getFloorNumber() {
+        return floorNumber;
+    }
+
+    public void setFloorNumber(String floorNumber) {
+        this.floorNumber = floorNumber;
+    }
+
+    /**
+     * Creates a detached, sanitized copy of this complaint for tracking display.
+     * When includeHostelDetails is false, room number, floor number, and hostel name
+     * are withheld (set to null) to enforce server-side privacy boundaries.
+     *
+     * @param includeHostelDetails whether the viewer is authorized to see residential details
+     * @return sanitized complaint copy
+     */
+    public Complaint copyForPublicTracking(boolean includeHostelDetails) {
+        Complaint copy = new Complaint();
+        copy.setId(this.id);
+        copy.setReferenceId(this.referenceId);
+        copy.setTitle(this.title);
+        copy.setDescription(this.description);
+        copy.setCategory(this.category);
+        copy.setDepartment(this.department);
+        copy.setStudentEmail(this.studentEmail);
+        copy.setStatus(this.status);
+        copy.setCreatedAt(this.createdAt);
+        copy.setResponseDeadline(this.responseDeadline);
+        copy.setResolutionDeadline(this.resolutionDeadline);
+        copy.setAcknowledgedAt(this.acknowledgedAt);
+        copy.setResolvedAt(this.resolvedAt);
+        copy.setEscalationStage(this.escalationStage);
+        copy.setLastEscalatedAt(this.lastEscalatedAt);
+        copy.setResolutionNote(this.resolutionNote);
+        copy.setPriority(this.priority);
+        copy.setDeleted(this.deleted);
+        copy.setDeletedAt(this.deletedAt);
+        copy.setDeletedBy(this.deletedBy);
+        copy.setDeletionReason(this.deletionReason);
+        if (includeHostelDetails) {
+            copy.setHostelName(this.hostelName);
+            copy.setRoomNumber(this.roomNumber);
+            copy.setFloorNumber(this.floorNumber);
+        } else {
+            copy.setHostelName(null);
+            copy.setRoomNumber(null);
+            copy.setFloorNumber(null);
+        }
+        return copy;
     }
 }
 

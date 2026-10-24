@@ -50,3 +50,10 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+# Experimental / unapproved tab-session isolation files
+src/main/java/com/campuspulse/config/TabLogoutHandler.java
+src/main/java/com/campuspulse/config/TabSecurityContextRepository.java
+src/main/resources/static/js/tab-session.js
+src/test/java/com/campuspulse/config/TabSecurityContextRepositoryTest.java
+src/test/java/com/campuspulse/controller/SameProfileMultiTabSecurityTest.java

@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="CampusPulse Administrator Portal Login. Secure administrative access to review and manage campus grievances.">
     <title>Admin Login | CampusPulse</title>
-    <!-- Google Fonts for Modern Typography -->
+    <!-- Google Fonts for Modern SaaS Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" th:href="@{/css/style.css}" href="../static/css/style.css">
 </head>
-<body style="min-height: 100vh; display: flex; flex-direction: column;">
+<body class="auth-page-wrapper">
 
     <!-- Site Header -->
     <header class="site-header">
@@ -29,7 +29,7 @@
 
                 <ul class="nav-links">
                     <li><a th:href="@{/}" href="/" class="nav-link">Home</a></li>
-                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Registry</a></li>
+                    <li><a th:href="@{/complaints/new}" href="/complaints/new" class="nav-link">Submit Grievance</a></li>
                     <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Student Tracker</a></li>
                 </ul>
 
@@ -43,28 +43,28 @@
     </header>
 
     <!-- Main Content -->
-    <main class="section section-alt" style="flex: 1; display: flex; align-items: center; padding: 3.5rem 0;">
-        <div class="container" style="max-width: 460px;">
+    <main class="auth-main">
+        <div class="auth-container">
 
-            <!-- Back Navigation -->
-            <div style="margin-bottom: 1.25rem;">
+            <!-- Back Navigation Fragment -->
+            <div style="margin-bottom: var(--space-4);">
                 <div th:replace="~{fragments/navigation :: backButton(fallbackUrl=@{/}, label='Back to Home')}"></div>
             </div>
 
             <!-- Login Card -->
-            <div class="form-card" style="padding: 2.5rem 2.25rem;">
+            <div class="auth-card">
 
                 <!-- Header with Security Shield -->
-                <div style="text-align: center; margin-bottom: 2rem;">
-                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: var(--radius-md); background-color: var(--surface-muted); color: var(--navy-900); margin-bottom: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-xs);">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <div class="auth-header">
+                    <div class="auth-icon-wrap" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                         </svg>
                     </div>
-                    <h1 class="page-title" style="font-size: 1.5rem; margin-bottom: 0.45rem;">Admin Sign In</h1>
-                    <p class="page-subtitle" style="font-size: 0.875rem;">
-                        Enter your administrative credentials to access the complaint management dashboard.
+                    <h1 class="auth-title">Admin Sign In</h1>
+                    <p class="auth-subtitle">
+                        Enter your administrative credentials to access the grievance management portal.
                     </p>
                 </div>
 
@@ -129,8 +129,8 @@
                         />
                     </div>
 
-                    <div class="form-group" style="margin-bottom: 1.75rem;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    <div class="form-group" style="margin-bottom: var(--space-6);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-1);">
                             <label for="password" class="form-label" style="margin-bottom: 0;">
                                 Password <span class="required" aria-hidden="true">*</span>
                             </label>
@@ -149,13 +149,13 @@
                         />
                     </div>
 
-                    <button type="submit" class="btn btn-primary" id="btn-login-submit" style="width: 100%; justify-content: center; font-size: 0.9375rem; height: 42px;">
+                    <button type="submit" class="btn btn-primary" id="btn-login-submit" style="width: 100%; justify-content: center; height: 42px;">
                         Sign In to Dashboard &rarr;
                     </button>
                 </form>
 
-                <div style="margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--border-color); text-align: center; display: flex; flex-direction: column; gap: 0.65rem;">
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+                <div class="auth-footer">
+                    <p class="auth-links">
                         Looking for student access?
                         <a th:href="@{/student/login}" href="/student/login" style="font-weight: 600; color: var(--indigo-500);" id="link-admin-to-student-login">
                             Student Sign In
@@ -176,7 +176,7 @@
     </main>
 
     <!-- Site Footer -->
-    <footer class="site-footer" style="padding: 2rem 0; background-color: var(--navy-900); border-top: 1px solid var(--navy-850);">
+    <footer class="site-footer" style="padding: var(--space-6) 0; background-color: var(--navy-900); border-top: 1px solid var(--navy-850);">
         <div class="container" style="text-align: center;">
             <p style="font-size: 0.8125rem; color: #94A3B8;">
                 &copy; 2026 CampusPulse &bull; Administrative access is restricted to authorized campus staff.

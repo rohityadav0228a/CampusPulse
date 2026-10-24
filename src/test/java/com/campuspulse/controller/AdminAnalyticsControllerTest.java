@@ -2,6 +2,8 @@ package com.campuspulse.controller;
 
 import com.campuspulse.dto.analytics.AnalyticsDashboardData;
 import com.campuspulse.dto.analytics.AnalyticsSummary;
+import com.campuspulse.dto.analytics.CategoryBreakdown;
+import com.campuspulse.dto.analytics.StatusBreakdown;
 import com.campuspulse.model.ComplaintStatus;
 import com.campuspulse.service.AnalyticsService;
 import com.campuspulse.service.ComplaintService;
@@ -17,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -126,5 +129,116 @@ class AdminAnalyticsControllerTest {
                 .andExpect(view().name("admin/analytics/index"));
 
         verify(analyticsService).getAnalyticsData(null, null, 30);
+    }
+
+    @Test
+    @DisplayName("GET /admin/analytics supplies chart model attributes and renders interactive chart cards when data exists")
+    void shouldRenderInteractiveChartsWhenDataExists() throws Exception {
+        AnalyticsSummary summary = new AnalyticsSummary(10, 2, 3, 1, 4);
+        List<CategoryBreakdown> categories = List.of(
+                CategoryBreakdown.of("Hostel & Residence", 6, 10),
+                CategoryBreakdown.of("Academic Affairs", 4, 10)
+        );
+        List<StatusBreakdown> statuses = List.of(
+                StatusBreakdown.of(ComplaintStatus.SUBMITTED, 2, 10),
+                StatusBreakdown.of(ComplaintStatus.UNDER_REVIEW, 3, 10),
+                StatusBreakdown.of(ComplaintStatus.IN_PROGRESS, 1, 10),
+                StatusBreakdown.of(ComplaintStatus.RESOLVED, 4, 10)
+        );
+
+        AnalyticsDashboardData data = new AnalyticsDashboardData(
+                summary,
+                categories,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                "",
+                "",
+                30,
+                null,
+                statuses
+        );
+
+        when(analyticsService.getAnalyticsData(null, null, 30)).thenReturn(data);
+
+        mockMvc.perform(get("/admin/analytics"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/analytics/index"))
+                .andExpect(model().attributeExists("categoryBreakdown"))
+                .andExpect(model().attributeExists("statusBreakdown"))
+                .andExpect(content().string(containsString("card-category-distribution")))
+                .andExpect(content().string(containsString("card-status-distribution")))
+                .andExpect(content().string(containsString("categoryChart")))
+                .andExpect(content().string(containsString("statusChart")))
+                .andExpect(content().string(containsString("category-selected-info")))
+                .andExpect(content().string(containsString("status-selected-info")))
+                .andExpect(content().string(containsString("Total: 10")))
+                .andExpect(content().string(containsString("Hostel &amp; Residence")))
+                .andExpect(content().string(containsString("60.0%")))
+                .andExpect(content().string(containsString("Resolved")))
+                .andExpect(content().string(containsString("40.0%")));
+    }
+
+    @Test
+    @DisplayName("GET /admin/analytics renders chart empty state messages when total complaints is zero")
+    void shouldRenderChartEmptyStatesWhenZeroComplaints() throws Exception {
+        AnalyticsSummary summary = new AnalyticsSummary(0, 0, 0, 0, 0);
+        AnalyticsDashboardData emptyData = new AnalyticsDashboardData(
+                summary,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                "",
+                "",
+                30,
+                null,
+                Collections.emptyList()
+        );
+        when(analyticsService.getAnalyticsData(null, null, 30)).thenReturn(emptyData);
+
+        mockMvc.perform(get("/admin/analytics"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/analytics/index"))
+                .andExpect(content().string(containsString("category-chart-empty")))
+                .andExpect(content().string(containsString("status-chart-empty")))
+                .andExpect(content().string(containsString("No Category Data Available")))
+                .andExpect(content().string(containsString("No Status Data Available")))
+                .andExpect(content().string(not(containsString("<canvas id=\"categoryChart\""))))
+                .andExpect(content().string(not(containsString("<canvas id=\"statusChart\""))));
+    }
+
+    @Test
+    @DisplayName("GET /admin/analytics never exposes student emails, descriptions, or hostel location details")
+    void shouldNotExposeSensitiveOrHostelLocationDataInAnalytics() throws Exception {
+        AnalyticsSummary summary = new AnalyticsSummary(5, 1, 1, 1, 2);
+        List<CategoryBreakdown> categories = List.of(
+                CategoryBreakdown.of("Hostel & Residence", 5, 5)
+        );
+        List<StatusBreakdown> statuses = List.of(
+                StatusBreakdown.of(ComplaintStatus.SUBMITTED, 1, 5),
+                StatusBreakdown.of(ComplaintStatus.UNDER_REVIEW, 1, 5),
+                StatusBreakdown.of(ComplaintStatus.IN_PROGRESS, 1, 5),
+                StatusBreakdown.of(ComplaintStatus.RESOLVED, 2, 5)
+        );
+
+        AnalyticsDashboardData data = new AnalyticsDashboardData(
+                summary,
+                categories,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                "",
+                "",
+                30,
+                null,
+                statuses
+        );
+        when(analyticsService.getAnalyticsData(null, null, 30)).thenReturn(data);
+
+        mockMvc.perform(get("/admin/analytics"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/analytics/index"))
+                .andExpect(content().string(not(containsString("@campuspulse.edu"))))
+                .andExpect(content().string(not(containsString("Nilgiri"))))
+                .andExpect(content().string(not(containsString("B-204"))))
+                .andExpect(content().string(not(containsString("Floor Number"))));
     }
 }

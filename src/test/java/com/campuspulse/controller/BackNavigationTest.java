@@ -122,7 +122,7 @@ class BackNavigationTest {
     void complaintListHasBackButton() throws Exception {
         when(complaintService.getAllComplaints()).thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/complaints"))
+        mockMvc.perform(get("/complaints").with(user("admin").roles("ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("btn-back")))
                 .andExpect(content().string(containsString("data-back-button=\"true\"")))

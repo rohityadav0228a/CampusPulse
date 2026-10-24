@@ -31,7 +31,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.ArgumentCaptor;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -139,7 +144,10 @@ class ComplaintControllerTest {
                         .param("title", "Water Leakage in Hostel B")
                         .param("description", "There is persistent water leakage on the second floor washroom.")
                         .param("category", "Hostel & Residence")
-                        .param("department", "Hostel Administration"))
+                        .param("department", "Hostel Administration")
+                        .param("hostelName", "Hostel Block B")
+                        .param("roomNumber", "B-204")
+                        .param("floorNumber", "2nd Floor"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/complaints/success/CP-2026-TEST8888"));
 
@@ -156,7 +164,10 @@ class ComplaintControllerTest {
                         .param("title", "Water Leakage in Hostel B")
                         .param("description", "There is persistent water leakage on the second floor washroom.")
                         .param("category", "Hostel & Residence")
-                        .param("department", "Hostel Administration"))
+                        .param("department", "Hostel Administration")
+                        .param("hostelName", "Hostel Block B")
+                        .param("roomNumber", "B-204")
+                        .param("floorNumber", "2nd Floor"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("complaints/form"))
                 .andExpect(model().attributeExists("databaseError"))
@@ -477,7 +488,10 @@ class ComplaintControllerTest {
                         .param("description", "There is persistent water leakage on the second floor washroom.")
                         .param("category", "Hostel & Residence")
                         .param("department", "Hostel Administration")
-                        .param("studentEmail", "student@college.edu"))
+                        .param("studentEmail", "student@college.edu")
+                        .param("hostelName", "Hostel Block B")
+                        .param("roomNumber", "B-204")
+                        .param("floorNumber", "2nd Floor"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/complaints/success/CP-2026-EMAIL001"));
 
@@ -659,5 +673,255 @@ class ComplaintControllerTest {
                 .andExpect(view().name("complaints/list"))
                 .andExpect(content().string(containsString("CP-2026-PRIV003")))
                 .andExpect(content().string(not(containsString("hidden.student@campus.edu"))));
+    }
+
+    @Test
+    @DisplayName("POST /complaints rejects Hostel complaint when hostelName is missing")
+    void shouldRejectHostelComplaintWhenHostelNameIsMissing() throws Exception {
+        mockMvc.perform(post("/complaints")
+                        .param("title", "Broken Window")
+                        .param("description", "Window latch broken in hostel room.")
+                        .param("category", "Hostel & Residence")
+                        .param("department", "Hostel Administration")
+                        .param("hostelName", "   ")
+                        .param("roomNumber", "B-204")
+                        .param("floorNumber", "2nd Floor"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/form"))
+                .andExpect(model().attributeHasFieldErrors("complaintForm", "hostelName"))
+                .andExpect(content().string(containsString("Hostel name is required for hostel complaints.")));
+
+        verify(complaintService, never()).createComplaint(any());
+    }
+
+    @Test
+    @DisplayName("POST /complaints rejects Hostel complaint when roomNumber is missing")
+    void shouldRejectHostelComplaintWhenRoomNumberIsMissing() throws Exception {
+        mockMvc.perform(post("/complaints")
+                        .param("title", "Broken Window")
+                        .param("description", "Window latch broken in hostel room.")
+                        .param("category", "Hostel & Residence")
+                        .param("department", "Hostel Administration")
+                        .param("hostelName", "Nilgiri Hostel")
+                        .param("roomNumber", "   ")
+                        .param("floorNumber", "2nd Floor"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/form"))
+                .andExpect(model().attributeHasFieldErrors("complaintForm", "roomNumber"))
+                .andExpect(content().string(containsString("Room number is required for hostel complaints.")));
+
+        verify(complaintService, never()).createComplaint(any());
+    }
+
+    @Test
+    @DisplayName("POST /complaints rejects Hostel complaint when floorNumber is missing")
+    void shouldRejectHostelComplaintWhenFloorNumberIsMissing() throws Exception {
+        mockMvc.perform(post("/complaints")
+                        .param("title", "Broken Window")
+                        .param("description", "Window latch broken in hostel room.")
+                        .param("category", "Hostel & Residence")
+                        .param("department", "Hostel Administration")
+                        .param("hostelName", "Nilgiri Hostel")
+                        .param("roomNumber", "B-204")
+                        .param("floorNumber", "   "))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/form"))
+                .andExpect(model().attributeHasFieldErrors("complaintForm", "floorNumber"))
+                .andExpect(content().string(containsString("Floor number is required for hostel complaints.")));
+
+        verify(complaintService, never()).createComplaint(any());
+    }
+
+    @Test
+    @DisplayName("POST /complaints succeeds for non-hostel category without hostel fields")
+    void shouldAcceptNonHostelComplaintWithoutHostelFields() throws Exception {
+        Complaint saved = new Complaint(
+                "CP-2026-ACAD001",
+                "Grade Discrepancy",
+                "Discrepancy in midterm grading calculation.",
+                "Academic Affairs",
+                "Academic Affairs Division"
+        );
+        saved.setId(103L);
+
+        when(complaintService.createComplaint(any(ComplaintForm.class))).thenReturn(saved);
+
+        mockMvc.perform(post("/complaints")
+                        .param("title", "Grade Discrepancy")
+                        .param("description", "Discrepancy in midterm grading calculation.")
+                        .param("category", "Academic Affairs")
+                        .param("department", "Academic Affairs Division"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/complaints/success/CP-2026-ACAD001"));
+
+        verify(complaintService, times(1)).createComplaint(any(ComplaintForm.class));
+    }
+
+    @Test
+    @DisplayName("POST /complaints clears hostel fields for non-hostel category even if injected")
+    void shouldClearHostelFieldsWhenCategoryIsNotHostel() throws Exception {
+        Complaint saved = new Complaint(
+                "CP-2026-INFR001",
+                "Projector Broken",
+                "Lamp failed in hall 3.",
+                "Infrastructure & Labs",
+                "Campus Facilities & Works"
+        );
+        saved.setId(104L);
+
+        ArgumentCaptor<ComplaintForm> formCaptor = ArgumentCaptor.forClass(ComplaintForm.class);
+        when(complaintService.createComplaint(formCaptor.capture())).thenReturn(saved);
+
+        mockMvc.perform(post("/complaints")
+                        .param("title", "Projector Broken")
+                        .param("description", "Lamp failed in hall 3.")
+                        .param("category", "Infrastructure & Labs")
+                        .param("department", "Campus Facilities & Works")
+                        .param("hostelName", "Injected Nilgiri")
+                        .param("roomNumber", "Injected 204")
+                        .param("floorNumber", "Injected 2nd"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/complaints/success/CP-2026-INFR001"));
+
+        ComplaintForm captured = formCaptor.getValue();
+        assertNull(captured.getHostelName(), "Backend must clear hostelName for non-hostel categories");
+        assertNull(captured.getRoomNumber(), "Backend must clear roomNumber for non-hostel categories");
+        assertNull(captured.getFloorNumber(), "Backend must clear floorNumber for non-hostel categories");
+    }
+
+    @Test
+    @DisplayName("POST /complaints rejects hostel fields exceeding max length constraints")
+    void shouldRejectHostelFieldsExceedingMaxLength() throws Exception {
+        String longHostel = "A".repeat(101);
+        String longRoom = "B".repeat(31);
+        String longFloor = "C".repeat(31);
+
+        mockMvc.perform(post("/complaints")
+                        .param("title", "Water Issue")
+                        .param("description", "Water pipe leakage.")
+                        .param("category", "Hostel & Residence")
+                        .param("department", "Hostel Administration")
+                        .param("hostelName", longHostel)
+                        .param("roomNumber", longRoom)
+                        .param("floorNumber", longFloor))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/form"))
+                .andExpect(model().attributeHasFieldErrors("complaintForm", "hostelName", "roomNumber", "floorNumber"));
+
+        verify(complaintService, never()).createComplaint(any());
+    }
+
+    @Test
+    @DisplayName("GET /complaints/track conceals residential location details from anonymous visitors")
+    void trackingPageDoesNotExposeHostelDetailsToAnonymousUser() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-TRACK001",
+                "Hostel Ceiling Fan",
+                "Ceiling fan making screeching noise.",
+                "Hostel & Residence",
+                "Hostel Administration",
+                "resident@campuspulse.edu",
+                "Nilgiri Hostel",
+                "B-204",
+                "2nd Floor"
+        );
+
+        when(complaintService.getByReferenceId("CP-2026-TRACK001")).thenReturn(Optional.of(complaint));
+        when(complaintService.getStatusHistory("CP-2026-TRACK001")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/complaints/track").param("referenceId", "CP-2026-TRACK001"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/track"))
+                .andExpect(model().attribute("canViewHostelDetails", false))
+                .andExpect(content().string(not(containsString("Residential Location Details"))))
+                .andExpect(content().string(not(containsString("B-204"))))
+                .andExpect(content().string(not(containsString("Nilgiri Hostel"))));
+    }
+
+    @Test
+    @DisplayName("GET /complaints/track conceals residential location details from another student")
+    void trackingPageDoesNotExposeHostelDetailsToDifferentStudent() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-TRACK002",
+                "Hostel Ceiling Fan",
+                "Ceiling fan making screeching noise.",
+                "Hostel & Residence",
+                "Hostel Administration",
+                "owner@campuspulse.edu",
+                "Nilgiri Hostel",
+                "B-204",
+                "2nd Floor"
+        );
+
+        when(complaintService.getByReferenceId("CP-2026-TRACK002")).thenReturn(Optional.of(complaint));
+        when(complaintService.getStatusHistory("CP-2026-TRACK002")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/complaints/track")
+                        .param("referenceId", "CP-2026-TRACK002")
+                        .with(user("other_student@campuspulse.edu").roles("STUDENT")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/track"))
+                .andExpect(model().attribute("canViewHostelDetails", false))
+                .andExpect(content().string(not(containsString("Residential Location Details"))))
+                .andExpect(content().string(not(containsString("B-204"))));
+    }
+
+    @Test
+    @DisplayName("GET /complaints/track exposes residential location details to authenticated complaint owner")
+    void trackingPageExposesHostelDetailsToComplaintOwner() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-TRACK003",
+                "Hostel Ceiling Fan",
+                "Ceiling fan making screeching noise.",
+                "Hostel & Residence",
+                "Hostel Administration",
+                "owner@campuspulse.edu",
+                "Nilgiri Hostel",
+                "B-204",
+                "2nd Floor"
+        );
+
+        when(complaintService.getByReferenceId("CP-2026-TRACK003")).thenReturn(Optional.of(complaint));
+        when(complaintService.getStatusHistory("CP-2026-TRACK003")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/complaints/track")
+                        .param("referenceId", "CP-2026-TRACK003")
+                        .with(user("owner@campuspulse.edu").roles("STUDENT")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/track"))
+                .andExpect(model().attribute("canViewHostelDetails", true))
+                .andExpect(content().string(containsString("Residential Location Details")))
+                .andExpect(content().string(containsString("Nilgiri Hostel")))
+                .andExpect(content().string(containsString("B-204")))
+                .andExpect(content().string(containsString("2nd Floor")));
+    }
+
+    @Test
+    @DisplayName("GET /complaints/track exposes residential location details to admin or moderator")
+    void trackingPageExposesHostelDetailsToStaff() throws Exception {
+        Complaint complaint = new Complaint(
+                "CP-2026-TRACK004",
+                "Hostel Ceiling Fan",
+                "Ceiling fan making screeching noise.",
+                "Hostel & Residence",
+                "Hostel Administration",
+                "resident@campuspulse.edu",
+                "Nilgiri Hostel",
+                "B-204",
+                "2nd Floor"
+        );
+
+        when(complaintService.getByReferenceId("CP-2026-TRACK004")).thenReturn(Optional.of(complaint));
+        when(complaintService.getStatusHistory("CP-2026-TRACK004")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/complaints/track")
+                        .param("referenceId", "CP-2026-TRACK004")
+                        .with(user("warden@campuspulse.edu").roles("MODERATOR")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("complaints/track"))
+                .andExpect(model().attribute("canViewHostelDetails", true))
+                .andExpect(content().string(containsString("Residential Location Details")))
+                .andExpect(content().string(containsString("Nilgiri Hostel")))
+                .andExpect(content().string(containsString("B-204")));
     }
 }

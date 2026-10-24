@@ -950,5 +950,97 @@ class ComplaintServiceTest {
         verify(complaintRepository, never()).save(any());
         verify(complaintDeletionAuditRepository, never()).save(any());
     }
+
+    @Test
+    @DisplayName("createComplaint persists hostel fields for Hostel & Residence category")
+    void createComplaintPersistsHostelDetailsForHostelCategory() {
+        ComplaintForm form = new ComplaintForm();
+        form.setTitle("Hostel Water Issue");
+        form.setDescription("Hot water not working in 2nd floor bathroom.");
+        form.setCategory("Hostel & Residence");
+        form.setDepartment("Hostel Administration");
+        form.setHostelName("  Nilgiri Hostel  ");
+        form.setRoomNumber("  B-204  ");
+        form.setFloorNumber("  2nd Floor  ");
+
+        when(complaintRepository.existsByReferenceId(any())).thenReturn(false);
+        when(complaintRepository.save(any(Complaint.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Complaint created = complaintService.createComplaint(form);
+
+        assertNotNull(created);
+        assertEquals("Nilgiri Hostel", created.getHostelName(), "Hostel name must be trimmed and persisted");
+        assertEquals("B-204", created.getRoomNumber(), "Room number must be trimmed and persisted");
+        assertEquals("2nd Floor", created.getFloorNumber(), "Floor number must be trimmed and persisted");
+    }
+
+    @Test
+    @DisplayName("createComplaint forces hostel fields to null for non-hostel category even if injected")
+    void createComplaintSetsHostelDetailsToNullForNonHostelCategory() {
+        ComplaintForm form = new ComplaintForm();
+        form.setTitle("Lab Monitor Issue");
+        form.setDescription("Flickering screen on workstation.");
+        form.setCategory("Infrastructure & Labs");
+        form.setDepartment("Campus Facilities & Works");
+        form.setHostelName("Injected Hostel");
+        form.setRoomNumber("Room 999");
+        form.setFloorNumber("9th Floor");
+
+        when(complaintRepository.existsByReferenceId(any())).thenReturn(false);
+        when(complaintRepository.save(any(Complaint.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Complaint created = complaintService.createComplaint(form);
+
+        assertNotNull(created);
+        assertNull(created.getHostelName(), "Hostel name must be null for non-hostel categories");
+        assertNull(created.getRoomNumber(), "Room number must be null for non-hostel categories");
+        assertNull(created.getFloorNumber(), "Floor number must be null for non-hostel categories");
+    }
+
+    @Test
+    @DisplayName("copyForPublicTracking sanitizes residential location fields for unauthorized viewers")
+    void copyForPublicTrackingSanitizesResidentialDetails() {
+        Complaint complaint = new Complaint(
+                "CP-2026-HST001",
+                "Leaking Tap",
+                "Tap is leaking in room.",
+                "Hostel & Residence",
+                "Hostel Administration",
+                "student@college.edu",
+                "Aravali Hostel",
+                "A-102",
+                "1st Floor"
+        );
+
+        // Unauthorized viewer (anonymous or other student)
+        Complaint sanitized = complaint.copyForPublicTracking(false);
+        assertEquals("CP-2026-HST001", sanitized.getReferenceId());
+        assertEquals("Leaking Tap", sanitized.getTitle());
+        assertNull(sanitized.getHostelName(), "Hostel name must be stripped for unauthorized viewers");
+        assertNull(sanitized.getRoomNumber(), "Room number must be stripped for unauthorized viewers");
+        assertNull(sanitized.getFloorNumber(), "Floor number must be stripped for unauthorized viewers");
+
+        // Authorized viewer (owner or staff)
+        Complaint authorized = complaint.copyForPublicTracking(true);
+        assertEquals("Aravali Hostel", authorized.getHostelName());
+        assertEquals("A-102", authorized.getRoomNumber());
+        assertEquals("1st Floor", authorized.getFloorNumber());
+    }
+
+    @Test
+    @DisplayName("Existing complaints without hostel details remain readable and null-safe")
+    void existingComplaintsWithoutHostelDetailsRemainReadable() {
+        Complaint legacy = new Complaint(
+                "CP-2026-LEGACY01",
+                "Library Book Request",
+                "Need database textbooks.",
+                "Library & Study Spaces",
+                "Central Library Committee"
+        );
+
+        assertNull(legacy.getHostelName());
+        assertNull(legacy.getRoomNumber());
+        assertNull(legacy.getFloorNumber());
+    }
 }
 

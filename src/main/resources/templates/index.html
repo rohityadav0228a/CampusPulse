@@ -8,7 +8,7 @@
     <!-- Google Fonts for Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" th:href="@{/css/style.css}" href="../static/css/style.css">
 </head>
@@ -20,7 +20,7 @@
     <header class="site-header">
         <div class="container">
             <nav class="navbar" aria-label="Main Navigation">
-                <a href="#overview" class="brand-logo" id="nav-brand">
+                <a th:href="@{/}" href="/" class="brand-logo" id="nav-brand">
                     <span class="brand-icon-wrap" aria-hidden="true">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
@@ -29,15 +29,43 @@
                     <span class="brand-name">Campus<span class="brand-pulse">Pulse</span></span>
                 </a>
 
-                <ul class="nav-links">
+                <!-- Nav links: Anonymous -->
+                <ul class="nav-links" th:if="${!isAuthenticated}">
                     <li><a href="#overview" class="nav-link">Overview</a></li>
                     <li><a href="#lifecycle" class="nav-link">Resolution Flow</a></li>
                     <li><a href="#features" class="nav-link">Features</a></li>
                     <li><a href="#categories" class="nav-link">Categories</a></li>
-                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Registry</a></li>
+                    <li><a th:href="@{/complaints/new}" href="/complaints/new" class="nav-link">Submit Grievance</a></li>
                 </ul>
 
-                <div class="nav-actions">
+                <!-- Nav links: Student -->
+                <ul class="nav-links" th:if="${isStudent}">
+                    <li><a href="#overview" class="nav-link">Overview</a></li>
+                    <li><a th:href="@{/complaints/new}" href="/complaints/new" class="nav-link" id="nav-link-student-submit">Submit Grievance</a></li>
+                    <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link" id="nav-link-student-track">Track Status</a></li>
+                    <li><a th:href="@{/student/profile}" href="/student/profile" class="nav-link" id="nav-link-student-profile">My Profile</a></li>
+                    <li><a href="#categories" class="nav-link">Categories</a></li>
+                </ul>
+
+                <!-- Nav links: Admin -->
+                <ul class="nav-links" th:if="${isAdmin}">
+                    <li><a th:href="@{/admin/complaints}" href="/admin/complaints" class="nav-link" id="nav-link-admin-dashboard" style="color: var(--indigo-600); font-weight: 700;">Dashboard</a></li>
+                    <li><a th:href="@{/admin/analytics}" href="/admin/analytics" class="nav-link" id="nav-link-admin-analytics">Analytics</a></li>
+                    <li><a th:href="@{/admin/insights}" href="/admin/insights" class="nav-link" id="nav-link-admin-insights">AI Insights</a></li>
+                    <li><a th:href="@{/admin/users}" href="/admin/users" class="nav-link" id="nav-link-admin-users">Users &amp; Roles</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link" id="nav-link-admin-registry">Registry</a></li>
+                </ul>
+
+                <!-- Nav links: Moderator -->
+                <ul class="nav-links" th:if="${isModerator}">
+                    <li><a th:href="@{/moderator/complaints}" href="/moderator/complaints" class="nav-link" id="nav-link-moderator-dashboard" style="color: var(--violet-600); font-weight: 700;">Dashboard</a></li>
+                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link" id="nav-link-moderator-registry">Grievance Registry</a></li>
+                    <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link" id="nav-link-moderator-track">Track Status</a></li>
+                    <li><a href="#categories" class="nav-link">Categories</a></li>
+                </ul>
+
+                <!-- Nav actions: Anonymous -->
+                <div class="nav-actions" th:if="${!isAuthenticated}">
                     <a th:href="@{/complaints/track}" href="/complaints/track" class="btn btn-outline btn-sm" id="nav-track-btn">
                         Track Status
                     </a>
@@ -47,6 +75,71 @@
                     <a th:href="@{/login}" href="/login" class="btn btn-outline btn-sm" id="nav-admin-login-btn">
                         Admin Login
                     </a>
+                </div>
+
+                <!-- Nav actions: Student -->
+                <div class="nav-actions" th:if="${isStudent}" style="display: flex; align-items: center; gap: 0.65rem;">
+                    <a th:href="@{/student/profile}" class="user-welcome-badge student" id="nav-student-welcome" title="View Profile" style="text-decoration: none;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span th:text="${displayName}">Student</span>
+                    </a>
+                    <a th:href="@{/student/profile}" href="/student/profile" class="btn btn-outline btn-sm" id="nav-student-profile-btn">
+                        My Profile
+                    </a>
+                    <a th:href="@{/complaints/new}" href="/complaints/new" class="btn btn-primary btn-sm" id="nav-student-submit-btn">
+                        Submit Grievance
+                    </a>
+                    <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
+                        <button type="submit" class="btn btn-outline btn-sm btn-logout" id="btn-student-logout" style="color: #ef4444; border-color: #fca5a5;">
+                            Sign Out
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Nav actions: Admin -->
+                <div class="nav-actions" th:if="${isAdmin}" style="display: flex; align-items: center; gap: 0.65rem;">
+                    <span class="user-welcome-badge admin" id="nav-admin-welcome">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <span th:text="${displayName}">Admin</span>
+                    </span>
+                    <a th:href="@{/admin/complaints}" href="/admin/complaints" class="btn btn-primary btn-sm" id="nav-admin-dashboard-btn">
+                        Admin Dashboard
+                    </a>
+                    <a th:href="@{/admin/analytics}" href="/admin/analytics" class="btn btn-outline btn-sm" id="nav-admin-analytics-btn">
+                        Analytics
+                    </a>
+                    <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
+                        <button type="submit" class="btn btn-outline btn-sm btn-logout" id="btn-admin-logout" style="color: #ef4444; border-color: #fca5a5;">
+                            Sign Out
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Nav actions: Moderator -->
+                <div class="nav-actions" th:if="${isModerator}" style="display: flex; align-items: center; gap: 0.65rem;">
+                    <span class="user-welcome-badge moderator" id="nav-moderator-welcome">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        <span th:text="${displayName}">Moderator</span>
+                    </span>
+                    <a th:href="@{/moderator/complaints}" href="/moderator/complaints" class="btn btn-primary btn-sm" id="nav-moderator-dashboard-btn">
+                        Moderator Dashboard
+                    </a>
+                    <a th:href="@{/complaints}" href="/complaints" class="btn btn-outline btn-sm" id="nav-moderator-registry-btn">
+                        Registry
+                    </a>
+                    <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
+                        <button type="submit" class="btn btn-outline btn-sm btn-logout" id="btn-moderator-logout" style="color: #ef4444; border-color: #fca5a5;">
+                            Sign Out
+                        </button>
+                    </form>
                 </div>
             </nav>
         </div>
@@ -59,9 +152,13 @@
         <div class="container">
             <div class="hero-grid">
                 <div class="hero-content">
-                    <div class="hero-pill">
+                    <div class="hero-pill" th:if="${!isAuthenticated}">
                         <span class="hero-pill-dot" aria-hidden="true"></span>
                         <span>Campus Grievance &amp; Feedback Management System</span>
+                    </div>
+                    <div class="hero-pill" th:if="${isAuthenticated}">
+                        <span class="hero-pill-dot" aria-hidden="true" style="background-color: #10b981;"></span>
+                        <span>Welcome back, <strong th:text="${displayName}">User</strong> &bull; <span th:text="${currentUserRole}">STUDENT</span> Portal Active</span>
                     </div>
 
                     <h1 class="hero-title">
@@ -74,8 +171,8 @@
                         monitor resolution progress with real-time tracking, and enable campus administrators to review and address student feedback with accountability and SLA tracking.
                     </p>
 
-                    <!-- Three Prominent Authentication Options -->
-                    <div class="auth-options-grid" aria-label="Portal Access Options">
+                    <!-- Anonymous: Four Prominent Authentication Options -->
+                    <div class="auth-options-grid" th:if="${!isAuthenticated}" aria-label="Portal Access Options">
                         <!-- 1. Student Login -->
                         <div class="auth-portal-card" id="card-student-login">
                             <div class="auth-card-top">
@@ -137,10 +234,221 @@
                                 Admin Sign In &rarr;
                             </a>
                         </div>
+
+                        <!-- 4. Moderator Login -->
+                        <div class="auth-portal-card" id="card-moderator-login">
+                            <div class="auth-card-top">
+                                <div class="auth-card-icon moderator" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg>
+                                </div>
+                                <span class="auth-card-tag moderator">Moderator</span>
+                            </div>
+                            <h3 class="auth-card-title">Moderator Login</h3>
+                            <p class="auth-card-desc">
+                                Departmental staff and coordinators sign in to inspect and progress assigned grievances.
+                            </p>
+                            <a th:href="@{/login}" href="/login" class="btn btn-outline auth-card-btn" id="hero-moderator-login-cta">
+                                Moderator Sign In &rarr;
+                            </a>
+                        </div>
                     </div>
 
-                    <!-- Secondary Quick Actions -->
-                    <div class="hero-secondary-actions" aria-label="Quick Access Actions">
+                    <!-- Authenticated Student: Three Student Actions -->
+                    <div class="auth-options-grid" th:if="${isStudent}" aria-label="Student Portal Actions">
+                        <!-- 1. Submit Grievance -->
+                        <div class="auth-portal-card" id="card-student-submit">
+                            <div class="auth-card-top">
+                                <div class="auth-card-icon student" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 20h9"></path>
+                                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                                    </svg>
+                                </div>
+                                <span class="auth-card-tag student">Grievance</span>
+                            </div>
+                            <h3 class="auth-card-title">Submit Grievance</h3>
+                            <p class="auth-card-desc">
+                                File a new grievance with hostel details, smart AI category suggestion, and instant reference ID.
+                            </p>
+                            <a th:href="@{/complaints/new}" href="/complaints/new" class="btn btn-primary auth-card-btn" id="hero-student-submit-cta">
+                                Submit New Grievance &rarr;
+                            </a>
+                        </div>
+
+                        <!-- 2. Track Grievances -->
+                        <div class="auth-portal-card" id="card-student-track">
+                            <div class="auth-card-top">
+                                <div class="auth-card-icon register" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg>
+                                </div>
+                                <span class="auth-card-tag register">Tracking</span>
+                            </div>
+                            <h3 class="auth-card-title">Track Status</h3>
+                            <p class="auth-card-desc">
+                                Monitor real-time status progression, departmental updates, and provide resolution feedback.
+                            </p>
+                            <a th:href="@{/complaints/track}" href="/complaints/track" class="btn btn-outline auth-card-btn" id="hero-student-track-cta">
+                                Track Grievances &rarr;
+                            </a>
+                        </div>
+
+                        <!-- 3. Student Profile -->
+                        <div class="auth-portal-card" id="card-student-profile">
+                            <div class="auth-card-top">
+                                <div class="auth-card-icon admin" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                </div>
+                                <span class="auth-card-tag admin">Account</span>
+                            </div>
+                            <h3 class="auth-card-title">My Profile</h3>
+                            <p class="auth-card-desc">
+                                View verified student identity, campus department affiliation, and update profile settings.
+                            </p>
+                            <a th:href="@{/student/profile}" href="/student/profile" class="btn btn-outline auth-card-btn" id="hero-student-profile-cta">
+                                Manage Profile &rarr;
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Authenticated Admin: Three Admin Actions -->
+                    <div class="auth-options-grid" th:if="${isAdmin}" aria-label="Administrator Portal Actions">
+                        <!-- 1. Admin Complaint Dashboard -->
+                        <div class="auth-portal-card" id="card-admin-complaints">
+                            <div class="auth-card-top">
+                                <div class="auth-card-icon admin" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                </div>
+                                <span class="auth-card-tag admin">Dashboard</span>
+                            </div>
+                            <h3 class="auth-card-title">Complaints Dashboard</h3>
+                            <p class="auth-card-desc">
+                                Review student grievances, triage priorities, assign departments, and track SLA escalations.
+                            </p>
+                            <a th:href="@{/admin/complaints}" href="/admin/complaints" class="btn btn-primary auth-card-btn" id="hero-admin-complaints-cta">
+                                Open Dashboard &rarr;
+                            </a>
+                        </div>
+
+                        <!-- 2. Grievance Analytics -->
+                        <div class="auth-portal-card" id="card-admin-analytics">
+                            <div class="auth-card-top">
+                                <div class="auth-card-icon register" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                                    </svg>
+                                </div>
+                                <span class="auth-card-tag register">Analytics</span>
+                            </div>
+                            <h3 class="auth-card-title">Grievance Analytics</h3>
+                            <p class="auth-card-desc">
+                                Interactive category and status distribution charts, department workloads, and volume trends.
+                            </p>
+                            <a th:href="@{/admin/analytics}" href="/admin/analytics" class="btn btn-outline auth-card-btn" id="hero-admin-analytics-cta">
+                                View Analytics &rarr;
+                            </a>
+                        </div>
+
+                        <!-- 3. Manage Users & Roles -->
+                        <div class="auth-portal-card" id="card-admin-users">
+                            <div class="auth-card-top">
+                                <div class="auth-card-icon student" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="9" cy="7" r="4"></circle>
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                    </svg>
+                                </div>
+                                <span class="auth-card-tag student">Governance</span>
+                            </div>
+                            <h3 class="auth-card-title">Manage Users</h3>
+                            <p class="auth-card-desc">
+                                Inspect user accounts, provision department moderators, and inspect role audit logs.
+                            </p>
+                            <a th:href="@{/admin/users}" href="/admin/users" class="btn btn-outline auth-card-btn" id="hero-admin-users-cta">
+                                Manage Users &rarr;
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Authenticated Moderator: Three Moderator Actions -->
+                    <div class="auth-options-grid" th:if="${isModerator}" aria-label="Moderator Portal Actions">
+                        <!-- 1. Moderator Dashboard -->
+                        <div class="auth-portal-card" id="card-moderator-complaints">
+                            <div class="auth-card-top">
+                                <div class="auth-card-icon moderator" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg>
+                                </div>
+                                <span class="auth-card-tag moderator">Operations</span>
+                            </div>
+                            <h3 class="auth-card-title">Moderator Dashboard</h3>
+                            <p class="auth-card-desc">
+                                Review assigned departmental grievances, update resolution progress, and record investigation notes.
+                            </p>
+                            <a th:href="@{/moderator/complaints}" href="/moderator/complaints" class="btn btn-primary auth-card-btn" id="hero-moderator-complaints-cta">
+                                Open Dashboard &rarr;
+                            </a>
+                        </div>
+
+                        <!-- 2. Grievance Registry -->
+                        <div class="auth-portal-card" id="card-moderator-registry">
+                            <div class="auth-card-top">
+                                <div class="auth-card-icon student" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="3" y1="9" x2="21" y2="9"></line>
+                                        <line x1="9" y1="21" x2="9" y2="9"></line>
+                                    </svg>
+                                </div>
+                                <span class="auth-card-tag student">Registry</span>
+                            </div>
+                            <h3 class="auth-card-title">Public Registry</h3>
+                            <p class="auth-card-desc">
+                                Access the campus-wide complaint database with multi-field search and status filters.
+                            </p>
+                            <a th:href="@{/complaints}" href="/complaints" class="btn btn-outline auth-card-btn" id="hero-moderator-registry-cta">
+                                View Registry &rarr;
+                            </a>
+                        </div>
+
+                        <!-- 3. Student Tracker -->
+                        <div class="auth-portal-card" id="card-moderator-track">
+                            <div class="auth-card-top">
+                                <div class="auth-card-icon admin" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg>
+                                </div>
+                                <span class="auth-card-tag admin">Lookup</span>
+                            </div>
+                            <h3 class="auth-card-title">Track Status</h3>
+                            <p class="auth-card-desc">
+                                Look up complaint details by reference ID to review hostel specifics, history, and student feedback.
+                            </p>
+                            <a th:href="@{/complaints/track}" href="/complaints/track" class="btn btn-outline auth-card-btn" id="hero-moderator-track-cta">
+                                Track Complaint &rarr;
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Anonymous Secondary Actions -->
+                    <div class="hero-secondary-actions" th:if="${!isAuthenticated}" aria-label="Quick Access Actions">
                         <span class="secondary-actions-label">Quick Actions:</span>
                         <a th:href="@{/complaints/track}" href="/complaints/track" class="secondary-action-link" id="hero-track-btn">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -157,12 +465,97 @@
                             </svg>
                             Submit a Complaint
                         </a>
-                        <span class="action-divider" aria-hidden="true">&bull;</span>
-                        <a th:href="@{/complaints}" href="/complaints" class="secondary-action-link" id="hero-registry-btn">
+                    </div>
+
+                    <!-- Student Secondary Actions -->
+                    <div class="hero-secondary-actions" th:if="${isStudent}" aria-label="Student Quick Actions">
+                        <span class="secondary-actions-label">Quick Actions:</span>
+                        <a th:href="@{/complaints/new}" href="/complaints/new" class="secondary-action-link" id="hero-student-submit-quick">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M4 6h16M4 12h16M4 18h16"></path>
+                                <path d="M12 20h9"></path>
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
                             </svg>
-                            Public Registry
+                            Submit Grievance
+                        </a>
+                        <span class="action-divider" aria-hidden="true">&bull;</span>
+                        <a th:href="@{/complaints/track}" href="/complaints/track" class="secondary-action-link" id="hero-student-track-quick">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            Track My Grievance
+                        </a>
+                        <span class="action-divider" aria-hidden="true">&bull;</span>
+                        <a th:href="@{/student/profile}" href="/student/profile" class="secondary-action-link" id="hero-student-profile-quick">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            My Profile
+                        </a>
+                    </div>
+
+                    <!-- Admin Secondary Actions -->
+                    <div class="hero-secondary-actions" th:if="${isAdmin}" aria-label="Admin Quick Actions">
+                        <span class="secondary-actions-label">Admin Actions:</span>
+                        <a th:href="@{/admin/complaints}" href="/admin/complaints" class="secondary-action-link" id="hero-admin-dash-quick">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                            Dashboard
+                        </a>
+                        <span class="action-divider" aria-hidden="true">&bull;</span>
+                        <a th:href="@{/admin/analytics}" href="/admin/analytics" class="secondary-action-link" id="hero-admin-analytics-quick">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="20" x2="18" y2="10"></line>
+                                <line x1="12" y1="20" x2="12" y2="4"></line>
+                                <line x1="6" y1="20" x2="6" y2="14"></line>
+                            </svg>
+                            Analytics
+                        </a>
+                        <span class="action-divider" aria-hidden="true">&bull;</span>
+                        <a th:href="@{/admin/insights}" href="/admin/insights" class="secondary-action-link" id="hero-admin-insights-quick">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                            </svg>
+                            AI Insights
+                        </a>
+                        <span class="action-divider" aria-hidden="true">&bull;</span>
+                        <a th:href="@{/admin/users}" href="/admin/users" class="secondary-action-link" id="hero-admin-users-quick">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                            </svg>
+                            Manage Users
+                        </a>
+                    </div>
+
+                    <!-- Moderator Secondary Actions -->
+                    <div class="hero-secondary-actions" th:if="${isModerator}" aria-label="Moderator Quick Actions">
+                        <span class="secondary-actions-label">Moderator Actions:</span>
+                        <a th:href="@{/moderator/complaints}" href="/moderator/complaints" class="secondary-action-link" id="hero-mod-dash-quick">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                            Dashboard
+                        </a>
+                        <span class="action-divider" aria-hidden="true">&bull;</span>
+                        <a th:href="@{/complaints}" href="/complaints" class="secondary-action-link" id="hero-mod-reg-quick">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="3" y1="9" x2="21" y2="9"></line>
+                                <line x1="9" y1="21" x2="9" y2="9"></line>
+                            </svg>
+                            Registry
+                        </a>
+                        <span class="action-divider" aria-hidden="true">&bull;</span>
+                        <a th:href="@{/complaints/track}" href="/complaints/track" class="secondary-action-link" id="hero-mod-track-quick">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            Track Status
                         </a>
                     </div>
                 </div>
@@ -633,10 +1026,12 @@
                 <div>
                     <h3 class="footer-heading">Grievance Modules</h3>
                     <ul class="footer-links">
-                        <li><a th:href="@{/complaints/new}" href="/complaints/new" class="footer-link">Submit Complaint</a></li>
+                        <li><a th:href="@{/complaints/new}" href="/complaints/new" class="footer-link">Submit Grievance</a></li>
                         <li><a th:href="@{/complaints/track}" href="/complaints/track" class="footer-link">Track Complaint Status</a></li>
-                        <li><a th:href="@{/complaints}" href="/complaints" class="footer-link">Grievance Registry</a></li>
-                        <li><a th:href="@{/admin/complaints}" href="/admin/complaints" class="footer-link">Admin Review (Upcoming)</a></li>
+                        <li th:if="${isStudent}"><a th:href="@{/student/profile}" href="/student/profile" class="footer-link">Student Profile</a></li>
+                        <li th:if="${isAdmin}"><a th:href="@{/admin/complaints}" href="/admin/complaints" class="footer-link">Admin Dashboard</a></li>
+                        <li th:if="${isAdmin}"><a th:href="@{/admin/analytics}" href="/admin/analytics" class="footer-link">Grievance Analytics</a></li>
+                        <li th:if="${isModerator}"><a th:href="@{/moderator/complaints}" href="/moderator/complaints" class="footer-link">Moderator Dashboard</a></li>
                     </ul>
                     <p class="footer-note" style="margin-top: 1rem;">
                         College Project Implementation &bull; Spring Boot Application

@@ -13,6 +13,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Optional;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -21,6 +23,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -76,6 +79,51 @@ class PasswordResetControllerTest {
                 .andExpect(view().name("auth/forgot-password"))
                 .andExpect(content().string(containsString("Check Your Inbox")))
                 .andExpect(content().string(containsString("If an account exists for that email address")));
+    }
+
+    @Test
+    @DisplayName("GET /forgot-password as authenticated student renders form without redirect and prefills verified email")
+    void getForgotPasswordAsAuthenticatedStudentRendersForm() throws Exception {
+        Student student = new Student("Rohit", "rohit@college.edu", "STU1", "hash");
+        student.setRole("ROLE_STUDENT");
+        when(studentRepository.findByEmailIgnoreCase("rohit@college.edu")).thenReturn(Optional.of(student));
+
+        mockMvc.perform(get("/forgot-password")
+                        .with(user("rohit@college.edu").roles("STUDENT")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("auth/forgot-password"))
+                .andExpect(model().attributeExists("forgotPasswordForm"))
+                .andExpect(content().string(containsString("value=\"rohit@college.edu\"")))
+                .andExpect(content().string(containsString("Reset Your Password")));
+    }
+
+    @Test
+    @DisplayName("GET /forgot-password as authenticated moderator renders form without redirect and prefills verified email")
+    void getForgotPasswordAsAuthenticatedModeratorRendersForm() throws Exception {
+        Student mod = new Student("Moderator", "mod@college.edu", null, "hash");
+        mod.setRole("ROLE_MODERATOR");
+        when(studentRepository.findByEmailIgnoreCase("mod@college.edu")).thenReturn(Optional.of(mod));
+
+        mockMvc.perform(get("/forgot-password")
+                        .with(user("mod@college.edu").roles("MODERATOR")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("auth/forgot-password"))
+                .andExpect(model().attributeExists("forgotPasswordForm"))
+                .andExpect(content().string(containsString("value=\"mod@college.edu\"")))
+                .andExpect(content().string(containsString("Reset Your Password")));
+    }
+
+    @Test
+    @DisplayName("GET /forgot-password as authenticated admin renders form without redirect and does not prefill non-email username")
+    void getForgotPasswordAsAuthenticatedAdminRendersForm() throws Exception {
+        when(studentRepository.findByEmailIgnoreCase("admin")).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/forgot-password")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("auth/forgot-password"))
+                .andExpect(model().attributeExists("forgotPasswordForm"))
+                .andExpect(content().string(containsString("Reset Your Password")));
     }
 
     // =========================================================================

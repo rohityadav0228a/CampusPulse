@@ -8,7 +8,7 @@
     <!-- Google Fonts for Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <!-- CSRF Protection Meta for Asynchronous Requests -->
     <meta th:if="${_csrf != null}" name="_csrf" th:content="${_csrf.token}">
     <meta th:if="${_csrf != null}" name="_csrf_header" th:content="${_csrf.headerName}">
@@ -32,7 +32,6 @@
 
                 <ul class="nav-links">
                     <li><a th:href="@{/}" href="/" class="nav-link">Home</a></li>
-                    <li><a th:href="@{/complaints}" href="/complaints" class="nav-link">Grievance Registry</a></li>
                     <li><a th:href="@{/complaints/track}" href="/complaints/track" class="nav-link">Track Status</a></li>
                     <li><a th:href="@{/student/profile}" href="/student/profile" class="nav-link" id="nav-student-profile-link">My Profile</a></li>
                 </ul>
@@ -144,6 +143,86 @@
                         <div id="ai-suggestion-panel" class="ai-suggestion-panel" style="display: none;" role="region" aria-live="polite"></div>
                     </div>
 
+                    <!-- Dynamic Hostel Location Section (Displayed only when category is 'Hostel & Residence') -->
+                    <div id="hostel-fields-section"
+                         class="hostel-details-section"
+                         th:style="${complaintForm.category == 'Hostel & Residence'} ? 'display: block;' : 'display: none;'"
+                         role="region"
+                         aria-labelledby="hostel-section-title">
+
+                        <div class="hostel-section-header">
+                            <span class="hostel-section-icon" aria-hidden="true">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                                </svg>
+                            </span>
+                            <div>
+                                <h3 id="hostel-section-title" class="hostel-section-heading">Residential Location Details</h3>
+                                <p class="hostel-section-desc">Please specify your hostel room and floor so maintenance staff can inspect the problem promptly.</p>
+                            </div>
+                        </div>
+
+                        <div class="form-row-grid">
+                            <!-- Hostel Name Field -->
+                            <div class="form-group">
+                                <label for="hostelName" class="form-label">
+                                    Hostel Name <span class="required" aria-hidden="true">*</span>
+                                </label>
+                                <input type="text"
+                                       id="hostelName"
+                                       th:field="*{hostelName}"
+                                       class="form-control"
+                                       th:classappend="${#fields.hasErrors('hostelName')} ? 'is-invalid' : ''"
+                                       placeholder="e.g. Nilgiri Hostel or Hostel Block B"
+                                       maxlength="100"
+                                       aria-describedby="hostelName-hint hostelName-error">
+                                <span id="hostelName-hint" class="form-hint">Hostel or residence hall name (max 100 characters)</span>
+                                <div id="hostelName-error" class="form-error" th:if="${#fields.hasErrors('hostelName')}" th:errors="*{hostelName}">
+                                    Hostel name is required for hostel complaints.
+                                </div>
+                            </div>
+
+                            <!-- Floor Number Field -->
+                            <div class="form-group">
+                                <label for="floorNumber" class="form-label">
+                                    Floor Number <span class="required" aria-hidden="true">*</span>
+                                </label>
+                                <input type="text"
+                                       id="floorNumber"
+                                       th:field="*{floorNumber}"
+                                       class="form-control"
+                                       th:classappend="${#fields.hasErrors('floorNumber')} ? 'is-invalid' : ''"
+                                       placeholder="e.g. Ground Floor, 1, 2nd Floor, or Basement"
+                                       maxlength="30"
+                                       aria-describedby="floorNumber-hint floorNumber-error">
+                                <span id="floorNumber-hint" class="form-hint">Floor level (max 30 characters)</span>
+                                <div id="floorNumber-error" class="form-error" th:if="${#fields.hasErrors('floorNumber')}" th:errors="*{floorNumber}">
+                                    Floor number is required for hostel complaints.
+                                </div>
+                            </div>
+
+                            <!-- Room Number Field -->
+                            <div class="form-group">
+                                <label for="roomNumber" class="form-label">
+                                    Room Number <span class="required" aria-hidden="true">*</span>
+                                </label>
+                                <input type="text"
+                                       id="roomNumber"
+                                       th:field="*{roomNumber}"
+                                       class="form-control"
+                                       th:classappend="${#fields.hasErrors('roomNumber')} ? 'is-invalid' : ''"
+                                       placeholder="e.g. B-204"
+                                       maxlength="30"
+                                       aria-describedby="roomNumber-hint roomNumber-error">
+                                <span id="roomNumber-hint" class="form-hint">Room or unit number (max 30 characters)</span>
+                                <div id="roomNumber-error" class="form-error" th:if="${#fields.hasErrors('roomNumber')}" th:errors="*{roomNumber}">
+                                    Room number is required for hostel complaints.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Department Field -->
                     <div class="form-group">
                         <label for="department" class="form-label">
@@ -234,72 +313,7 @@
         </div>
     </footer>
 
-    <!-- Advisory AI Category Suggestion Styles & Script -->
-    <style>
-        .btn-ai-suggest {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.25rem 0.65rem;
-            font-size: 0.775rem;
-            font-weight: 600;
-            font-family: inherit;
-            color: var(--violet-600);
-            background-color: var(--violet-50);
-            border: 1px solid var(--violet-100);
-            border-radius: var(--radius-full);
-            cursor: pointer;
-            transition: all var(--transition-fast);
-        }
-        .btn-ai-suggest:hover:not(:disabled) {
-            background-color: var(--violet-100);
-            color: var(--violet-700);
-            border-color: var(--violet-500);
-            box-shadow: 0 2px 4px rgba(124, 58, 237, 0.15);
-        }
-        .btn-ai-suggest:disabled {
-            opacity: 0.65;
-            cursor: not-allowed;
-        }
-        .ai-suggestion-panel {
-            margin-top: 0.65rem;
-            padding: 0.75rem 0.95rem;
-            border-radius: var(--radius-md);
-            background: var(--slate-50);
-            border: 1px solid var(--slate-200);
-            font-size: 0.85rem;
-            line-height: 1.5;
-            transition: all var(--transition-normal);
-        }
-        .ai-suggestion-panel.is-success {
-            background: #f0fdf4;
-            border-color: #bbf7d0;
-            color: #166534;
-        }
-        .ai-suggestion-panel.is-warning {
-            background: #fffbeb;
-            border-color: #fde68a;
-            color: #92400e;
-        }
-        .ai-suggestion-panel.is-error {
-            background: #fef2f2;
-            border-color: #fecaca;
-            color: #991b1b;
-        }
-        .ai-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.15rem 0.5rem;
-            border-radius: var(--radius-full);
-            font-size: 0.72rem;
-            font-weight: 700;
-            margin-left: 0.35rem;
-        }
-        .ai-badge-success {
-            background: #dcfce7;
-            color: #15803d;
-        }
-    </style>
+    <!-- Advisory AI Category Suggestion Script -->
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -308,6 +322,35 @@
             const titleInput = document.getElementById('title');
             const descInput = document.getElementById('description');
             const categorySelect = document.getElementById('category');
+            const hostelSection = document.getElementById('hostel-fields-section');
+            const hostelNameInput = document.getElementById('hostelName');
+            const roomNumberInput = document.getElementById('roomNumber');
+            const floorNumberInput = document.getElementById('floorNumber');
+
+            function syncHostelVisibility(clearOnHide) {
+                if (!categorySelect || !hostelSection) return;
+                const isHostel = categorySelect.value === 'Hostel & Residence';
+                if (isHostel) {
+                    hostelSection.style.display = 'block';
+                } else {
+                    hostelSection.style.display = 'none';
+                    if (clearOnHide) {
+                        if (hostelNameInput) hostelNameInput.value = '';
+                        if (roomNumberInput) roomNumberInput.value = '';
+                        if (floorNumberInput) floorNumberInput.value = '';
+                    }
+                }
+            }
+
+            // Sync on page load (do not clear values so validation errors retain user input)
+            syncHostelVisibility(false);
+
+            // Listen to category change event (triggers for manual change & AI suggestion dispatch)
+            if (categorySelect) {
+                categorySelect.addEventListener('change', function () {
+                    syncHostelVisibility(true);
+                });
+            }
 
             if (!aiBtn || !aiPanel || !categorySelect) return;
 

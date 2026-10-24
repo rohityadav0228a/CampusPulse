@@ -19,100 +19,119 @@
 
 /* --- Design Tokens --- */
 :root {
-    /* Brand Primary Palette */
+    /* Brand Primary Palette - Midnight Indigo + Deep Ink */
     --navy-950: #0a1120;
-    --navy-900: #14213D;
+    --navy-900: #14213D;       /* Midnight Navy */
+    --deep-ink: #101828;       /* Deep Ink */
     --navy-850: #1a294b;
     --navy-800: #1e3056;
     --navy-700: #2b3f6c;
     --navy-600: #475569;
     --navy-500: #64748B;
 
-    /* Primary Indigo Action Color */
-    --indigo-700: #3730A3;
+    /* Primary Indigo Action Colors */
+    --indigo-700: #3730A3;       /* Deep Indigo */
     --indigo-600: #4338CA;
-    --indigo-500: #4F46E5;
+    --indigo-500: #4F46E5;       /* Primary Indigo */
     --indigo-400: #6366F1;
     --indigo-100: #E0E7FF;
-    --indigo-50:  #EEF2FF;
+    --indigo-50:  #EEF2FF;       /* Soft Indigo Surface */
 
-    /* Secondary Violet (AI Features & Accents) */
+    /* Secondary Violet (AI Features & Intelligence) */
     --violet-700: #6D28D9;
     --violet-600: #7C3AED;
     --violet-500: #8B5CF6;
     --violet-100: #EDE9FE;
     --violet-50:  #F5F3FF;
 
-    /* Neutral Canvas & Surfaces */
-    --bg-page: #F5F7FC;
-    --surface: #FFFFFF;
+    /* Canvas & Clean Surfaces - Warm Ivory Canvas + Pure White */
+    --bg-page: #F7F8FC;         /* Warm Ivory Page Background */
+    --surface: #FFFFFF;         /* Pure White Surface */
     --surface-hover: #F8FAFC;
-    --surface-muted: #F1F5F9;
+    --surface-muted: #F2F4F7;
+    --surface-subtle: #F9FAFB;
 
     /* Text Hierarchy */
-    --text-main: #172033;
-    --text-muted: #64748B;
-    --text-light: #94A3B8;
+    --text-main: #172033;       /* Primary Text */
+    --text-muted: #667085;      /* Secondary Text */
+    --text-light: #98A2B3;
     --text-white: #FFFFFF;
 
-    /* Borders & Lines */
-    --border-color: #E2E8F0;
-    --border-hover: #CBD5E1;
-    --border-dark: #94A3B8;
+    /* Subtle Borders & Dividers */
+    --border-color: #E4E7EC;    /* Subtle Border */
+    --border-hover: #D0D5DD;
+    --border-dark: #98A2B3;
 
-    /* Semantic Status */
-    --success: #15803D;
-    --success-bg: #DCFCE7;
-    --success-border: #BBF7D0;
+    /* Semantic Status Tokens (Strict Color Rules) */
+    --success: #15803D;         /* Success Green */
+    --success-bg: #ECFDF3;      /* Soft Success Background */
+    --success-border: #A6F4C5;
 
-    --warning: #B45309;
-    --warning-bg: #FEF3C7;
-    --warning-border: #FDE68A;
+    --warning: #B45309;         /* Warning Amber */
+    --warning-bg: #FFFAEB;      /* Soft Warning Background */
+    --warning-border: #FEDF89;
 
-    --danger: #B91C1C;
-    --danger-bg: #FEE2E2;
-    --danger-border: #FECACA;
+    --danger: #B42318;          /* Error Red */
+    --danger-bg: #FEF3F2;       /* Soft Error Background */
+    --danger-border: #FECDCA;
 
-    --info: #0369A1;
-    --info-bg: #E0F2FE;
-    --info-border: #BAE6FD;
+    --info: #175CD3;            /* Information Blue */
+    --info-bg: #EFF8FF;         /* Soft Information Background */
+    --info-border: #B2DDFF;
 
-    /* Typography Scale */
-    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    /* Two-Font Typography System */
+    --font-heading: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-    --font-hero: clamp(2.25rem, 5vw, 3.25rem);      /* 48-56px on desktop */
-    --font-page: clamp(1.65rem, 3.5vw, 2.125rem);   /* 30-36px */
-    --font-section: clamp(1.25rem, 2vw, 1.5rem);    /* 20-24px */
-    --font-card: clamp(1rem, 1.5vw, 1.1875rem);     /* 16-19px */
-    --font-body: 0.9375rem;                         /* 15px */
-    --font-label: 0.8125rem;                        /* 13px */
-    --font-meta: 0.75rem;                           /* 12px */
+    /* Typography Scale */
+    --font-hero: clamp(2.5rem, 5vw, 3.75rem);       /* Hero Display Heading */
+    --font-page: clamp(1.75rem, 3.5vw, 2.25rem);    /* Page Title */
+    --font-section: clamp(1.25rem, 2vw, 1.5rem);    /* Section Heading */
+    --font-card: clamp(1rem, 1.5vw, 1.1875rem);     /* Card Heading */
+    --font-body: 0.9375rem;                         /* 15px Body */
+    --font-label: 0.8125rem;                        /* 13px Label */
+    --font-meta: 0.75rem;                           /* 12px Metadata */
 
-    /* Radii */
-    --radius-sm: 8px;
-    --radius-md: 10px;       /* Form controls, buttons */
-    --radius-lg: 14px;       /* Cards, panels (12-16px range) */
-    --radius-xl: 18px;
+    /* Spacing Scale (4, 8, 12, 16, 24, 32, 48, 64px) */
+    --space-1: 0.25rem;   /* 4px */
+    --space-2: 0.5rem;    /* 8px */
+    --space-3: 0.75rem;   /* 12px */
+    --space-4: 1rem;      /* 16px */
+    --space-6: 1.5rem;    /* 24px */
+    --space-8: 2rem;      /* 32px */
+    --space-12: 3rem;     /* 48px */
+    --space-16: 4rem;     /* 64px */
+
+    /* Restrained Radius Scale */
+    --radius-xs: 4px;
+    --radius-sm: 8px;        /* Small controls, chips, tags */
+    --radius-md: 10px;       /* Form inputs, standard buttons */
+    --radius-lg: 14px;       /* Cards, table containers, panels */
+    --radius-xl: 18px;       /* Feature cards, hero panels */
+    --radius-2xl: 24px;      /* Large modal dialogs, standout hero */
     --radius-full: 9999px;
 
-    /* Shadows (Soft & Subtle Modern SaaS) */
-    --shadow-xs: 0 1px 2px 0 rgba(20, 33, 61, 0.04);
-    --shadow-sm: 0 1px 3px 0 rgba(20, 33, 61, 0.06), 0 1px 2px -1px rgba(20, 33, 61, 0.04);
-    --shadow-md: 0 4px 6px -1px rgba(20, 33, 61, 0.07), 0 2px 4px -2px rgba(20, 33, 61, 0.04);
-    --shadow-lg: 0 10px 15px -3px rgba(20, 33, 61, 0.08), 0 4px 6px -4px rgba(20, 33, 61, 0.04);
-    --shadow-card: 0 1px 3px rgba(20, 33, 61, 0.05), 0 1px 2px rgba(20, 33, 61, 0.03);
-    --shadow-card-hover: 0 10px 20px -5px rgba(20, 33, 61, 0.09), 0 4px 6px -2px rgba(20, 33, 61, 0.04);
-    --shadow-focus: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    /* Modern SaaS Shadows (Subtle, Layered, Non-Aggressive) */
+    --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+    --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+    --shadow-md: 0 4px 8px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
+    --shadow-lg: 0 12px 16px -4px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.03);
+    --shadow-xl: 0 20px 24px -4px rgba(16, 24, 40, 0.08), 0 8px 8px -4px rgba(16, 24, 40, 0.03);
+    --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+    --shadow-card-hover: 0 12px 20px -4px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.03);
+    --shadow-focus: 0 0 0 3px rgba(79, 70, 229, 0.18);
+    --shadow-focus-error: 0 0 0 3px rgba(180, 35, 24, 0.18);
 
     /* Transitions */
     --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 
-    /* Layout Max Width */
+    /* Layout Content Max Widths */
     --container-max: 1200px;
     --container-narrow: 860px;
+    --container-auth: 460px;
 }
 
 /* --- Base Reset & Typography --- */
@@ -137,6 +156,30 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    color: var(--navy-900);
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+    margin-bottom: 0.5rem;
+}
+
+h1 { font-size: var(--font-page); font-weight: 800; }
+h2 { font-size: var(--font-section); font-weight: 700; }
+h3 { font-size: var(--font-card); font-weight: 600; }
+h4 { font-size: 1rem; font-weight: 600; }
+h5 { font-size: 0.875rem; font-weight: 600; }
+h6 { font-size: 0.8125rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+
+p {
+    line-height: 1.6;
+    color: var(--text-main);
+}
+
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
 }
 
 a {
@@ -509,11 +552,11 @@ img, svg {
     max-width: 620px;
 }
 
-/* Auth Portals 3-Grid */
+/* Auth Portals Grid */
 .auth-options-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.15rem;
     margin-bottom: 1.75rem;
 }
 
@@ -569,6 +612,12 @@ img, svg {
     border: 1px solid var(--border-color);
 }
 
+.auth-card-icon.moderator {
+    background-color: var(--violet-50);
+    color: var(--violet-600);
+    border: 1px solid var(--violet-100);
+}
+
 .auth-card-tag {
     font-size: 0.7rem;
     font-weight: 700;
@@ -591,6 +640,41 @@ img, svg {
 .auth-card-tag.admin {
     background-color: var(--surface-muted);
     color: var(--navy-700);
+}
+
+.auth-card-tag.moderator {
+    background-color: var(--violet-50);
+    color: var(--violet-600);
+}
+
+/* User Welcome Badges in Navbar */
+.user-welcome-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.user-welcome-badge.student {
+    background-color: var(--indigo-50);
+    color: var(--indigo-700);
+    border: 1px solid var(--indigo-100);
+}
+
+.user-welcome-badge.admin {
+    background-color: var(--surface-muted);
+    color: var(--navy-900);
+    border: 1px solid var(--border-color);
+}
+
+.user-welcome-badge.moderator {
+    background-color: var(--violet-50);
+    color: var(--violet-700);
+    border: 1px solid var(--violet-100);
 }
 
 .auth-card-title {
@@ -1305,7 +1389,7 @@ textarea.form-control {
 select.form-control {
     cursor: pointer;
     appearance: none;
-    background-image: url("data:image/svg2+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
     background-repeat: no-repeat;
     background-position: right 0.85rem center;
     background-size: 16px;
@@ -2761,6 +2845,378 @@ select.form-control {
     font-size: 0.785rem;
     color: var(--navy-500);
     margin-top: 0.75rem;
+}
+
+/* ==========================================================================
+   Design System Components: Auth, Profile, Roles, Forms & AI
+   ========================================================================== */
+
+/* --- Authentication Layout & Modern Form Cards --- */
+.auth-page-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-page);
+}
+
+.auth-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8) var(--space-4);
+}
+
+.auth-container {
+    width: 100%;
+    max-width: var(--container-auth);
+    margin: 0 auto;
+}
+
+.auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-8) var(--space-6);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-normal);
+}
+
+.auth-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-md);
+    background-color: var(--indigo-50);
+    color: var(--indigo-600);
+    margin-bottom: var(--space-4);
+    border: 1px solid var(--indigo-100);
+    box-shadow: var(--shadow-xs);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: var(--space-6);
+}
+
+.auth-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--navy-900);
+    margin-bottom: var(--space-1);
+    letter-spacing: -0.025em;
+}
+
+.auth-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.auth-footer {
+    margin-top: var(--space-6);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.auth-links {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* --- Role Badges, User Governance & Stats --- */
+.role-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.role-pill.ROLE_STUDENT {
+    background-color: var(--info-bg);
+    color: var(--info);
+    border: 1px solid var(--info-border);
+}
+
+.role-pill.ROLE_MODERATOR {
+    background-color: var(--violet-50);
+    color: var(--violet-700);
+    border: 1px solid var(--violet-100);
+}
+
+.role-pill.ROLE_ADMIN {
+    background-color: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid var(--danger-border);
+}
+
+.role-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.role-stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.role-stat-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.role-stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.user-action-cell {
+    min-width: 280px;
+}
+
+.user-role-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.user-role-form-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* --- Student Profile System --- */
+.profile-container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.35fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.profile-card {
+    background-color: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.profile-header-banner {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+}
+
+.profile-avatar-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--navy-900) 0%, var(--indigo-600) 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    font-weight: 800;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+    flex-shrink: 0;
+}
+
+.field-lock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--navy-500);
+    background: var(--surface-muted);
+    padding: 0.15rem 0.45rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+.password-hint-box {
+    background-color: var(--surface-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1.15rem;
+    margin-top: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--navy-700);
+    line-height: 1.5;
+}
+
+.security-lock-icon {
+    display: inline-block;
+    vertical-align: middle;
+    color: var(--navy-500);
+}
+
+/* --- Complaint Form AI Suggestions & Dynamic Hostel Details --- */
+.btn-ai-suggest {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.775rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--violet-600);
+    background-color: var(--violet-50);
+    border: 1px solid var(--violet-100);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-ai-suggest:hover:not(:disabled) {
+    background-color: var(--violet-100);
+    color: var(--violet-700);
+    border-color: var(--violet-500);
+    box-shadow: 0 2px 4px rgba(124, 58, 237, 0.15);
+}
+
+.btn-ai-suggest:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.ai-suggestion-panel {
+    margin-top: 0.65rem;
+    padding: 0.75rem 0.95rem;
+    border-radius: var(--radius-md);
+    background: var(--surface-subtle);
+    border: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    transition: all var(--transition-normal);
+}
+
+.ai-suggestion-panel.is-success {
+    background: var(--success-bg);
+    border-color: var(--success-border);
+    color: var(--success);
+}
+
+.ai-suggestion-panel.is-warning {
+    background: var(--warning-bg);
+    border-color: var(--warning-border);
+    color: var(--warning);
+}
+
+.ai-suggestion-panel.is-error {
+    background: var(--danger-bg);
+    border-color: var(--danger-border);
+    color: var(--danger);
+}
+
+.ai-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-full);
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-left: 0.35rem;
+}
+
+.ai-badge-success {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.hostel-details-section {
+    background: var(--surface-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    transition: all var(--transition-normal);
+}
+
+.hostel-section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.hostel-section-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--violet-100);
+    color: var(--violet-700);
+    flex-shrink: 0;
+}
+
+.hostel-section-heading {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--navy-900);
+}
+
+.hostel-section-desc {
+    margin: 0.15rem 0 0 0;
+    font-size: 0.8rem;
+    color: var(--navy-600);
+}
+
+.form-row-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+/* --- Motion Reduction Preference --- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 /* --- Responsive Media Queries --- */

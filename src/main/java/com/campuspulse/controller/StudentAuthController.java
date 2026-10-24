@@ -52,20 +52,29 @@ public class StudentAuthController {
             Model model
     ) {
         if (authentication != null && authentication.isAuthenticated()
-                && !(authentication instanceof AnonymousAuthenticationToken)) {
+                && !(authentication instanceof AnonymousAuthenticationToken)
+                && !"anonymousUser".equals(authentication.getName())) {
             boolean isAdmin = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .anyMatch(r -> "ROLE_ADMIN".equals(r) || "ADMIN".equals(r));
             boolean isModerator = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .anyMatch(r -> "ROLE_MODERATOR".equals(r) || "MODERATOR".equals(r));
+            boolean isStudent = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch(r -> "ROLE_STUDENT".equals(r) || "STUDENT".equals(r)
+                            || (r != null && r.contains("STUDENT")));
             if (isAdmin) {
                 return "redirect:/admin/complaints";
             }
             if (isModerator) {
                 return "redirect:/moderator/complaints";
             }
-            return "redirect:/complaints/new";
+            if (isStudent) {
+                return "redirect:/complaints/new";
+            }
+            model.addAttribute("errorMessage", "Your account does not have authorization to access this portal.");
+            return "student/login";
         }
 
         if (error != null) {
@@ -91,7 +100,58 @@ public class StudentAuthController {
     @GetMapping("/register")
     public String registerForm(Authentication authentication, Model model) {
         if (authentication != null && authentication.isAuthenticated()
-                && !(authentication instanceof AnonymousAuthenticationToken)) {
+                && !(authentication instanceof AnonymousAuthenticationToken)
+                && !"anonymousUser".equals(authentication.getName())) {
+            boolean isAdmin = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch(r -> "ROLE_ADMIN".equals(r) || "ADMIN".equals(r));
+            boolean isModerator = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch(r -> "ROLE_MODERATOR".equals(r) || "MODERATOR".equals(r));
+            boolean isStudent = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch(r -> "ROLE_STUDENT".equals(r) || "STUDENT".equals(r)
+                            || (r != null && r.contains("STUDENT")));
+            if (isAdmin) {
+                return "redirect:/admin/complaints";
+            }
+            if (isModerator) {
+                return "redirect:/moderator/complaints";
+            }
+            if (isStudent) {
+                return "redirect:/complaints/new";
+            }
+            return "redirect:/login?error=unauthorized";
+        }
+
+        if (!model.containsAttribute("registerForm")) {
+            model.addAttribute("registerForm", new StudentRegisterForm());
+        }
+        return "student/register";
+    }
+
+    /**
+     * Processes student registration form submissions with validation and password confirmation.
+     * Authenticated users are prevented from creating unintended accounts.
+     *
+     * @param form validated registration form DTO
+     * @param bindingResult validation results
+     * @param authentication active authentication
+     * @param model Spring MVC model
+     * @param redirectAttributes flash attributes container
+     * @return redirect to login on success, or registration form on error
+     */
+    @PostMapping("/register")
+    public String processRegistration(
+            @Valid @ModelAttribute("registerForm") StudentRegisterForm form,
+            BindingResult bindingResult,
+            Authentication authentication,
+            Model model,
+            RedirectAttributes redirectAttributes
+    ) {
+        if (authentication != null && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken)
+                && !"anonymousUser".equals(authentication.getName())) {
             boolean isAdmin = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .anyMatch(r -> "ROLE_ADMIN".equals(r) || "ADMIN".equals(r));
@@ -107,28 +167,6 @@ public class StudentAuthController {
             return "redirect:/complaints/new";
         }
 
-        if (!model.containsAttribute("registerForm")) {
-            model.addAttribute("registerForm", new StudentRegisterForm());
-        }
-        return "student/register";
-    }
-
-    /**
-     * Processes student registration form submissions with validation and password confirmation.
-     *
-     * @param form validated registration form DTO
-     * @param bindingResult validation results
-     * @param model Spring MVC model
-     * @param redirectAttributes flash attributes container
-     * @return redirect to login on success, or registration form on error
-     */
-    @PostMapping("/register")
-    public String processRegistration(
-            @Valid @ModelAttribute("registerForm") StudentRegisterForm form,
-            BindingResult bindingResult,
-            Model model,
-            RedirectAttributes redirectAttributes
-    ) {
         if (!form.isPasswordMatching()) {
             bindingResult.rejectValue("confirmPassword", "error.registerForm", "Passwords do not match.");
         }

@@ -34,8 +34,11 @@ import com.campuspulse.model.ComplaintFeedback;
 import com.campuspulse.model.ComplaintStatus;
 import com.campuspulse.service.ComplaintFeedbackService;
 import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Optional;
@@ -167,6 +170,24 @@ public class ComplaintController {
             bindingResult.rejectValue("department", "error.department", "Please select a valid department from the list.");
         }
 
+        // Validate dynamic hostel fields when category is 'Hostel & Residence'
+        if ("Hostel & Residence".equals(complaintForm.getCategory())) {
+            if (complaintForm.getHostelName() == null || complaintForm.getHostelName().trim().isBlank()) {
+                bindingResult.rejectValue("hostelName", "error.hostelName", "Hostel name is required for hostel complaints.");
+            }
+            if (complaintForm.getRoomNumber() == null || complaintForm.getRoomNumber().trim().isBlank()) {
+                bindingResult.rejectValue("roomNumber", "error.roomNumber", "Room number is required for hostel complaints.");
+            }
+            if (complaintForm.getFloorNumber() == null || complaintForm.getFloorNumber().trim().isBlank()) {
+                bindingResult.rejectValue("floorNumber", "error.floorNumber", "Floor number is required for hostel complaints.");
+            }
+        } else {
+            // Non-hostel categories must not store hostel fields
+            complaintForm.setHostelName(null);
+            complaintForm.setRoomNumber(null);
+            complaintForm.setFloorNumber(null);
+        }
+
         // If validation errors are present, re-render form with error feedback
         if (bindingResult.hasErrors()) {
             return "complaints/form";
@@ -226,9 +247,11 @@ public class ComplaintController {
             @RequestParam(name = "referenceId", required = false) String referenceId,
             @RequestParam(name = "feedbackSuccess", required = false) Boolean feedbackSuccess,
             Model model,
+            HttpServletRequest request,
             Authentication authentication) {
 
-        boolean isAuthed = (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName()));
+        final Authentication auth = resolveAuthentication(authentication, request);
+        boolean isAuthed = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName()));
         model.addAttribute("isAuthenticated", isAuthed);
 
         if (Boolean.TRUE.equals(feedbackSuccess) && !model.containsAttribute("feedbackSuccessMessage")) {
@@ -259,21 +282,28 @@ public class ComplaintController {
         complaintService.getByReferenceId(normalizedRef)
                 .ifPresentOrElse(
                         complaint -> {
-                            model.addAttribute("complaint", complaint);
-                            model.addAttribute("statusHistory", complaintService.getStatusHistory(normalizedRef));
-
-                            // Feature 6: Check student ownership and resolution feedback status
+                            // Check student ownership and staff authorization
                             boolean isStudentOwner = false;
+                            boolean isStaff = false;
                             if (isAuthed) {
-                                String userEmail = authentication.getName();
-                                boolean hasStudentRole = authentication.getAuthorities().stream()
+                                String userEmail = auth.getName();
+                                boolean hasStudentRole = auth.getAuthorities().stream()
                                         .anyMatch(a -> "ROLE_STUDENT".equals(a.getAuthority()));
                                 if (hasStudentRole && userEmail != null && complaint.getStudentEmail() != null
                                         && userEmail.trim().equalsIgnoreCase(complaint.getStudentEmail().trim())) {
                                     isStudentOwner = true;
                                 }
+                                isStaff = auth.getAuthorities().stream()
+                                        .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_MODERATOR".equals(a.getAuthority()));
                             }
+                            boolean canViewHostelDetails = isStudentOwner || isStaff;
                             model.addAttribute("isOwner", isStudentOwner);
+                            model.addAttribute("canViewHostelDetails", canViewHostelDetails);
+
+                            // Server-side privacy protection: sanitize residential details for unauthorized viewers
+                            Complaint displayComplaint = canViewHostelDetails ? complaint : complaint.copyForPublicTracking(false);
+                            model.addAttribute("complaint", displayComplaint);
+                            model.addAttribute("statusHistory", complaintService.getStatusHistory(normalizedRef));
 
                             if (isStudentOwner && feedbackService != null) {
                                 boolean isResolvedAndActive = (complaint.getStatus() == ComplaintStatus.RESOLVED && !complaint.isDeleted());
@@ -377,5 +407,36 @@ public class ComplaintController {
                     "An unexpected error occurred while saving your feedback. Please try again.");
             return "redirect:/complaints/track?referenceId=" + referenceId;
         }
+    }
+
+    private Authentication resolveAuthentication(Authentication authentication, HttpServletRequest request) {
+        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
+            return authentication;
+        }
+        Authentication holderAuth = SecurityContextHolder.getContext().getAuthentication();
+        if (holderAuth != null && holderAuth.isAuthenticated() && !"anonymousUser".equals(holderAuth.getName())) {
+            return holderAuth;
+        }
+        if (request != null) {
+            if (request.getUserPrincipal() instanceof Authentication auth && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+                return auth;
+            }
+            Object reqContext = request.getAttribute("SPRING_SECURITY_CONTEXT");
+            if (reqContext instanceof SecurityContext sc && sc.getAuthentication() != null
+                    && sc.getAuthentication().isAuthenticated()
+                    && !"anonymousUser".equals(sc.getAuthentication().getName())) {
+                return sc.getAuthentication();
+            }
+            jakarta.servlet.http.HttpSession session = request.getSession(false);
+            if (session != null) {
+                Object sessionContext = session.getAttribute("SPRING_SECURITY_CONTEXT");
+                if (sessionContext instanceof SecurityContext sc && sc.getAuthentication() != null
+                        && sc.getAuthentication().isAuthenticated()
+                        && !"anonymousUser".equals(sc.getAuthentication().getName())) {
+                    return sc.getAuthentication();
+                }
+            }
+        }
+        return null;
     }
 }

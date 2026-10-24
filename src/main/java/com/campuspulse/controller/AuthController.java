@@ -30,7 +30,8 @@ public class AuthController {
             Model model
     ) {
         if (authentication != null && authentication.isAuthenticated()
-                && !(authentication instanceof AnonymousAuthenticationToken)) {
+                && !(authentication instanceof AnonymousAuthenticationToken)
+                && !"anonymousUser".equals(authentication.getName())) {
             boolean isAdmin = authentication.getAuthorities().stream()
                     .map(org.springframework.security.core.GrantedAuthority::getAuthority)
                     .anyMatch(r -> "ROLE_ADMIN".equals(r) || "ADMIN".equals(r));
@@ -43,10 +44,23 @@ public class AuthController {
             if (isModerator) {
                 return "redirect:/moderator/complaints";
             }
+            boolean isStudent = authentication.getAuthorities().stream()
+                    .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                    .anyMatch(r -> "ROLE_STUDENT".equals(r) || "STUDENT".equals(r)
+                            || (r != null && r.contains("STUDENT")));
+            if (isStudent) {
+                return "redirect:/complaints/new";
+            }
+            model.addAttribute("errorMessage", "Your account does not have authorization to access this portal.");
+            return "login";
         }
 
         if (error != null) {
-            model.addAttribute("errorMessage", "Invalid username or password. Please try again.");
+            if ("unauthorized".equalsIgnoreCase(error)) {
+                model.addAttribute("errorMessage", "Your account does not have authorization to access this portal.");
+            } else {
+                model.addAttribute("errorMessage", "Invalid username or password. Please try again.");
+            }
         }
         if (logout != null) {
             model.addAttribute("logoutMessage", "You have been successfully logged out.");

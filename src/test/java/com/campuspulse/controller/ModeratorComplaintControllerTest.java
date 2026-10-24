@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -280,5 +281,59 @@ class ModeratorComplaintControllerTest {
                 .andExpect(flash().attribute("errorMessage", containsString("Resolution note must not be blank")));
 
         verify(complaintService, never()).updateResolutionNote(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("GET /moderator/complaints/{referenceId} displays residential location details when present")
+    void shouldDisplayHostelDetailsWhenPresent() throws Exception {
+        Complaint c = new Complaint(
+                "CP-2026-MOD00004",
+                "Hostel Tap Leaking",
+                "Continuous drip in room bathroom.",
+                "Hostel & Residence",
+                "Hostel Administration",
+                "student@campus.edu",
+                "Hostel Block B",
+                "B-204",
+                "2nd Floor"
+        );
+        c.setId(4L);
+
+        when(complaintService.getByReferenceId("CP-2026-MOD00004")).thenReturn(Optional.of(c));
+        when(complaintService.getStatusHistory("CP-2026-MOD00004")).thenReturn(Collections.emptyList());
+        when(slaEscalationService.getEscalationAudits("CP-2026-MOD00004")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/moderator/complaints/CP-2026-MOD00004")
+                        .with(user("moderator@campus.edu").roles("MODERATOR")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("moderator/complaints/detail"))
+                .andExpect(content().string(containsString("Residential Location")))
+                .andExpect(content().string(containsString("Hostel Block B")))
+                .andExpect(content().string(containsString("B-204")))
+                .andExpect(content().string(containsString("2nd Floor")));
+    }
+
+    @Test
+    @DisplayName("GET /moderator/complaints/{referenceId} does not display residential location when hostel details are null")
+    void shouldNotDisplayHostelDetailsWhenNotPresent() throws Exception {
+        Complaint c = new Complaint(
+                "CP-2026-MOD00005",
+                "Library AC Noise",
+                "Loud humming noise from reading room vent.",
+                "Infrastructure & Labs",
+                "Campus Facilities & Works"
+        );
+        c.setId(5L);
+
+        when(complaintService.getByReferenceId("CP-2026-MOD00005")).thenReturn(Optional.of(c));
+        when(complaintService.getStatusHistory("CP-2026-MOD00005")).thenReturn(Collections.emptyList());
+        when(slaEscalationService.getEscalationAudits("CP-2026-MOD00005")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/moderator/complaints/CP-2026-MOD00005")
+                        .with(user("moderator@campus.edu").roles("MODERATOR")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("moderator/complaints/detail"))
+                .andExpect(content().string(containsString("Library AC Noise")))
+                .andExpect(content().string(not(containsString("Residential Location"))));
     }
 }

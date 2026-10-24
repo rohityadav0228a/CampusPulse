@@ -4,6 +4,7 @@ import com.campuspulse.dto.analytics.AnalyticsDashboardData;
 import com.campuspulse.dto.analytics.AnalyticsSummary;
 import com.campuspulse.dto.analytics.CategoryBreakdown;
 import com.campuspulse.dto.analytics.DepartmentBreakdown;
+import com.campuspulse.dto.analytics.StatusBreakdown;
 import com.campuspulse.model.ComplaintStatus;
 import com.campuspulse.repository.ComplaintRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -182,5 +183,106 @@ class AnalyticsServiceTest {
         assertThat(summary.getPending()).isEqualTo(0);
         assertThat(summary.getResolutionRate()).isEqualTo(100.0);
         assertThat(data.selectedStatus()).isEqualTo("RESOLVED");
+    }
+
+    @Test
+    @DisplayName("Status breakdown computes counts, percentages, and distinct colors for all statuses")
+    void shouldCalculateStatusBreakdownAccurately() {
+        when(complaintRepository.countWithFilters(any(), any(), any())).thenReturn(20L);
+        when(complaintRepository.countGroupByStatus(any(), any())).thenReturn(List.<Object[]>of(
+                new Object[]{ComplaintStatus.SUBMITTED, 5L},
+                new Object[]{ComplaintStatus.UNDER_REVIEW, 3L},
+                new Object[]{ComplaintStatus.IN_PROGRESS, 2L},
+                new Object[]{ComplaintStatus.RESOLVED, 10L}
+        ));
+        when(complaintRepository.countGroupByCategory(any(), any(), any())).thenReturn(Collections.emptyList());
+        when(complaintRepository.countGroupByDepartment(any(), any(), any())).thenReturn(Collections.emptyList());
+        when(complaintRepository.countDailyTrend(any(), any(), any())).thenReturn(Collections.emptyList());
+
+        AnalyticsDashboardData data = analyticsService.getAnalyticsData(null, null, 30);
+        List<StatusBreakdown> statusList = data.statusBreakdown();
+
+        assertThat(statusList).hasSize(4);
+
+        StatusBreakdown submitted = statusList.stream()
+                .filter(s -> s.status() == ComplaintStatus.SUBMITTED).findFirst().orElseThrow();
+        assertThat(submitted.count()).isEqualTo(5L);
+        assertThat(submitted.percentage()).isEqualTo(25.0);
+        assertThat(submitted.percentageFormatted()).isEqualTo("25.0%");
+        assertThat(submitted.color()).isEqualTo("#F59E0B");
+
+        StatusBreakdown resolved = statusList.stream()
+                .filter(s -> s.status() == ComplaintStatus.RESOLVED).findFirst().orElseThrow();
+        assertThat(resolved.count()).isEqualTo(10L);
+        assertThat(resolved.percentage()).isEqualTo(50.0);
+        assertThat(resolved.percentageFormatted()).isEqualTo("50.0%");
+        assertThat(resolved.color()).isEqualTo("#10B981");
+    }
+
+    @Test
+    @DisplayName("Category breakdown includes all predefined categories with designated colors")
+    void shouldIncludeAllAllowedCategoriesWithDesignatedColors() {
+        when(complaintRepository.countWithFilters(any(), any(), any())).thenReturn(10L);
+        when(complaintRepository.countGroupByStatus(any(), any())).thenReturn(Collections.emptyList());
+        when(complaintRepository.countGroupByCategory(any(), any(), any())).thenReturn(List.<Object[]>of(
+                new Object[]{"Hostel & Residence", 6L},
+                new Object[]{"Academic Affairs", 4L}
+        ));
+        when(complaintRepository.countGroupByDepartment(any(), any(), any())).thenReturn(Collections.emptyList());
+        when(complaintRepository.countDailyTrend(any(), any(), any())).thenReturn(Collections.emptyList());
+
+        AnalyticsDashboardData data = analyticsService.getAnalyticsData(null, null, 30);
+        List<CategoryBreakdown> categories = data.categoryBreakdown();
+
+        assertThat(categories).hasSize(6);
+
+        CategoryBreakdown hostel = categories.stream()
+                .filter(c -> "Hostel & Residence".equals(c.category())).findFirst().orElseThrow();
+        assertThat(hostel.count()).isEqualTo(6L);
+        assertThat(hostel.percentage()).isEqualTo(60.0);
+        assertThat(hostel.color()).isEqualTo("#7C3AED");
+
+        CategoryBreakdown academic = categories.stream()
+                .filter(c -> "Academic Affairs".equals(c.category())).findFirst().orElseThrow();
+        assertThat(academic.count()).isEqualTo(4L);
+        assertThat(academic.percentage()).isEqualTo(40.0);
+        assertThat(academic.color()).isEqualTo("#4F46E5");
+
+        CategoryBreakdown emptyCat = categories.stream()
+                .filter(c -> "Canteen & Dining".equals(c.category())).findFirst().orElseThrow();
+        assertThat(emptyCat.count()).isEqualTo(0L);
+        assertThat(emptyCat.percentage()).isEqualTo(0.0);
+        assertThat(emptyCat.percentageFormatted()).isEqualTo("0.0%");
+        assertThat(emptyCat.color()).isEqualTo("#EA580C");
+    }
+
+    @Test
+    @DisplayName("Empty dataset calculates 0 counts and 0.0% for category and status breakdown without error")
+    void shouldHandleEmptyDatasetInBreakdownsWithoutError() {
+        when(complaintRepository.countWithFilters(any(), any(), any())).thenReturn(0L);
+        when(complaintRepository.countGroupByStatus(any(), any())).thenReturn(Collections.emptyList());
+        when(complaintRepository.countGroupByCategory(any(), any(), any())).thenReturn(Collections.emptyList());
+        when(complaintRepository.countGroupByDepartment(any(), any(), any())).thenReturn(Collections.emptyList());
+        when(complaintRepository.countDailyTrend(any(), any(), any())).thenReturn(Collections.emptyList());
+
+        AnalyticsDashboardData data = analyticsService.getAnalyticsData(null, null, 30);
+
+        List<StatusBreakdown> statuses = data.statusBreakdown();
+        assertThat(statuses).hasSize(4);
+        for (StatusBreakdown sb : statuses) {
+            assertThat(sb.count()).isEqualTo(0L);
+            assertThat(sb.percentage()).isEqualTo(0.0);
+            assertThat(sb.percentageFormatted()).isEqualTo("0.0%");
+            assertThat(sb.color()).isNotBlank();
+        }
+
+        List<CategoryBreakdown> categories = data.categoryBreakdown();
+        assertThat(categories).hasSize(6);
+        for (CategoryBreakdown cb : categories) {
+            assertThat(cb.count()).isEqualTo(0L);
+            assertThat(cb.percentage()).isEqualTo(0.0);
+            assertThat(cb.percentageFormatted()).isEqualTo("0.0%");
+            assertThat(cb.color()).isNotBlank();
+        }
     }
 }
