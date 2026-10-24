@@ -27,6 +27,7 @@
 - [10. Step-by-Step Setup & Execution](#10-step-by-step-setup--execution)
   - [Step 1: Python AI Microservice Setup & Model Generation](#step-1-python-ai-microservice-setup--model-generation)
   - [Step 2: Spring Boot Application Execution](#step-2-spring-boot-application-execution)
+  - [Step 3: Docker & Multi-Container Deployment](#step-3-docker--multi-container-deployment)
 - [11. Authentication & Account Management](#11-authentication--account-management)
   - [Authentication-First Entry Flow & Landing Page (`/`)](#authentication-first-entry-flow--landing-page-)
   - [Administrator Account Setup](#administrator-account-setup)
@@ -34,7 +35,7 @@
   - [Student Registration & Sign-In](#student-registration--sign-in)
   - [Independent Multi-Role Testing (Student, Admin, Moderator)](#independent-multi-role-testing-student-admin-moderator)
 - [12. Running Test Suites](#12-running-test-suites)
-  - [Java Test Suite (529 Tests)](#java-test-suite-529-tests)
+  - [Java Test Suite (532 Tests)](#java-test-suite-532-tests)
   - [Python Test Suite (16 Tests)](#python-test-suite-16-tests)
 - [13. API Endpoints Reference](#13-api-endpoints-reference)
   - [Spring Boot Web & REST Routes](#spring-boot-web--rest-routes)
@@ -208,10 +209,15 @@ CampusPulse/
 ├── pom.xml                                    # Maven project configuration and dependencies
 ├── mvnw                                       # Maven wrapper shell script (macOS/Linux)
 ├── mvnw.cmd                                   # Maven wrapper batch script (Windows)
+├── Dockerfile                                 # Multi-stage production container build (Java 21 JRE)
+├── .dockerignore                              # Docker build context exclusion rules
+├── compose.yaml                               # Multi-container orchestration (App, MySQL 8, AI Service)
 ├── .env.example                               # Environment configuration template with safe placeholders
 ├── .gitignore                                 # Git exclusion rules (build, venv, secrets, artifacts)
+├── CONTRIBUTING.md                            # Open-source contribution and testing guidelines
 ├── README.md                                  # Complete technical documentation
 ├── ai-service/                                # Python NLP Microservice
+│   ├── Dockerfile                             # Production container build for FastAPI microservice
 │   ├── requirements.txt                       # Python dependencies (FastAPI, scikit-learn, etc.)
 │   ├── app/
 │   │   ├── __init__.py
@@ -249,6 +255,7 @@ CampusPulse/
     │   │   │   ├── AdminUserController.java
     │   │   │   ├── AuthController.java
     │   │   │   ├── ComplaintController.java
+    │   │   │   ├── HealthController.java
     │   │   │   ├── HomeController.java
     │   │   │   ├── ModeratorComplaintController.java
     │   │   │   ├── PasswordResetController.java
@@ -340,7 +347,7 @@ CampusPulse/
     │               ├── login.html             # Dedicated student login view
     │               ├── profile.html           # Student profile and complaint history
     │               └── register.html          # Student self-registration portal
-    └── test/java/com/campuspulse/             # Automated Java unit & integration tests (529 tests)
+    └── test/java/com/campuspulse/             # Automated Java unit & integration tests (532 tests)
 ```
 
 ---
@@ -349,12 +356,13 @@ CampusPulse/
 
 Verify that the following runtimes and developer tools are available on your system:
 
-| Tool | Minimum Version | Check Command |
-|---|---|---|
-| **Java JDK** | 21 (LTS) or higher | `java -version` |
-| **Python** | 3.10 or higher | `python3 --version` |
-| **MySQL Server** | 8.0 or higher | `mysql --version` |
-| **Git** | 2.30 or higher | `git --version` |
+| Tool | Minimum Version | Check Command | Purpose |
+|---|---|---|---|
+| **Java JDK** | 21 (LTS) or higher | `java -version` | Spring Boot backend runtime |
+| **Python** | 3.10 or higher | `python3 --version` | FastAPI AI category microservice |
+| **MySQL Server** | 8.0 or higher | `mysql --version` | Relational database (local execution) |
+| **Docker & Compose** | 24.0+ (Compose v2) | `docker compose version` | Containerized multi-service execution (recommended) |
+| **Git** | 2.30 or higher | `git --version` | Source control and release tagging |
 
 ---
 
@@ -511,6 +519,72 @@ All variables listed below are bound in [`application.properties`](file:///Users
    - **Admin Analytics:** [http://localhost:8080/admin/analytics](http://localhost:8080/admin/analytics)
    - **Admin AI Insights:** [http://localhost:8080/admin/insights](http://localhost:8080/admin/insights)
 
+### Step 3: Docker & Multi-Container Deployment
+
+> [!NOTE]
+> **CodeSandbox Browser Preview vs. Real Java 21 Runtime:**
+> When opening this repository in CodeSandbox by default, the preview URL (`https://<id>.csb.app/`) displays a blank loading screen. This occurs because CodeSandbox's default sandbox is an **in-browser JavaScript/WebAssembly client emulator** (BrowserFS). It searches for client-side JavaScript entry points (like `package.json` or `index.html` at the root) and does **not** provide an OpenJDK 21 JVM, Maven builder, or MySQL 8 daemon.
+> CampusPulse is an enterprise, server-side rendered (SSR) Java 21 / Spring Boot application. To run CampusPulse in cloud or containerized environments, use the verified Docker and Docker Compose workflows detailed below.
+
+#### Method A: Multi-Service Orchestration with Docker Compose (Recommended)
+
+CampusPulse includes a turnkey [`compose.yaml`](file:///Users/rohityadav/Projects/CampusPulse/compose.yaml) that provisions:
+1. **`db`**: MySQL 8.0 with persistent volume (`db_data`), health check (`mysqladmin ping`), and isolated internal networking.
+2. **`ai-service`**: Python FastAPI microservice with automated model generation.
+3. **`app`**: CampusPulse Spring Boot 4 application with health checks and startup dependency ordering (`service_healthy` on MySQL).
+
+```bash
+# 1. Prepare your local .env from template
+cp .env.example .env
+
+# 2. Build and start all three services in the background
+docker compose up --build -d
+
+# 3. Verify container health status
+docker compose ps
+
+# 4. Tail application logs
+docker compose logs -f app
+
+# 5. Stop services (preserving database volume)
+docker compose down
+```
+
+> [!TIP]
+> **Host Port Conflicts & Volume Persistence:**
+> - **Host Port Conflicts:** If port `3306`, `8080`, or `8000` is already occupied by a native local service on your host machine, set `DB_PORT=3307`, `PORT=8081`, or `AI_PORT=8001` in your `.env` file without altering `compose.yaml`.
+> - **Volume Persistence:** Running `docker compose down` gracefully terminates containers while preserving the persistent `db_data` volume and all database records. To perform a destructive purge of database data and force first-run initialization on the next boot, execute `docker compose down -v`.
+
+Once healthy, open [http://localhost:8080/](http://localhost:8080/) in your browser.
+
+#### Method B: Standalone Production Dockerfile Build
+
+You can build and deploy the standalone Spring Boot container to any OCI-compliant container platform (Render, Railway, Fly.io, AWS ECS, Google Cloud Run) connecting to an external or managed MySQL database:
+
+```bash
+# 1. Build the production multi-stage Docker image
+docker build -t campuspulse:latest .
+
+# 2. Run the container with external database connectivity
+docker run -d \
+  --name campuspulse-app \
+  -p 8080:8080 \
+  -e DB_URL="jdbc:mysql://<external-mysql-host>:3306/campuspulse_db?useSSL=true&serverTimezone=UTC" \
+  -e DB_USERNAME="campuspulse_app" \
+  -e DB_PASSWORD="YourStrongDatabasePassword" \
+  -e ADMIN_PASSWORD="YourStrongAdminPassword123!" \
+  campuspulse:latest
+```
+
+#### Health Check & Liveness Probes
+
+CampusPulse exposes dedicated, unauthenticated health endpoints configured in [`HealthController.java`](file:///Users/rohityadav/Projects/CampusPulse/src/main/java/com/campuspulse/controller/HealthController.java) for container orchestrators and cloud load balancers:
+
+| Endpoint | HTTP Method | Probe Type | Description | Expected Status |
+|---|---|---|---|---|
+| `/health/live` | `GET` | Liveness | Lightweight probe verifying web server and application responsiveness | `200 OK` (`{"status":"UP"}`) |
+| `/health` | `GET` | Readiness | Full readiness check executing `SELECT 1` against the database | `200 OK` (`{"status":"UP","database":"UP"}`) or `503 Service Unavailable` (`{"status":"DEGRADED","database":"DOWN"}`) |
+
 ---
 
 ## 11. Authentication & Account Management
@@ -614,7 +688,7 @@ To verify that role authorization and session lifecycles remain completely indep
 
 ## 12. Running Test Suites
 
-### Java Test Suite (529 Tests)
+### Java Test Suite (532 Tests)
 
 The Spring Boot test suite utilizes an embedded in-memory H2 database with mock mail and REST clients. **It does not require MySQL or the Python microservice to be running.**
 
@@ -623,7 +697,7 @@ The Spring Boot test suite utilizes an embedded in-memory H2 database with mock 
 ```
 
 **Verification Results:**
-- **Tests run:** 529
+- **Tests run:** 532
 - **Failures:** 0
 - **Errors:** 0
 - **Skipped:** 2
@@ -637,6 +711,7 @@ The Spring Boot test suite utilizes an embedded in-memory H2 database with mock 
 - `AdminComplaintControllerTest` & `AdminSecurityTest`: Strict role enforcement on `/admin/**`, CSRF token validation, and status updates.
 - `ModeratorComplaintControllerTest` & `ModeratorSecurityTest`: Moderator department queues, status transitions, and role isolation.
 - `HomeControllerTest` & `RoleBasedAuthenticationSuccessHandlerTest`: Authentication-first entry routing, public landing page anonymity, and role-based redirect dispatching.
+- `HealthControllerTest`: Container liveness probe (`/health/live`) and readiness probe (`/health`) with active database validation and 503 degraded fallback.
 - `UserManagementServiceTest` & `AdminUserManagementControllerTest`: Administrator role delegation, promotion/demotion between student, moderator, and admin roles, and active session revocation.
 - `BackNavigationTest`: Cache-Control, Pragma, and Expires non-cacheable security headers, page show bfcache re-authentication handling, and server-side authorization enforcement.
 - `PasswordResetControllerTest` & `PasswordResetServiceTest`: Token generation, SHA-256 token hashing, expiration checks, and single-use invalidation.
@@ -940,6 +1015,20 @@ The table below outlines the recommended screenshots to capture during demonstra
 - **Symptom:** Logging in as Admin in Tab B causes Tab A (Student) to become Admin, or logging out of one tab logs out all other open tabs.
 - **Cause:** In standard web browsers, all ordinary tabs within the same browser profile share a single cookie jar (RFC 6265). When a tab logs in or out, the server modifies the `JSESSIONID` cookie shared by every tab in that profile.
 - **Fix:** Do not test multiple roles using ordinary tabs in the same browser profile. Use **isolated browser profiles** (e.g. separate Chrome/Edge profiles), an **Incognito / InPrivate window**, or **Firefox Multi-Account Containers** as described in [Independent Multi-Role Testing](#independent-multi-role-testing-student-admin-moderator).
+
+### 6. Blank Screen in CodeSandbox Preview (`*.csb.app`)
+- **Symptom:** Opening the repository in CodeSandbox displays a blank preview URL (`https://<id>.csb.app/`) with `<div id="csb-loading-screen"></div>`.
+- **Cause:** CodeSandbox defaults to an **in-browser JavaScript/WebAssembly client sandbox** (BrowserFS). It searches for a client-side frontend project (`package.json`, static root `index.html`) and does not provision a Java 21 JDK, Maven builder, or MySQL 8 daemon.
+- **Fix:** CampusPulse is an enterprise, server-side rendered Java 21 / Spring Boot application. To run the application in cloud or container environments:
+  - Use the turnkey container orchestration: `docker compose up --build -d` (see [Step 3: Docker & Multi-Container Deployment](#step-3-docker--multi-container-deployment)).
+  - Or deploy to an OCI container platform (Render, Railway, Fly.io, AWS ECS) with a managed MySQL database instance.
+
+### 7. Container Database Connection Refused (`CommunicationsException` inside Docker)
+- **Symptom:** `CommunicationsException: Communications link failure` when running inside a Docker container.
+- **Cause:** Inside a Docker container, `localhost` or `127.0.0.1` refers to the container itself, not the host machine or MySQL container.
+- **Fix:**
+  - When using Docker Compose, set `DB_URL="jdbc:mysql://db:3306/campuspulse_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"` where `db` is the service name on the shared bridge network.
+  - When connecting to an external database (e.g. AWS RDS or Railway), set `DB_URL="jdbc:mysql://<host>:<port>/campuspulse_db?useSSL=true&serverTimezone=UTC"`.
 
 ---
 

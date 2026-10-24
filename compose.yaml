@@ -1,0 +1,112 @@
+# ==============================================================================
+# CampusPulse — Local & Containerized Deployment Compose File
+# Services: MySQL 8 Database, Spring Boot Web Application, FastAPI AI Service
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. MySQL 8 Database Service
+  # ----------------------------------------------------------------------------
+  db:
+    image: mysql:8.0
+    container_name: campuspulse-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: campuspulse_db
+      # SECURITY NOTICE: Fallback passwords below are strictly for predictable local development.
+      # In staging/production environments, strong passwords MUST be supplied via .env or hosting platform secrets.
+      MYSQL_USER: ${DB_USERNAME:-campuspulse_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-campuspulse_pass}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secure_pass}
+    volumes:
+      - db_data:/var/lib/mysql
+    # Expose only on loopback to avoid exposing database publicly; host port is configurable
+    ports:
+      - "127.0.0.1:${DB_PORT:-3306}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "${DB_USERNAME:-campuspulse_app}", "-p${DB_PASSWORD:-campuspulse_pass}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - campuspulse-net
+
+  # ----------------------------------------------------------------------------
+  # 2. CampusPulse Spring Boot 4 Web Application
+  # ----------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: campuspulse-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+        required: false
+    environment:
+      # Internal container networking: connects to 'db' hostname rather than localhost
+      DB_URL: "jdbc:mysql://db:3306/campuspulse_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+      # Fallback credentials match local development defaults; supply production credentials via platform secrets
+      DB_USERNAME: ${DB_USERNAME:-campuspulse_app}
+      DB_PASSWORD: ${DB_PASSWORD:-campuspulse_pass}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
+      MODERATOR_EMAIL: ${MODERATOR_EMAIL:-}
+      MODERATOR_PASSWORD: ${MODERATOR_PASSWORD:-}
+      MODERATOR_NAME: ${MODERATOR_NAME:-Campus Moderator}
+      MODERATOR_DEPARTMENT: ${MODERATOR_DEPARTMENT:-Grievance Redressal Cell}
+      AI_SERVICE_URL: "http://ai-service:8000"
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      PORT: 8080
+    ports:
+      - "${PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - campuspulse-net
+
+  # ----------------------------------------------------------------------------
+  # 3. CampusPulse AI NLP Microservice (Python FastAPI)
+  # ----------------------------------------------------------------------------
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: campuspulse-ai
+    restart: unless-stopped
+    # Expose only on loopback for direct host diagnostics if needed; host port is configurable
+    ports:
+      - "127.0.0.1:${AI_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - campuspulse-net
+
+# ------------------------------------------------------------------------------
+# Persistent Volumes & Private Network
+# ------------------------------------------------------------------------------
+volumes:
+  db_data:
+    driver: local
+
+networks:
+  campuspulse-net:
+    driver: bridge

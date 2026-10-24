@@ -1,0 +1,45 @@
+# ==============================================================================
+# Docker Build Context Exclusion Rules (.dockerignore)
+# ==============================================================================
+
+# Version control and repository metadata
+.git/
+.gitignore
+.github/
+
+# Environment files and credentials (CRITICAL SECURITY)
+.env
+.env.*
+!.env.example
+
+# Build outputs and temporary caches
+target/
+build/
+*.class
+
+# Python virtual environment and bytecode (ai-service)
+ai-service/.venv/
+ai-service/venv/
+ai-service/__pycache__/
+ai-service/*/__pycache__/
+ai-service/.pytest_cache/
+ai-service/.mypy_cache/
+ai-service/.ruff_cache/
+ai-service/models/*.joblib
+ai-service/models/*.pkl
+
+# IDE and editor files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.settings/
+.project/
+.classpath/
+
+# Operating system artifacts and logs
+.DS_Store
+Thumbs.db
+*.log
+docs/
