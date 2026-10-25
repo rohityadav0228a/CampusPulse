@@ -1,6 +1,6 @@
 # CampusPulse
 
-> **Institutional Grievance Redressal and Operations Intelligence Platform**  
+> **Institutional Grievance Redressal and Operations Intelligence Platform**
 > Built with **Java 21**, **Spring Boot 4**, **Spring Security**, **Thymeleaf**, **MySQL 8**, and an offline **Python FastAPI** microservice for local Machine Learning classification.
 
 ---
@@ -28,6 +28,7 @@
   - [Step 1: Python AI Microservice Setup & Model Generation](#step-1-python-ai-microservice-setup--model-generation)
   - [Step 2: Spring Boot Application Execution](#step-2-spring-boot-application-execution)
   - [Step 3: Docker & Multi-Container Deployment](#step-3-docker--multi-container-deployment)
+  - [Step 4: Deploy CampusPulse on Render (Cloud Production Blueprint)](#step-4-deploy-campuspulse-on-render-cloud-production-blueprint)
 - [11. Authentication & Account Management](#11-authentication--account-management)
   - [Authentication-First Entry Flow & Landing Page (`/`)](#authentication-first-entry-flow--landing-page-)
   - [Administrator Account Setup](#administrator-account-setup)
@@ -375,8 +376,8 @@ Verify that the following runtimes and developer tools are available on your sys
 
 2. Execute the following SQL commands to create the dedicated database schema and restricted application user:
    ```sql
-   CREATE DATABASE campuspulse_db 
-     CHARACTER SET utf8mb4 
+   CREATE DATABASE campuspulse_db
+     CHARACTER SET utf8mb4
      COLLATE utf8mb4_unicode_ci;
 
    CREATE USER 'campuspulse_app'@'localhost' IDENTIFIED BY 'REPLACE_WITH_STRONG_DB_PASSWORD';
@@ -386,7 +387,7 @@ Verify that the following runtimes and developer tools are available on your sys
    FLUSH PRIVILEGES;
    ```
 
-3. **Automatic Schema Migration:**  
+3. **Automatic Schema Migration:**
    CampusPulse uses Spring Data JPA with `spring.jpa.hibernate.ddl-auto=update`. When the application boots, Hibernate automatically inspects the entity models (`students`, `complaints`, `complaint_status_history`, `notification_outbox`, `escalation_audit`) and creates or updates all required tables, columns, indexes, and foreign keys.
 
 ---
@@ -584,6 +585,160 @@ CampusPulse exposes dedicated, unauthenticated health endpoints configured in [`
 |---|---|---|---|---|
 | `/health/live` | `GET` | Liveness | Lightweight probe verifying web server and application responsiveness | `200 OK` (`{"status":"UP"}`) |
 | `/health` | `GET` | Readiness | Full readiness check executing `SELECT 1` against the database | `200 OK` (`{"status":"UP","database":"UP"}`) or `503 Service Unavailable` (`{"status":"DEGRADED","database":"DOWN"}`) |
+
+---
+
+### Step 4: Deploy CampusPulse on Render (Cloud Production Blueprint)
+
+CampusPulse includes a turnkey infrastructure-as-code Blueprint specification in [`render.yaml`](file:///Users/rohityadav/Projects/CampusPulse/render.yaml) designed for containerized deployment on [Render](https://render.com).
+
+#### Cloud Architecture on Render
+
+```mermaid
+flowchart TD
+    subgraph InternetClients["Public Internet Clients"]
+        Browser["User Web Browser (HTTPS)"]
+    end
+
+    subgraph RenderPlatform["Render Cloud Platform"]
+        Edge["Render Edge Proxy / TLS Termination\n(https://campuspulse-web.onrender.com)"]
+
+        subgraph WebTier["Web Service (Public)"]
+            SpringApp["campuspulse-web\nSpring Boot 4 (Java 21)\nDocker: ./Dockerfile\nPort: $PORT (8080)"]
+        end
+
+        subgraph AITier["AI Service"]
+            FastAPI["campuspulse-ai\nPython 3.11 / FastAPI\nDocker: ./ai-service/Dockerfile\nPort: $PORT (8000)"]
+        end
+    end
+
+    subgraph ExternalServices["External Cloud Managed Services"]
+        MySQL["External Managed MySQL 8\n(Aiven / PlanetScale / Railway / AWS RDS)\nTLS Port: 3306"]
+        SMTP["External SMTP Relay\n(Gmail / SendGrid / AWS SES)\nSTARTTLS Port: 587"]
+    end
+
+    Browser -->|HTTPS :443| Edge
+    Edge -->|HTTP Forwarded Headers| SpringApp
+    SpringApp -->|JDBC over TLS| MySQL
+    SpringApp -->|Internal HTTP| FastAPI
+    SpringApp -.->|Optional SMTP| SMTP
+```
+
+#### Service Structure & Pricing Considerations
+
+| Service Name | Render Type | Runtime | Context | Public / Private | Free Tier Compatible? |
+|---|---|---|---|---|---|
+| **`campuspulse-web`** | `web` | `docker` | `.` | Public (`https://*.onrender.com`) | **Yes** (Free plan available) |
+| **`campuspulse-ai`** | `web` *(or `pserv`)* | `docker` | `./ai-service` | Internal communication | **Yes** (Free plan when type is `web`) |
+| **Database** | External Managed | MySQL 8 | Cloud Provider | Managed external host | Free-tier available via Aiven/Railway |
+
+> [!IMPORTANT]
+> **Managed MySQL Database Requirement:**
+> Render does **not** provide a native managed MySQL service (Render natively provides PostgreSQL and Redis only).
+> CampusPulse uses MySQL 8 dialect, indexes, and queries. To run CampusPulse in production, provision a managed MySQL instance with a cloud provider such as:
+> - **[Aiven for MySQL](https://aiven.io/mysql)** (Offers a free-tier managed MySQL instance with TLS support).
+> - **[Railway MySQL](https://railway.com/)** or **[PlanetScale](https://planetscale.com/)**.
+> - **[Clever Cloud MySQL](https://www.clever-cloud.com/)**.
+> - **AWS RDS MySQL** or **Google Cloud SQL**.
+
+#### Service Creation Order
+
+To avoid startup failures, follow this deployment sequence:
+1. **Step 1: Provision External MySQL Database.** Create your database instance and database schema (`campuspulse_db`). Copy the JDBC connection URL, username, and password.
+2. **Step 2: Deploy `campuspulse-ai` Microservice.** Deploy the Python microservice first so that its URL is available before the web application boots.
+3. **Step 3: Deploy `campuspulse-web` Application.** Supply the database credentials and the AI microservice URL as environment variables.
+
+---
+
+#### Method 1: Automated Blueprint Deployment via `render.yaml`
+
+1. Push your repository to GitHub.
+2. In the [Render Dashboard](https://dashboard.render.com), click **New +** &rarr; **Blueprint**.
+3. Connect your `CampusPulse` GitHub repository.
+4. Render will parse [`render.yaml`](file:///Users/rohityadav/Projects/CampusPulse/render.yaml) and prompt you for the required secret environment variables:
+   - `DB_URL`: Your external MySQL JDBC connection string (e.g. `jdbc:mysql://<host>:<port>/<db>?useSSL=true&requireSSL=true&serverTimezone=UTC`).
+   - `DB_USERNAME`: Database username.
+   - `DB_PASSWORD`: Database password.
+   - `ADMIN_PASSWORD`: Strong administrator password (minimum 8 characters; production fail-fast check enforces strong credentials).
+   - `AI_SERVICE_URL`: URL of the deployed AI service (On Render Free tier, provide the public HTTPS URL assigned to the service, e.g. `https://<ai-service-subdomain>.onrender.com`, as Free tier web services cannot receive incoming private network traffic; on paid plans with `pserv`, use `http://campuspulse-ai:8000`).
+5. Click **Apply**. Render will automatically build both container images and deploy the services.
+
+---
+
+#### Method 2: Manual Web Service Deployment in Render Dashboard
+
+If you prefer deploying services individually through the web UI:
+
+##### A. Deploy the AI Microservice (`campuspulse-ai`):
+1. In Render Dashboard, click **New +** &rarr; **Web Service**.
+2. Select your repository: `https://github.com/rohityadav0228a/CampusPulse`.
+3. Configure the settings:
+   - **Name:** `campuspulse-ai`
+   - **Region:** `Oregon (US West)` *(or your preferred region; keep all services in the same region)*
+   - **Language / Runtime:** `Docker`
+   - **Dockerfile Path:** `./ai-service/Dockerfile`
+   - **Docker Build Context:** `./ai-service`
+   - **Instance Type:** `Free`
+   - **Health Check Path:** `/health`
+4. Click **Create Web Service**. Wait for the build and training step to complete. Once deployed, copy the service URL (e.g. `https://campuspulse-ai.onrender.com`).
+
+##### B. Deploy the Main Java Web Application (`campuspulse-web`):
+1. In Render Dashboard, click **New +** &rarr; **Web Service**.
+2. Select your repository: `https://github.com/rohityadav0228a/CampusPulse`.
+3. Configure the settings:
+   - **Name:** `campuspulse-web`
+   - **Region:** Same region as AI service (`Oregon (US West)`)
+   - **Language / Runtime:** `Docker`
+   - **Dockerfile Path:** `./Dockerfile`
+   - **Docker Build Context:** `.` (root directory)
+   - **Instance Type:** `Free`
+   - **Health Check Path:** `/health/live`
+4. Add the following **Environment Variables** in the Render Dashboard:
+
+| Variable Name | Required? | Is Secret? | Description & Value Source |
+|---|---|---|---|
+| `PORT` | Auto | No | Render assigns this automatically (defaults to `8080` in container). |
+| `DB_URL` | **Yes** | **Yes** | `jdbc:mysql://<external-host>:<port>/<dbname>?useSSL=true&requireSSL=true&serverTimezone=UTC` |
+| `DB_USERNAME` | **Yes** | **Yes** | External MySQL database username |
+| `DB_PASSWORD` | **Yes** | **Yes** | External MySQL database password |
+| `DB_POOL_MAX_SIZE` | Optional | No | `10` (Limits HikariCP connections for free/shared databases) |
+| `DB_POOL_MIN_IDLE` | Optional | No | `2` |
+| `AI_SERVICE_URL` | **Yes** | No | AI service URL from Step A (e.g. `https://campuspulse-ai.onrender.com`) |
+| `ADMIN_USERNAME` | Optional | No | Default: `admin` |
+| `ADMIN_PASSWORD` | **Yes** | **Yes** | Plaintext admin password (auto-hashed with BCrypt on startup) |
+| `APP_BASE_URL` | **Yes** | No | `https://campuspulse-web.onrender.com` (Your public Render URL) |
+| `SMTP_HOST` | Optional | No | Outgoing SMTP host (e.g. `smtp.gmail.com`) |
+| `SMTP_PORT` | Optional | No | `587` |
+| `SMTP_USERNAME` | Optional | **Yes** | Sender email address |
+| `SMTP_PASSWORD` | Optional | **Yes** | 16-character Google App Password |
+| `MAIL_FROM` | Optional | No | Sender email address displayed to students |
+
+5. Click **Create Web Service**. Render will execute the multi-stage Maven build and launch the application.
+
+---
+
+#### Free-Tier Behavioral Notes & Limitations
+
+- **Inactivity Spin-Down:** On Render's Free tier, Web Services automatically spin down after 15 minutes of inactivity. When a new incoming HTTP request arrives, Render spins up the container. Cold starts typically take **30 to 50 seconds**.
+- **Private Services Pricing:** Render **Private Services (`pserv`) do not have a free tier** and require a paid Starter plan ($7/mo). For a 100% free-tier deployment, deploy both `campuspulse-web` and `campuspulse-ai` as **Web Services (`type: web`)** on the Free plan as configured in `render.yaml`.
+- **Database Sleep:** Some free database providers (like Railway or free-tier cloud instances) may pause after periods of inactivity. Ensure your database remains reachable or verify that the first request awakens it.
+
+---
+
+#### Troubleshooting Render Deployments
+
+1. **Database Connection Refused / Handshake Failure:**
+   - *Symptom:* `CommunicationsException: Communications link failure` or `SSLHandshakeException`.
+   - *Fix:* Ensure `useSSL=true&requireSSL=true` is included in `DB_URL`. Verify that your database provider allows incoming connections from all IP addresses (`0.0.0.0/0`) because Render's outbound traffic uses dynamic IP addresses.
+2. **Health Check Timeout during Deployment:**
+   - *Symptom:* Render logs `Health check failed` on `/health/live`.
+   - *Fix:* Verify that the health check path is set to `/health/live` (lightweight liveness probe) rather than `/health`. `/health/live` returns HTTP 200 immediately once Tomcat is listening, without depending on external database latency.
+3. **Redirect Loop or HTTP/HTTPS Mixed Content:**
+   - *Symptom:* After login, the browser attempts to redirect to `http://...` instead of `https://...`.
+   - *Fix:* CampusPulse includes `server.forward-headers-strategy=framework` in `application.properties`. This instructs Spring Boot and Tomcat to honor `X-Forwarded-Proto: https` forwarded by Render's edge load balancer.
+4. **AI Microservice Unavailable:**
+   - *Symptom:* Logs report `AI microservice connection or timeout error`.
+   - *Fix:* CampusPulse incorporates resilient error isolation in `AiClassifierService`. If the AI microservice is cold-starting, offline, or experiencing network latency, student complaint submission continues to function smoothly with manual category selection.
 
 ---
 
@@ -910,7 +1065,7 @@ Every modification to a complaint records a row in `complaint_status_history`:
 ## 15. AI Model Capabilities & Disclosure
 
 > [!NOTE]
-> **Academic & Technical Disclosure:**  
+> **Academic & Technical Disclosure:**
 > The CampusPulse AI categorization model is designed as an **offline, privacy-preserving proof-of-concept**.
 
 - **Model Architecture:** Scikit-learn `Pipeline` consisting of a `TfidfVectorizer` (unigrams + bigrams, sublinear TF scaling) followed by a `LogisticRegression` classifier (multinomial, L2 regularization).

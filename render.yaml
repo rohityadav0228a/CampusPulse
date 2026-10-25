@@ -1,0 +1,77 @@
+# ==============================================================================
+# CampusPulse — Render Infrastructure as Code (render.yaml)
+# Render Blueprint Specification: https://render.com/docs/blueprint-spec
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. CampusPulse Web Application (Java 21 / Spring Boot 4)
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: campuspulse-web
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health/live
+    envVars:
+      - key: PORT
+        value: "8080"
+      # AI Classifier Service URL
+      # On Render Free tier (both deployed as Web Services), free web services cannot receive incoming private network traffic.
+      # Set AI_SERVICE_URL to the actual public HTTPS URL assigned to campuspulse-ai by Render (e.g. https://<ai-service-subdomain>.onrender.com).
+      # If upgraded to a paid Starter plan with 'type: pserv', the private network URL http://campuspulse-ai:8000 can be used.
+      - key: AI_SERVICE_URL
+        sync: false
+      # External Managed MySQL Database Configuration
+      # Render does not provide native managed MySQL. Connect to an external MySQL provider (e.g., Aiven, PlanetScale, Railway, AWS RDS)
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # Connection pool size bounds for cloud MySQL
+      - key: DB_POOL_MAX_SIZE
+        value: "10"
+      - key: DB_POOL_MIN_IDLE
+        value: "2"
+      # Administrator Authentication (Provide strong password or let system auto-generate temporary password on startup)
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      # Application Public Base URL (e.g. https://campuspulse-web.onrender.com)
+      - key: APP_BASE_URL
+        sync: false
+      # Optional Outgoing SMTP Email Notifications (Gmail / SendGrid / AWS SES)
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+
+  # ----------------------------------------------------------------------------
+  # 2. CampusPulse AI Classifier (Python 3.11 / FastAPI Microservice)
+  # Note: Configured as 'type: web' to support Render's Free tier.
+  # For paid accounts desiring private-network-only access, change to 'type: pserv' and 'plan: starter'.
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: campuspulse-ai
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./ai-service/Dockerfile
+    dockerContext: ./ai-service
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "8000"

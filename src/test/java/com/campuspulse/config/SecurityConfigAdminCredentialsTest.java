@@ -182,4 +182,64 @@ class SecurityConfigAdminCredentialsTest {
                 .isInstanceOf(UsernameNotFoundException.class)
                 .hasMessageContaining("User not found");
     }
+
+    @Test
+    @DisplayName("Production mode fails fast when ADMIN_PASSWORD and ADMIN_PASSWORD_HASH are missing")
+    void productionFailsFastWhenCredentialsMissing() {
+        SecurityConfig prodConfig = new SecurityConfig() {
+            @Override
+            protected boolean isProductionEnvironment() {
+                return true;
+            }
+        };
+        ReflectionTestUtils.setField(prodConfig, "adminUsername", "admin");
+        ReflectionTestUtils.setField(prodConfig, "adminPassword", "");
+        ReflectionTestUtils.setField(prodConfig, "adminPasswordHash", "");
+        ReflectionTestUtils.setField(prodConfig, "studentRepository", studentRepository);
+
+        assertThatThrownBy(() -> prodConfig.userDetailsService(passwordEncoder))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Production deployment requires an explicitly configured ADMIN_PASSWORD or ADMIN_PASSWORD_HASH");
+    }
+
+    @Test
+    @DisplayName("Production mode fails fast when an insecure default password is configured")
+    void productionFailsFastWithInsecureDefaultPassword() {
+        String[] weakPasswords = {"admin", "password", "12345678", "admin123", "root", "short"};
+        for (String weakPassword : weakPasswords) {
+            SecurityConfig prodConfig = new SecurityConfig() {
+                @Override
+                protected boolean isProductionEnvironment() {
+                    return true;
+                }
+            };
+            ReflectionTestUtils.setField(prodConfig, "adminUsername", "admin");
+            ReflectionTestUtils.setField(prodConfig, "adminPassword", weakPassword);
+            ReflectionTestUtils.setField(prodConfig, "studentRepository", studentRepository);
+
+            assertThatThrownBy(() -> prodConfig.userDetailsService(passwordEncoder))
+                    .as("Password '%s' should be rejected in production", weakPassword)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("insecure");
+        }
+    }
+
+    @Test
+    @DisplayName("Production mode succeeds with a strong configured password")
+    void productionSucceedsWithStrongPassword() {
+        SecurityConfig prodConfig = new SecurityConfig() {
+            @Override
+            protected boolean isProductionEnvironment() {
+                return true;
+            }
+        };
+        ReflectionTestUtils.setField(prodConfig, "adminUsername", "admin");
+        ReflectionTestUtils.setField(prodConfig, "adminPassword", "A!Str0ng#ProdP@ssw0rd");
+        ReflectionTestUtils.setField(prodConfig, "studentRepository", studentRepository);
+
+        UserDetailsService userDetailsService = prodConfig.userDetailsService(passwordEncoder);
+        UserDetails admin = userDetailsService.loadUserByUsername("admin");
+        assertThat(admin).isNotNull();
+        assertThat(passwordEncoder.matches("A!Str0ng#ProdP@ssw0rd", admin.getPassword())).isTrue();
+    }
 }

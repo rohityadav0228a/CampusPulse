@@ -26,7 +26,7 @@ COPY src/ src/
 
 # Build production Spring Boot executable JAR (skipping test execution in image build)
 RUN ./mvnw clean package -DskipTests -B && \
-    mv target/campuspulse-*.jar target/app.jar
+    cp target/campuspulse-0.0.1-SNAPSHOT.jar target/app.jar
 
 # ------------------------------------------------------------------------------
 # Stage 2: Minimal Production Runtime
