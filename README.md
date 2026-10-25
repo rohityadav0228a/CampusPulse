@@ -21,10 +21,10 @@
 | Team Member | GitHub Profile | Responsibility | Contribution Notes |
 |---|---|---|---|
 | Rohit Yadav | [GitHub](https://github.com/rohityadav0228a) | Student Management & Authentication | Member 1 — Student Management & Authentication. Tasks: Student registration, login APIs, Spring Security setup, BCrypt hashing, profile management, password recovery tokens, and bulk CSV student imports. |
-| Rajat Chhapiya | Not provided | Complaint Management | Member 2 — Complaint Management. Tasks: Complaint filing, status lifecycle (Pending → Resolved), file attachments, AI prediction client integration, JPA specifications, and student feedback ratings. |
-| Rajat Kaushik | Not provided | Moderator & Admin Management | Member 3 — Moderator & Admin Management. Tasks: Department creation, moderator assignments, department-wise complaint queues, admin resolution overrides, bulk actions, and administrative CSV reporting. |
-| Raman Sharma | Not provided | AI/ML & AI Insights | Member 4 — AI/ML & AI Insights. Tasks: FastAPI service setup, NLTK text normalization, Linear SVM classification model, prediction endpoints (/predict), confidence thresholding, backlog forecasting, and Dockerization. |
-| Yashwant | Not provided | Analytics, Notifications & SLA | Member 5 — Analytics, Notifications & SLA. Tasks: SMTP email integration, database outbox queue pattern with exponential backoff retries, SLA target calculators (Asia/Kolkata), automated breach escalation checkers, and Chart.js admin KPI dashboards. |
+| Rajat Chhapiya | [GitHub](https://github.com/rajatchhapiya241311/campuspulse-complaint-core.git) | Complaint Management | Member 2 — Complaint Management. Tasks: Complaint filing, status lifecycle (Pending → Resolved), file attachments, AI prediction client integration, JPA specifications, and student feedback ratings. |
+| Rajat Kaushik | [GitHub](https://github.com/kaushik4491-byte/campuspulse-ai-service.git)| Moderator & Admin Management | Member 3 — Moderator & Admin Management. Tasks: Department creation, moderator assignments, department-wise complaint queues, admin resolution overrides, bulk actions, and administrative CSV reporting. |
+| Raman Sharma | [GitHub](https://github.com/ramansharma2121/campuspulse-admin-moderator.git)| AI/ML & AI Insights | Member 4 — AI/ML & AI Insights. Tasks: FastAPI service setup, NLTK text normalization, Linear SVM classification model, prediction endpoints (/predict), confidence thresholding, backlog forecasting, and Dockerization. |
+| Yashmant | [GitHub] | Analytics, Notifications & SLA | Member 5 — Analytics, Notifications & SLA. Tasks: SMTP email integration, database outbox queue pattern with exponential backoff retries, SLA target calculators (Asia/Kolkata), automated breach escalation checkers, and Chart.js admin KPI dashboards. |
 
 ---
 
