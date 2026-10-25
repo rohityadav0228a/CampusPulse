@@ -334,8 +334,8 @@ public class NotificationService {
                     savedOutbox.getReferenceId(), maskEmail(savedOutbox.getRecipientEmail()));
             return outboxRepository.save(savedOutbox);
         } catch (Exception ex) {
-            log.warn("Immediate submission confirmation email delivery failed for referenceId={} (marked for backoff retry): {}",
-                    savedOutbox.getReferenceId(), ex.getMessage());
+            log.error("Immediate submission confirmation email delivery failed for recipient={} referenceId={}: {}",
+                    maskEmail(savedOutbox.getRecipientEmail()), savedOutbox.getReferenceId(), ex.getMessage(), ex);
             savedOutbox.setLastAttemptedAt(LocalDateTime.now());
             savedOutbox.setAttemptCount(1);
             savedOutbox.setLastError(truncateError(ex.getMessage()));
