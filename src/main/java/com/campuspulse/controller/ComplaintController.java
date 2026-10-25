@@ -137,9 +137,17 @@ public class ComplaintController {
      * @return template name for complaint form
      */
     @GetMapping("/new")
-    public String showComplaintForm(Model model) {
+    public String showComplaintForm(Model model, Authentication auth) {
         if (!model.containsAttribute("complaintForm")) {
-            model.addAttribute("complaintForm", new ComplaintForm());
+            ComplaintForm form = new ComplaintForm();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+                boolean isStudent = auth.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_STUDENT".equals(a.getAuthority()));
+                if (isStudent && auth.getName() != null && auth.getName().contains("@")) {
+                    form.setStudentEmail(auth.getName().trim());
+                }
+            }
+            model.addAttribute("complaintForm", form);
         }
         return "complaints/form";
     }
@@ -150,13 +158,26 @@ public class ComplaintController {
      * @param complaintForm user submitted form inputs
      * @param bindingResult validation result container
      * @param model Spring MVC model
+     * @param auth authenticated principal if logged in
      * @return redirect to success page on success, or form view with errors
      */
     @PostMapping
     public String submitComplaint(
             @Valid @ModelAttribute("complaintForm") ComplaintForm complaintForm,
             BindingResult bindingResult,
-            Model model) {
+            Model model,
+            Authentication auth) {
+
+        // Auto-assign student email from authenticated session if not manually provided
+        if (complaintForm.getStudentEmail() == null || complaintForm.getStudentEmail().trim().isBlank()) {
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+                boolean isStudent = auth.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_STUDENT".equals(a.getAuthority()));
+                if (isStudent && auth.getName() != null && auth.getName().contains("@")) {
+                    complaintForm.setStudentEmail(auth.getName().trim());
+                }
+            }
+        }
 
         // Validate category against predefined allowed whitelist
         if (complaintForm.getCategory() != null && !complaintForm.getCategory().isBlank()

@@ -33,8 +33,8 @@ public class AiClassifierService {
     @org.springframework.beans.factory.annotation.Autowired
     public AiClassifierService(
             @Value("${campuspulse.ai.service-url:http://127.0.0.1:8000}") String aiServiceUrl,
-            @Value("${campuspulse.ai.connect-timeout-ms:2000}") int connectTimeoutMs,
-            @Value("${campuspulse.ai.read-timeout-ms:3000}") int readTimeoutMs,
+            @Value("${campuspulse.ai.connect-timeout-ms:25000}") int connectTimeoutMs,
+            @Value("${campuspulse.ai.read-timeout-ms:15000}") int readTimeoutMs,
             ComplaintService complaintService) {
         this(createRestClient(aiServiceUrl, connectTimeoutMs, readTimeoutMs), complaintService);
     }
@@ -45,12 +45,16 @@ public class AiClassifierService {
     }
 
     private static RestClient createRestClient(String baseUrl, int connectTimeoutMs, int readTimeoutMs) {
+        String normalizedBaseUrl = (baseUrl != null && !baseUrl.isBlank())
+                ? baseUrl.trim().replaceAll("/+$", "")
+                : "http://127.0.0.1:8000";
+
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofMillis(connectTimeoutMs));
         requestFactory.setReadTimeout(Duration.ofMillis(readTimeoutMs));
 
         return RestClient.builder()
-                .baseUrl(baseUrl)
+                .baseUrl(normalizedBaseUrl)
                 .requestFactory(requestFactory)
                 .build();
     }
