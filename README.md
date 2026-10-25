@@ -9,10 +9,10 @@
 
 | Document | Description | Link |
 |---|---|---|
-| 📄 SRS Document | Software Requirements Specification | Not provided |
-| 📊 Project Presentation | Project PPT | Not provided |
-| 📝 Research Paper | IEEE Research Paper | Not provided |
-| 📘 Project Report | Complete project report | Not provided |
+| 📄 SRS Document | Software Requirements Specification | [view] (https://drive.google.com/file/d/1ShUsJAaXyDX7PuUHYga12xxY9GIxNLEg/view?usp=drivesdk) |
+| 📊 Project Presentation | Project PPT | [view] (https://drive.google.com/file/d/1bOQxdn1E_YF5nUcrL46445UPcY4jcCEm/view?usp=drivesdk )|
+| 📝 Research Paper | IEEE Research Paper |[view] (https://drive.google.com/file/d/1bOQxdn1E_YF5nUcrL46445UPcY4jcCEm/view?usp=drivesdk )|
+| 📘 Project Report | Complete project report | [view] (https://drive.google.com/file/d/1_hjX2O9xvPJjdGU7sXNZAh10Q7m9SwkE/view?usp=drivesdk) |
 
 ---
 
