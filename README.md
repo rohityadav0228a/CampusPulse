@@ -4,6 +4,8 @@
 > Built with **Java 21**, **Spring Boot 4**, **Spring Security**, **Thymeleaf**, **MySQL 8**, and an offline **Python FastAPI** microservice for local Machine Learning classification.
 
 ---
+## LIVE DEMO
+| [VIEW] (https://campuspulse-web-vuwz.onrender.com)|
 
 ## 📚 Project Documentation
 
@@ -24,7 +26,7 @@
 | Rajat Chhapiya | [GitHub](https://github.com/rajatchhapiya241311/campuspulse-complaint-core.git) | Complaint Management | Member 2 — Complaint Management. Tasks: Complaint filing, status lifecycle (Pending → Resolved), file attachments, AI prediction client integration, JPA specifications, and student feedback ratings. |
 | Rajat Kaushik | [GitHub](https://github.com/kaushik4491-byte/campuspulse-ai-service.git)| Moderator & Admin Management | Member 3 — Moderator & Admin Management. Tasks: Department creation, moderator assignments, department-wise complaint queues, admin resolution overrides, bulk actions, and administrative CSV reporting. |
 | Raman Sharma | [GitHub](https://github.com/ramansharma2121/campuspulse-admin-moderator.git)| AI/ML & AI Insights | Member 4 — AI/ML & AI Insights. Tasks: FastAPI service setup, NLTK text normalization, Linear SVM classification model, prediction endpoints (/predict), confidence thresholding, backlog forecasting, and Dockerization. |
-| Yashmant | [GitHub] | Analytics, Notifications & SLA | Member 5 — Analytics, Notifications & SLA. Tasks: SMTP email integration, database outbox queue pattern with exponential backoff retries, SLA target calculators (Asia/Kolkata), automated breach escalation checkers, and Chart.js admin KPI dashboards. |
+| Yashmant | [GitHub] (https://github.com/robinpandat987-commits/yashmant2020)| Analytics, Notifications & SLA | Member 5 — Analytics, Notifications & SLA. Tasks: SMTP email integration, database outbox queue pattern with exponential backoff retries, SLA target calculators (Asia/Kolkata), automated breach escalation checkers, and Chart.js admin KPI dashboards. |
 
 ---
 
